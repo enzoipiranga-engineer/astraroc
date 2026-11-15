@@ -163,3 +163,73 @@ table.bodies { width: 100%; border-collapse: collapse; margin-bottom: 12px; font
 }
 .warn { margin: 4px 0; }
 footer.note { margin-top: 24px; text-align: center; }
+
+/* Fase 4: voo 3D, mapa de recuperação, vento, local */
+.flight-view { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+@media (max-width: 1000px) { .flight-view { grid-template-columns: 1fr; } }
+.globe-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.globe-head h2 { margin: 0; }
+.cams { display: flex; flex-wrap: wrap; gap: 4px; }
+.cams button { padding: 4px 8px; font-size: 12px; }
+.cams button.on, button.on { border-color: var(--cyan); background: rgba(56, 214, 255, 0.15); }
+.globe-wrap { position: relative; height: 520px; border-radius: 10px; overflow: hidden; background: #000; }
+@media (max-width: 640px) { .globe-wrap { height: 380px; } }
+.cesium { position: absolute; inset: 0; }
+.cesium.picking { cursor: crosshair; }
+.cesium .cesium-widget-credits { font-size: 10px; opacity: 0.7; }
+.hud {
+  position: absolute; top: 10px; left: 10px; min-width: 200px;
+  background: rgba(7, 11, 18, 0.72); border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 10px; font-family: var(--mono); font-size: 12px; backdrop-filter: blur(6px);
+}
+.hud-title { display: flex; gap: 8px; align-items: center; justify-content: space-between; color: var(--cyan); margin-bottom: 4px; }
+.hud-title select { padding: 2px 4px; font-size: 12px; }
+.hud dl { display: grid; grid-template-columns: auto auto; gap: 1px 12px; margin: 0; }
+.hud dt { color: var(--muted); }
+.hud dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.hud-phase { margin: 6px 0 0; color: var(--orange); font-family: var(--sans); max-width: 240px; }
+.hud-utc { margin: 2px 0 0; color: var(--muted); }
+.picked {
+  position: absolute; right: 10px; bottom: 10px; max-width: 340px;
+  background: rgba(7, 11, 18, 0.85); border: 1px solid var(--cyan); border-radius: 8px; padding: 8px 30px 8px 10px; font-size: 13px;
+}
+.picked button { position: absolute; top: 4px; right: 4px; padding: 0 6px; }
+.pick-hint { position: absolute; top: 10px; right: 10px; background: var(--orange); color: #1a0d00; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
+.timeline-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.timeline-bar .play { width: 40px; }
+.scrub { position: relative; flex: 1 1 200px; padding-bottom: 10px; }
+.scrub input { width: 100%; }
+.ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; }
+.tick { position: absolute; width: 3px; height: 8px; margin-left: -1px; background: var(--muted); cursor: pointer; }
+.tick.apogee { background: var(--cyan); }
+.tick.burnout { background: var(--orange); }
+.tick.ejection, .tick.deploy { background: #c084fc; }
+.tick.jointBroken, .tick.finLost, .tick.buckled, .tick.cordBroken, .tick.ejectionFailed, .tick.noExit { background: var(--bad); }
+.mono { font-family: var(--mono); color: var(--muted); font-size: 12px; }
+.colorby { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
+.recovery svg { width: 100%; height: auto; display: block; background: #0b1422; border-radius: 10px; }
+.recovery .ring { fill: none; stroke: rgba(130, 150, 173, 0.18); }
+.recovery .axis { stroke: rgba(130, 150, 173, 0.25); }
+.recovery .zone.keepOut { fill: rgba(255, 107, 107, 0.15); stroke: var(--bad); }
+.recovery .zone.landing { fill: rgba(74, 222, 128, 0.12); stroke: var(--good); }
+.recovery .pad { fill: #fff; }
+.recovery .apo { fill: var(--cyan); }
+.recovery .lbl { fill: var(--text); font-family: var(--sans); }
+.landings { padding-left: 18px; margin: 8px 0; }
+.wind-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+.wind-table th { color: var(--muted); font-weight: normal; font-size: 12px; text-align: left; }
+.wind-table td { padding: 2px 3px 2px 0; }
+.cell { width: 100%; padding: 3px 6px; font-family: var(--mono); }
+.x { padding: 0 8px; }
+.row-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.search { display: flex; gap: 6px; margin-bottom: 8px; }
+.search input { flex: 1; min-width: 0; }
+.places { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 3px; }
+.places button { width: 100%; text-align: left; }
+.places small { color: var(--muted); }
+.align-end { align-self: end; margin-bottom: 8px; }
+.zone-row { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+details summary { cursor: pointer; color: var(--muted); margin: 6px 0; }
+.results-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.results-head h2 { margin: 0; }
+.gps-import { margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

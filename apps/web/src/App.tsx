@@ -1,13 +1,29 @@
 import { CoreClient, type Design, type Material, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
 import { PartPanel } from "./components/PartPanel";
 import { Results } from "./components/Results";
 import { RocketView } from "./components/RocketView";
+import { RecoveryMap } from "./components/RecoveryMap";
 import { SetupPanel } from "./components/SetupPanel";
+import { SitePanel } from "./components/SitePanel";
+import { WindPanel } from "./components/WindPanel";
+import { download, toCsv, toKml } from "./export";
+import { parseTrack, type TrackPoint } from "./geo";
 import { commit, historyOf, loadSaved, redo, save, undo, type History } from "./state";
 import { fmt } from "./units";
+
+const GlobeView = lazy(() => import("./components/GlobeView").then((m) => ({ default: m.GlobeView })));
+
+const ION_KEY = "astra.ionToken";
+const readIon = () => {
+  try {
+    return localStorage.getItem(ION_KEY) ?? "";
+  } catch {
+    return "";
+  }
+};
 
 type Boot = { status: "loading" } | { status: "error"; message: string } | { status: "ready" };
 
@@ -28,6 +44,13 @@ export function App() {
   const [result, setResult] = useState<SimOutput | null>(null);
   const [flying, setFlying] = useState(false);
   const [version, setVersion] = useState("");
+  const [ionToken, setIonToken] = useState(readIon);
+  const [simTime, setSimTime] = useState(0);
+  const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [gps, setGps] = useState<TrackPoint[]>([]);
+  const onTime = useCallback((t: number) => setSimTime(t), []);
+  const pickAt = useCallback((t: number) => setSeek((s) => ({ t, n: (s?.n ?? 0) + 1 })), []);
   const seq = useRef(0);
 
   useEffect(() => {
@@ -70,6 +93,28 @@ export function App() {
     setHist((h) => (h ? commit(h, d) : h));
     setResult(null);
   }, []);
+  const pickLocation = useCallback(
+    (lat: number, lon: number) => {
+      setHist((h) => (h ? commit(h, { ...h.present, launch: { ...h.present.launch, latDeg: +lat.toFixed(6), lonDeg: +lon.toFixed(6) } }) : h));
+      setPicking(false);
+    },
+    [],
+  );
+  const saveIon = (t: string) => {
+    try {
+      if (t) localStorage.setItem(ION_KEY, t);
+      else localStorage.removeItem(ION_KEY);
+    } catch {
+      /* sem armazenamento: vale só nesta sessão */
+    }
+    setIonToken(t);
+  };
+  const importGps = async (f: File | undefined) => {
+    if (!f) return;
+    const pts = parseTrack(f.name, await f.text());
+    if (pts.length < 2) alert("Não encontrei pontos de GPS no arquivo (GPX, KML ou CSV lat,lon,alt).");
+    setGps(pts);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -161,13 +206,52 @@ export function App() {
         <div className="col">
           <JointPanel design={design} materials={materials} errorJoints={errorJoints} selectedPart={selected} onChange={change} />
           <SetupPanel design={design} onChange={change} />
+          <SitePanel design={design} onChange={change} picking={picking} onTogglePick={() => setPicking((p) => !p)} ionToken={ionToken} onIonToken={saveIon} />
         </div>
         <div className="col">
           <IssuesPanel issues={issues} busy={loadsBusy} onPick={setSelected} />
+          <WindPanel design={design} onChange={change} />
         </div>
       </div>
 
-      {result && <Results out={result} />}
+      {(result || picking) && (
+        <div className="flight-view">
+          <Suspense fallback={<section className="panel globe">Carregando o globo 3D…</section>}>
+            <GlobeView
+              design={design}
+              validation={validation}
+              out={result ?? { bodies: [], events: [], warnings: [] }}
+              gps={gps}
+              ionToken={ionToken}
+              seek={seek}
+              onTime={onTime}
+              pickMode={picking}
+              onPickLocation={pickLocation}
+            />
+          </Suspense>
+          {result && <RecoveryMap design={design} out={result} t={simTime} />}
+        </div>
+      )}
+      {result && (
+        <div className="gps-import">
+          <label className="button">
+            Sobrepor GPS real (GPX, KML, CSV)
+            <input type="file" accept=".gpx,.kml,.csv,.txt" hidden onChange={(e) => void importGps(e.target.files?.[0])} />
+          </label>
+          {gps.length > 0 && <span className="hint">{gps.length} pontos de GPS sobrepostos em amarelo.</span>}
+        </div>
+      )}
+      {result && (
+        <Results
+          out={result}
+          onPick={pickAt}
+          onExport={(k) =>
+            k === "kml"
+              ? download(`${design.name.replace(/[^\w-]+/g, "_")}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml")
+              : download(`${design.name.replace(/[^\w-]+/g, "_")}.csv`, toCsv(result), "text/csv")
+          }
+        />
+      )}
 
       <footer className="note">
         ASTRA {version} · ferramenta de estudo e projeto. Não substitui análise de segurança, autorização de espaço aéreo nem as normas de lançamento locais.

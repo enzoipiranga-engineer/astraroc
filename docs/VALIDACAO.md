@@ -64,6 +64,14 @@
 | Arrasto por peça soma o total; frente rombuda | Conservação | 1e-12 | Passa |
 | Mesmo fluxo pelo worker com o WASM real (exemplos, verificação, voo, coifa solta) | Vitest | — | Passa |
 | Interface no navegador: remover a junta da coifa, ver o aviso, lançar e ver a separação; celular sem rolagem lateral | `apps/web/e2e/smoke.cjs` (Playwright, manual) | — | Passa |
+| Convenção meteorológica do vento, interpolação e lei de potência | Definição | 1e-9 | Passa |
+| Turbulência: média nula e variância σ² por componente; mesma semente, mesmo campo | Estatística (200 mil pontos) | 25% na variância | Passa |
+| Hora sideral (exemplo 3-5 do Vallado) e data juliana | Vallado | 1e-5° | Passa |
+| Vento lateral: foguete estável vira contra o vento, perde altura, e sob paraquedas deriva na velocidade do vento | Física esperada | 0,3 m/s | Passa |
+| Trilho exatamente vertical começa com o eixo na vertical (regressão de um defeito de ortogonalização) | Definição | 1e-12 | Passa |
+| Projeto com vento, rajadas e data: deriva para o lado certo, latitude/longitude/eixo nas amostras, zona proibida acusada, voo determinístico | Consistência | — | Passa |
+| Conversão da resposta da Open-Meteo (hora certa, níveis abaixo do solo descartados), CSV de vento, GPX/KML/CSV de GPS | Vitest | — | Passa |
+| Globo 3D no navegador: HUD, reprodução, sete câmeras, clique no gráfico leva o tempo, mapa de recuperação | Playwright (manual, SwiftShader) | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 

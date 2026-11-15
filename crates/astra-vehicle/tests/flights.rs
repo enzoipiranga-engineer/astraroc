@@ -50,6 +50,7 @@ fn fly6(r: &Rocket, l: Launch, t_max: f64) -> (Result6, FlightSummary) {
         output_dt: 0.02,
         ode: opts(),
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let res = simulate6(&cfg).unwrap();
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();
@@ -69,6 +70,7 @@ fn fly3(r: &Rocket, l: Launch, t_max: f64) -> (Result3, FlightSummary) {
         output_dt: 0.02,
         ode: opts(),
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let res = simulate3(&cfg).unwrap();
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();
@@ -380,4 +382,69 @@ fn pet_bottle_flight_and_optimal_water() {
                 ..water
             })
     );
+}
+
+fn fly6_wind(r: &Rocket, l: Launch, wind: astra_env::Wind) -> Result6 {
+    let cfg = Config6 {
+        planet: Planet::EARTH,
+        atmosphere: ATM,
+        vehicle: r,
+        launch: l,
+        m0: r.mass(0.0),
+        initial_omega_body: Vec3::ZERO,
+        t_max: 600.0,
+        output_dt: 0.02,
+        ode: opts(),
+        wind,
+        start: None,
+    };
+    simulate6(&cfg).unwrap()
+}
+
+/// Vento lateral: o foguete estável vira contra o vento (apogeu deslocado para o lado de
+/// onde o vento vem) e o paraquedas deriva a favor do vento, com velocidade horizontal
+/// igual à do vento na descida.
+#[test]
+fn weathercocking_and_parachute_drift() {
+    let mut r = sport_rocket();
+    r.parachutes = vec![Parachute {
+        name: "p".into(),
+        cd_s: 1.0,
+        trigger: Trigger::AfterApogee { delay: 0.5 },
+        inflation_time: 0.3,
+        reef: None,
+    }];
+    let l = launch(-22.0, -49.0, 470.0, 2.0, 90.0);
+    // Vento de 6 m/s vindo do oeste (from = 270°): sopra para leste.
+    let wind = astra_env::Wind::constant(6.0, 270.0_f64.to_radians());
+    let res = fly6_wind(&r, l, wind);
+    let calm = fly6_wind(&r, l, astra_env::Wind::calm());
+    // Regressão: no trilho vertical o eixo do corpo começa exatamente na vertical.
+    let b0 = Planet::enu_basis(l.site.lat, l.site.lon);
+    assert!((calm.samples[0].q.rotate(Vec3::X).dot(b0.2) - 1.0).abs() < 1e-12);
+    let east = |n: &Nav| (n.lon - l.site.lon) * Planet::EARTH.re * l.site.lat.cos();
+    let apo = res.event(EventKind::Apogee).unwrap();
+    assert!(
+        east(&apo.nav) < -5.0,
+        "apogeu a {} m para leste: deveria estar a oeste (contra o vento)",
+        east(&apo.nav)
+    );
+    assert!(
+        apo.nav.alt < calm.event(EventKind::Apogee).unwrap().nav.alt,
+        "virar contra o vento custa altura"
+    );
+    let land = res.event(EventKind::Impact).unwrap();
+    assert!(
+        east(&land.nav) > east(&apo.nav) + 50.0,
+        "deriva a favor do vento na descida"
+    );
+    // Na descida estabilizada, a velocidade horizontal em relação ao solo ≈ vento.
+    let before = res
+        .samples
+        .iter()
+        .rev()
+        .find(|s| s.t < land.t - 2.0)
+        .unwrap();
+    let horizontal = (before.nav.ground_speed.powi(2) - before.nav.vertical_speed.powi(2)).sqrt();
+    assert!((horizontal - 6.0).abs() < 0.3, "horizontal {horizontal}");
 }

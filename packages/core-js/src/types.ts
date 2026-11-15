@@ -84,6 +84,21 @@ export type MotorSpec =
       aftStation: number;
     };
 
+export interface WindLayer {
+  /** Altura acima do solo, m. */
+  agl: number;
+  /** Velocidade, m/s. */
+  speed: number;
+  /** De onde o vento vem, graus a partir do norte. */
+  fromDeg: number;
+}
+
+export interface WindSpec {
+  layers: WindLayer[];
+  turbulence?: { sigma: number; length: number; seed: number } | null;
+  source?: string | null;
+}
+
 export interface LaunchSpec {
   latDeg: number;
   lonDeg: number;
@@ -92,6 +107,17 @@ export interface LaunchSpec {
   railElevationDeg: number;
   railAzimuthDeg: number;
   deltaT: number;
+  /** "AAAA-MM-DDThh:mm:ssZ" */
+  utc?: string | null;
+  wind: WindSpec;
+}
+
+export interface Zone {
+  name: string;
+  latDeg: number;
+  lonDeg: number;
+  radius: number;
+  kind: "keepOut" | "landing";
 }
 
 export interface Material {
@@ -125,6 +151,7 @@ export interface Design {
   safetyFactor: number;
   dragTable?: { powerOff: [number, number][]; powerOn: [number, number][] } | null;
   materials: Material[];
+  zones: Zone[];
 }
 
 export type Severity = "error" | "warning" | "info";
@@ -174,6 +201,12 @@ export const SAMPLE = {
   east: 7,
   alphaDeg: 8,
   mass: 9,
+  lat: 10,
+  lon: 11,
+  altMsl: 12,
+  axisX: 13,
+  axisY: 14,
+  axisZ: 15,
 } as const;
 
 export interface BodyTrack {

@@ -31,6 +31,7 @@ fn fly(rocket: &Rocket, launch: Launch, t_max: f64) -> Result<FlightSummary, Str
             ..Options::default()
         },
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let res = simulate6(&cfg).map_err(|e| e.to_string())?;
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();
@@ -208,6 +209,7 @@ fn main() -> ExitCode {
                             ..Options::default()
                         },
                         start: None,
+                        wind: astra_env::Wind::calm(),
                     };
                     simulate3(&cfg)
                         .ok()
@@ -274,6 +276,7 @@ fn main() -> ExitCode {
                 ..Options::default()
             },
             start: None,
+            wind: astra_env::Wind::calm(),
         };
         let res = simulate3(&cfg).map_err(|e| e.to_string())?;
         println!("t_s,alt_m,speed_m_s,vertical_speed_m_s,mach,q_dyn_Pa,lat_deg,lon_deg,mass_kg");

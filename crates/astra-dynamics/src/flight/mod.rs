@@ -12,7 +12,7 @@ pub use dof3::{simulate3, Config3, ConstantVehicle, PointVehicle, Result3, Sampl
 pub use dof6::{simulate6, Config6, Loads, MassProps, Result6, RigidVehicle, Sample6, Start6};
 
 use crate::ode::{integrate, Direction, EventSpec, OdeError, Options};
-use astra_env::{rot_z, AtmoState, AtmosphereModel, Geodetic, Planet};
+use astra_env::{rot_z, AtmoState, AtmosphereModel, Geodetic, Planet, Wind};
 use astra_math::Vec3;
 use core::f64::consts::PI;
 
@@ -171,9 +171,12 @@ pub struct Nav {
     pub lon: f64,
     /// Altitude acima do elipsoide, m.
     pub alt: f64,
-    /// Módulo da velocidade em relação à atmosfera (que gira com o planeta), m/s.
+    /// Módulo da velocidade em relação ao ar (atmosfera girando com o planeta, mais o
+    /// vento), m/s.
     pub speed: f64,
-    /// Componente vertical (geodésica) dessa velocidade, m/s.
+    /// Módulo da velocidade em relação ao solo, m/s.
+    pub ground_speed: f64,
+    /// Velocidade vertical (geodésica) em relação ao solo, m/s.
     pub vertical_speed: f64,
     /// Número de Mach (0 no vácuo).
     pub mach: f64,
@@ -207,6 +210,7 @@ pub(crate) struct World {
     pub planet: Planet,
     pub atmosphere: AtmosphereModel,
     pub launch: Launch,
+    pub wind: Wind,
 }
 
 pub(crate) fn v3<const N: usize>(y: &[f64; N], i: usize) -> Vec3 {
@@ -214,17 +218,27 @@ pub(crate) fn v3<const N: usize>(y: &[f64; N], i: usize) -> Vec3 {
 }
 
 impl World {
-    pub fn air(&self, r: Vec3, v: Vec3) -> AirData {
+    pub fn air(&self, t: f64, r: Vec3, v: Vec3) -> AirData {
         let geo = self.planet.ecef_to_geodetic(r);
         let atmo = self.atmosphere.at(geo.h);
-        let v_rel = v - self.planet.omega_vec().cross(r);
+        let (east, north, up) = Planet::enu_basis(geo.lat, geo.lon);
+        // Ar que gira com o planeta mais o vento local (leste, norte, cima → ECI). A
+        // turbulência é um campo congelado no referencial fixo à Terra.
+        let wind = if self.wind.is_calm() {
+            Vec3::ZERO
+        } else {
+            let w = self
+                .wind
+                .at(geo.h - self.launch.ground_h, rot_z(r, -self.theta(t)));
+            east * w.x + north * w.y + up * w.z
+        };
+        let v_rel = v - self.planet.omega_vec().cross(r) - wind;
         let speed = v_rel.norm();
         let mach = if atmo.sound_speed > 0.0 {
             speed / atmo.sound_speed
         } else {
             0.0
         };
-        let up = Planet::enu_basis(geo.lat, geo.lon).2;
         AirData {
             geo,
             atmo,
@@ -252,14 +266,16 @@ impl World {
     }
 
     pub fn nav(&self, t: f64, r: Vec3, v: Vec3) -> Nav {
-        let a = self.air(r, v);
+        let a = self.air(t, r, v);
         let lon = (a.geo.lon - self.theta(t) + PI).rem_euclid(2.0 * PI) - PI;
+        let v_ground = v - self.planet.omega_vec().cross(r);
         Nav {
             lat: a.geo.lat,
             lon,
             alt: a.geo.h,
             speed: a.speed,
-            vertical_speed: a.v_rel.dot(a.up),
+            ground_speed: v_ground.norm(),
+            vertical_speed: v_ground.dot(a.up),
             mach: a.mach,
             q_dyn: a.q_dyn,
         }
@@ -392,9 +408,10 @@ pub(crate) fn run_phases<const N: usize>(
         let (r0, u) = world.rail_eci(t);
         (v3(y, 0) - r0).dot(u) - rail_len
     };
-    let g_apogee = |_: f64, y: &[f64; N]| {
-        let a = world.air(v3(y, 0), v3(y, 3));
-        a.v_rel.dot(a.up)
+    let g_apogee = |t: f64, y: &[f64; N]| {
+        let a = world.air(t, v3(y, 0), v3(y, 3));
+        let r = v3(y, 0);
+        (v3(y, 3) - world.planet.omega_vec().cross(r)).dot(a.up)
     };
     let g_impact = |_: f64, y: &[f64; N]| world.planet.ecef_to_geodetic(v3(y, 0)).h - ground;
     let g_alt: Vec<Option<Box<EventFn<'_, N>>>> = sched

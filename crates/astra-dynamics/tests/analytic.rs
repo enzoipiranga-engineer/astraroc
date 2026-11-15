@@ -59,6 +59,7 @@ fn cfg3<'a>(
         output_dt: 0.1,
         ode: tight(),
         start: None,
+        wind: astra_env::Wind::calm(),
     }
 }
 
@@ -384,6 +385,7 @@ fn cfg6<'a>(
         output_dt: 0.1,
         ode: tight(),
         start: None,
+        wind: astra_env::Wind::calm(),
     }
 }
 
@@ -510,6 +512,7 @@ fn triggers_fire_at_the_right_moments() {
         output_dt: 0.1,
         ode: tight(),
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let r = simulate3(&c).unwrap();
     let kinds: Vec<EventKind> = r.events.iter().map(|e| e.0).collect();
@@ -646,6 +649,7 @@ fn limit_event_stops_and_restart_is_seamless() {
             output_dt: 0.1,
             ode: tight(),
             start,
+            wind: astra_env::Wind::calm(),
         }
     }
     let first = simulate6(&mk(p, l, &body, None)).unwrap();

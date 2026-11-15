@@ -59,7 +59,7 @@ astra/
 │  ├─ plugin-sdk/        Fase 6   contrato e sandbox de plugins de lançador
 │  └─ finance/           Fase 9   BOM, orçamento, câmbio (TypeScript puro)
 ├─ apps/
-│  ├─ web/               Fase 3   editor, verificação contínua, desenho, gráficos (feito)
+│  ├─ web/               Fase 3–4 editor, verificação contínua, gráficos, globo Cesium, mapa de recuperação (feito)
 │  └─ desktop/           Fase 12  Tauri
 ├─ data/                 Fase 2+  motores, materiais (materials.json), cada item com fonte
 ├─ docs/
@@ -114,3 +114,14 @@ ficam fisicamente corretas por construção.
   aleta que arranca, flutter e flambagem.
 - A verificação roda o mesmo voo sem parar nas falhas e registra a menor margem de cada
   limite, de onde saem os fatores de segurança mostrados na tela.
+
+## 8. Visualização multi-escala (Fase 4)
+
+- O globo (CesiumJS) é carregado sob demanda, só quando há um voo para mostrar, para o
+  editor continuar leve. Sem chave, usa a textura offline que vem com o Cesium; com a
+  chave do Cesium ion do usuário (guardada só no navegador), terreno 3D e satélite.
+- Cada amostra do núcleo já traz latitude, longitude, altitude e o eixo do corpo em
+  coordenadas fixas à Terra; o globo só interpola. A precisão fica no núcleo (f64); o
+  Cesium renderiza relativo à câmera e com buffer de profundidade logarítmico.
+- Vento real e busca de locais são chamadas do navegador à Open-Meteo; o resultado vira
+  dado do projeto (perfil de vento com a fonte anotada), e o núcleo continua sem E/S.

@@ -26,7 +26,7 @@ const bearing = (n: number, e: number) => {
   return names[Math.round(deg / 45) % 8];
 };
 
-export function Results({ out }: { out: SimOutput }) {
+export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((t: number) => void) | undefined; onExport?: ((kind: "kml" | "csv") => void) | undefined }) {
   const series = useMemo(() => {
     const pick = (col: number): Series[] =>
       out.bodies.map((b, i) => ({
@@ -45,7 +45,16 @@ export function Results({ out }: { out: SimOutput }) {
 
   return (
     <section className="panel results">
-      <h2>Resultado do voo</h2>
+      <div className="results-head">
+        <h2>Resultado do voo</h2>
+        {onExport && (
+          <div className="tools">
+            <button onClick={() => onExport("kml")}>KML (Google Earth)</button>
+            <button onClick={() => onExport("csv")}>Telemetria CSV</button>
+          </div>
+        )}
+      </div>
+      {onPick && <p className="note">Clique num gráfico para levar o voo 3D até aquele instante.</p>}
       {failures.length > 0 && (
         <p className="failure-banner">
           {failures.length === 1 ? "Houve uma falha física" : `Houve ${failures.length} falhas físicas`} no voo. Veja a linha do tempo.
@@ -54,6 +63,7 @@ export function Results({ out }: { out: SimOutput }) {
       <div className="cards">
         <div className="card"><b>{fmt(apogee, 0)} m</b><span>apogeu acima do solo</span></div>
         <div className="card"><b>{fmt(vmax, 0)} m/s</b><span>velocidade máxima (Mach {fmt(mmax, 2)})</span></div>
+        <div className="card"><b>{fmt(Math.max(...out.bodies.map((b) => b.landing ? Math.hypot(b.landing[2], b.landing[3]) : 0)), 0)} m</b><span>maior distância de pouso</span></div>
         <div className="card"><b>{out.bodies.length}</b><span>{out.bodies.length === 1 ? "corpo" : "corpos depois das separações"}</span></div>
       </div>
       <table className="bodies">
@@ -71,9 +81,9 @@ export function Results({ out }: { out: SimOutput }) {
           ))}
         </tbody>
       </table>
-      <Chart title="Altura acima do solo" unit="m" series={series.alt} cursorSync="voo" />
-      <Chart title="Velocidade" unit="m/s" series={series.speed} cursorSync="voo" />
-      {series.alpha.length > 0 && <Chart title="Ângulo de ataque (6-DOF)" unit="graus" series={series.alpha} cursorSync="voo" />}
+      <Chart title="Altura acima do solo" unit="m" series={series.alt} cursorSync="voo" onPick={onPick} />
+      <Chart title="Velocidade" unit="m/s" series={series.speed} cursorSync="voo" onPick={onPick} />
+      {series.alpha.length > 0 && <Chart title="Ângulo de ataque (6-DOF)" unit="graus" series={series.alpha} cursorSync="voo" onPick={onPick} />}
       <h3>Linha do tempo</h3>
       <ol className="timeline">
         {out.events.map((e, k) => (

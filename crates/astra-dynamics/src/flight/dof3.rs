@@ -77,6 +77,8 @@ pub struct Config3<'a> {
     pub output_dt: f64,
     /// Opções do integrador.
     pub ode: Options,
+    /// Vento.
+    pub wind: astra_env::Wind,
     /// Começar de um estado dado em vez do lançador (`launch` continua definindo o solo).
     pub start: Option<Start3>,
 }
@@ -150,10 +152,11 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
         planet: cfg.planet,
         atmosphere: cfg.atmosphere,
         launch: cfg.launch,
+        wind: cfg.wind.clone(),
     };
     let rhs = |ph: &Phase, t: f64, y: &[f64; 7]| -> [f64; 7] {
         let (r, v, m) = (v3(y, 0), v3(y, 3), y[6]);
-        let air = world.air(r, v);
+        let air = world.air(t, r, v);
         let (_, axis) = world.rail_eci(t);
         let dir = if ph.on_rail || air.speed < 1e-3 {
             axis
@@ -177,7 +180,7 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
     };
     let (r0, v0) = world.initial_rv();
     let margin = |ph: &Phase, t: f64, y: &[f64; 7], i: usize| -> f64 {
-        let air = world.air(v3(y, 0), v3(y, 3));
+        let air = world.air(t, v3(y, 0), v3(y, 3));
         cfg.vehicle.margin(&world.ctx(&air, t, y[6], ph), i)
     };
     let n_margins = cfg.vehicle.margin_count();

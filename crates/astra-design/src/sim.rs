@@ -29,10 +29,11 @@ pub struct BodyTrack {
     pub models: Vec<String>,
     /// Corpo de onde saiu.
     pub parent: Option<usize>,
-    /// Colunas: t (s), altura acima do solo (m), velocidade (m/s), velocidade vertical
-    /// (m/s), Mach, pressão dinâmica (Pa), norte (m), leste (m), ângulo de ataque (°),
-    /// massa (kg).
-    pub samples: Vec<[f64; 10]>,
+    /// Colunas: t (s), altura acima do solo (m), velocidade em relação ao ar (m/s),
+    /// velocidade vertical (m/s), Mach, pressão dinâmica (Pa), norte (m), leste (m),
+    /// ângulo de ataque (°), massa (kg), latitude (°), longitude (°), altitude (m), eixo do
+    /// corpo em coordenadas fixas à Terra (x, y, z; no 3-DOF, a direção da velocidade).
+    pub samples: Vec<Row>,
     /// Como terminou, em linguagem simples.
     pub fate: String,
     /// Pouso: [t, velocidade, norte, leste] quando tocou o solo.
@@ -71,7 +72,7 @@ pub struct SimOutput {
 }
 
 pub(crate) fn launch_of(d: &Design) -> Launch {
-    let l = d.launch;
+    let l = &d.launch;
     Launch {
         site: Geodetic {
             lat: l.lat_deg.to_radians(),
@@ -86,8 +87,54 @@ pub(crate) fn launch_of(d: &Design) -> Launch {
             friction: 0.0,
         },
         initial_speed: 0.0,
-        theta0: 0.0,
+        theta0: theta0_of(d),
     }
+}
+
+/// Ângulo de rotação da Terra no lançamento (hora sideral de Greenwich), rad; zero sem data.
+pub(crate) fn theta0_of(d: &Design) -> f64 {
+    d.launch
+        .utc
+        .as_deref()
+        .and_then(|u| astra_env::time::parse_utc(u).ok())
+        .map_or(0.0, astra_env::time::gmst)
+}
+
+/// Linha de amostra: t, altura acima do solo, velocidade do ar, velocidade vertical, Mach,
+/// pressão dinâmica, norte, leste, α (graus), massa, latitude e longitude (graus),
+/// altitude (m), eixo do corpo em ECEF (x, y, z).
+pub(crate) type Row = [f64; 16];
+
+#[allow(clippy::too_many_arguments)]
+fn row(
+    planet: &Planet,
+    l: &Launch,
+    t: f64,
+    nav: &Nav,
+    alpha_deg: f64,
+    mass: f64,
+    axis_eci: Vec3,
+) -> Row {
+    let (no, ea) = north_east(planet, l, nav);
+    let ax = astra_env::rot_z(axis_eci, -(l.theta0 + planet.omega * t));
+    [
+        t,
+        nav.alt - l.ground_h,
+        nav.speed,
+        nav.vertical_speed,
+        nav.mach,
+        nav.q_dyn,
+        no,
+        ea,
+        alpha_deg,
+        mass,
+        nav.lat.to_degrees(),
+        nav.lon.to_degrees(),
+        nav.alt,
+        ax.x,
+        ax.y,
+        ax.z,
+    ]
 }
 
 pub(crate) fn opts() -> Options {
@@ -196,6 +243,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
         delta_t: asm.design.launch.delta_t,
     };
     let launch = launch_of(&asm.design);
+    let wind = asm.design.launch.wind.to_wind();
     let p_ground = atmosphere.at(launch.ground_h).pressure;
     let n = asm.design.parts.len();
     let mut st = Status {
@@ -315,7 +363,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
             });
         // Peças sem estrutura (paraquedas, cordão) vão junto no corpo de 6-DOF como massa.
         let push_samples =
-            |out: &mut SimOutput, rows: Vec<[f64; 10]>| out.bodies[track].samples.extend(rows);
+            |out: &mut SimOutput, rows: Vec<Row>| out.bodies[track].samples.extend(rows);
         let end_state: State;
         let reason: EndReason;
         let final_nav: Option<Nav>;
@@ -364,6 +412,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                 output_dt: 0.05,
                 ode: opts(),
                 start,
+                wind: wind.clone(),
             };
             if out.bodies[track].models.last().map(String::as_str) != Some("6-DOF") {
                 out.bodies[track].models.push("6-DOF".to_owned());
@@ -374,19 +423,15 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                         .samples
                         .iter()
                         .map(|s| {
-                            let (no, ea) = north_east(&planet, &launch, &s.nav);
-                            [
+                            row(
+                                &planet,
+                                &launch,
                                 s.t,
-                                s.nav.alt - launch.ground_h,
-                                s.nav.speed,
-                                s.nav.vertical_speed,
-                                s.nav.mach,
-                                s.nav.q_dyn,
-                                no,
-                                ea,
+                                &s.nav,
                                 s.alpha.to_degrees(),
                                 s.mass,
-                            ]
+                                s.q.rotate(Vec3::X),
+                            )
                         })
                         .collect();
                     push_samples(&mut out, rows);
@@ -533,6 +578,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                     fired: vec![None; pending_chutes.len()],
                     apogee: s.apogee,
                 }),
+                wind: wind.clone(),
             };
             if out.bodies[track].models.last() != Some(&label) {
                 out.bodies[track].models.push(label);
@@ -543,19 +589,17 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                         .samples
                         .iter()
                         .map(|x| {
-                            let (no, ea) = north_east(&planet, &launch, &x.nav);
-                            [
+                            row(
+                                &planet,
+                                &launch,
                                 x.t,
-                                x.nav.alt - launch.ground_h,
-                                x.nav.speed,
-                                x.nav.vertical_speed,
-                                x.nav.mach,
-                                x.nav.q_dyn,
-                                no,
-                                ea,
+                                &x.nav,
                                 f64::NAN,
                                 x.mass,
-                            ]
+                                (x.v - planet.omega_vec().cross(x.r))
+                                    .normalized()
+                                    .unwrap_or(Vec3::Z),
+                            )
                         })
                         .collect();
                     push_samples(&mut out, rows);
@@ -606,7 +650,10 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                     "apogee",
                     format!("Apogeu a {:.1} m acima do solo.", nav.alt - launch.ground_h),
                 ),
-                EventKind::Impact => ("impact", format!("Tocou o solo a {:.1} m/s.", nav.speed)),
+                EventKind::Impact => (
+                    "impact",
+                    format!("Tocou o solo a {:.1} m/s.", nav.ground_speed),
+                ),
                 _ => continue,
             };
             out.events.push(FlightEvent {
@@ -619,6 +666,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
             });
         }
         let nav = final_nav.unwrap_or(Nav {
+            ground_speed: 0.0,
             lat: 0.0,
             lon: 0.0,
             alt: 0.0,
@@ -643,14 +691,14 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
             EndReason::Impact => {
                 let (no, ea) = north_east(&planet, &launch, &nav);
                 let b = &mut out.bodies[track];
-                b.landing = Some([end_state.t, nav.speed, no, ea]);
-                b.fate = if nav.speed > 15.0 {
+                b.landing = Some([end_state.t, nav.ground_speed, no, ea]);
+                b.fate = if nav.ground_speed > 15.0 {
                     format!(
                         "Impacto forte a {:.0} m/s: risco de dano à peça e a quem estiver perto.",
-                        nav.speed
+                        nav.ground_speed
                     )
                 } else {
-                    format!("Pouso a {:.1} m/s.", nav.speed)
+                    format!("Pouso a {:.1} m/s.", nav.ground_speed)
                 };
                 continue;
             }
@@ -763,6 +811,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                             let rows = fall_plate(
                                 &planet,
                                 &atmosphere,
+                                &wind,
                                 &launch,
                                 &end_state,
                                 mf,
@@ -872,11 +921,12 @@ fn align_to(dir: Vec3) -> Quat {
 fn fall_plate(
     planet: &Planet,
     atm: &AtmosphereModel,
+    wind: &astra_env::Wind,
     launch: &Launch,
     s: &State,
     mass: f64,
     cda: f64,
-) -> Vec<[f64; 10]> {
+) -> Vec<Row> {
     let v = astra_dynamics::flight::ConstantVehicle {
         thrust_vac: 0.0,
         exit_area: 0.0,
@@ -902,6 +952,7 @@ fn fall_plate(
             fired: Vec::new(),
             apogee: s.apogee,
         }),
+        wind: wind.clone(),
     };
     simulate3(&cfg).map_or_else(
         |_| Vec::new(),
@@ -909,19 +960,17 @@ fn fall_plate(
             res.samples
                 .iter()
                 .map(|x| {
-                    let (no, ea) = north_east(planet, launch, &x.nav);
-                    [
+                    row(
+                        planet,
+                        launch,
                         x.t,
-                        x.nav.alt - launch.ground_h,
-                        x.nav.speed,
-                        x.nav.vertical_speed,
-                        x.nav.mach,
-                        x.nav.q_dyn,
-                        no,
-                        ea,
+                        &x.nav,
                         f64::NAN,
                         x.mass,
-                    ]
+                        (x.v - planet.omega_vec().cross(x.r))
+                            .normalized()
+                            .unwrap_or(Vec3::Z),
+                    )
                 })
                 .collect()
         },

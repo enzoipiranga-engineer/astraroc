@@ -21,7 +21,7 @@ function align(series: Series[]): uPlot.AlignedData {
   return [ts, ...ys] as uPlot.AlignedData;
 }
 
-export function Chart({ title, unit, series, cursorSync }: { title: string; unit: string; series: Series[]; cursorSync: string }) {
+export function Chart({ title, unit, series, cursorSync, onPick }: { title: string; unit: string; series: Series[]; cursorSync: string; onPick?: ((t: number) => void) | undefined }) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const host = el.current;
@@ -39,12 +39,18 @@ export function Chart({ title, unit, series, cursorSync }: { title: string; unit
       series: [{ label: "t (s)" }, ...series.map((s) => ({ label: s.label, stroke: s.color, width: 1.6, spanGaps: true }))],
     };
     const plot = new uPlot(opts, align(series), host);
+    const click = () => {
+      const left = plot.cursor.left;
+      if (onPick && left !== undefined && left >= 0) onPick(plot.posToVal(left, "x"));
+    };
+    plot.over.addEventListener("click", click);
     const ro = new ResizeObserver(() => plot.setSize({ width: host.clientWidth, height: 220 }));
     ro.observe(host);
     return () => {
       ro.disconnect();
+      plot.over.removeEventListener("click", click);
       plot.destroy();
     };
-  }, [title, unit, series, cursorSync]);
+  }, [title, unit, series, cursorSync, onPick]);
   return <div className="chart" ref={el} />;
 }

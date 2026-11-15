@@ -36,6 +36,9 @@ pub struct Design {
     /// identificador coincide).
     #[serde(default)]
     pub materials: Vec<crate::material::Material>,
+    /// Zonas de segurança e de pouso.
+    #[serde(default)]
+    pub zones: Vec<Zone>,
 }
 
 /// Tabela de Cd por Mach.
@@ -379,7 +382,7 @@ pub enum MotorSpec {
 }
 
 /// Local e lançador.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaunchSpec {
     /// Latitude, graus.
@@ -397,6 +400,101 @@ pub struct LaunchSpec {
     /// Desvio de temperatura em relação à atmosfera padrão, K.
     #[serde(default)]
     pub delta_t: f64,
+    /// Data e hora do lançamento em UTC ("AAAA-MM-DDThh:mm:ssZ"); define a rotação da
+    /// Terra no instante zero e a posição do Sol na visualização.
+    #[serde(default)]
+    pub utc: Option<String>,
+    /// Vento.
+    #[serde(default)]
+    pub wind: WindSpec,
+}
+
+/// Camada do perfil de vento.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindLayerSpec {
+    /// Altura acima do solo, m.
+    pub agl: f64,
+    /// Velocidade, m/s.
+    pub speed: f64,
+    /// Direção de onde vem, graus a partir do norte.
+    pub from_deg: f64,
+}
+
+/// Turbulência de Dryden.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TurbulenceSpec {
+    /// Desvio-padrão de cada componente, m/s.
+    pub sigma: f64,
+    /// Escala de comprimento, m.
+    pub length: f64,
+    /// Semente.
+    pub seed: u64,
+}
+
+/// Vento do projeto.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindSpec {
+    /// Perfil por altura (vazio = calmaria).
+    #[serde(default)]
+    pub layers: Vec<WindLayerSpec>,
+    /// Rajadas.
+    #[serde(default)]
+    pub turbulence: Option<TurbulenceSpec>,
+    /// De onde veio o perfil (manual, CSV, Open-Meteo com data), para o relatório.
+    #[serde(default)]
+    pub source: Option<String>,
+}
+
+impl WindSpec {
+    /// Campo de vento do núcleo.
+    #[must_use]
+    pub fn to_wind(&self) -> astra_env::Wind {
+        let mut layers: Vec<astra_env::WindLayer> = self
+            .layers
+            .iter()
+            .map(|l| astra_env::WindLayer {
+                agl: l.agl,
+                speed: l.speed,
+                from: l.from_deg.to_radians(),
+            })
+            .collect();
+        layers.sort_by(|a, b| a.agl.total_cmp(&b.agl));
+        astra_env::Wind {
+            layers,
+            turbulence: self
+                .turbulence
+                .map(|t| astra_env::Turbulence::new(t.sigma, t.length.max(1.0), t.seed)),
+        }
+    }
+}
+
+/// Zona desenhada no mapa de recuperação.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Zone {
+    /// Nome.
+    pub name: String,
+    /// Centro, latitude em graus.
+    pub lat_deg: f64,
+    /// Centro, longitude em graus.
+    pub lon_deg: f64,
+    /// Raio, m.
+    pub radius: f64,
+    /// Proibida (público, estrada) ou de pouso permitido.
+    pub kind: ZoneKind,
+}
+
+/// Tipo de zona.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ZoneKind {
+    /// Nada pode cair aqui.
+    KeepOut,
+    /// Área de pouso prevista.
+    Landing,
 }
 
 impl Design {

@@ -330,3 +330,85 @@ fn changing_a_part_propagates() {
     assert!(b.cg < a.cg && b.static_margin > a.static_margin);
     assert!(b.apogee < a.apogee);
 }
+
+/// Vento e data/hora no projeto: deriva para o lado certo, zona proibida acusada,
+/// hora sideral aplicada, e as amostras trazem latitude, longitude e eixo do corpo.
+#[test]
+fn wind_time_and_zones() {
+    let mut d = templates::competition_500m();
+    d.launch.wind = WindSpec {
+        layers: vec![
+            WindLayerSpec {
+                agl: 0.0,
+                speed: 4.0,
+                from_deg: 270.0,
+            },
+            WindLayerSpec {
+                agl: 1000.0,
+                speed: 8.0,
+                from_deg: 270.0,
+            },
+        ],
+        turbulence: Some(TurbulenceSpec {
+            sigma: 0.5,
+            length: 300.0,
+            seed: 7,
+        }),
+        source: Some("manual".into()),
+    };
+    d.launch.utc = Some("2026-09-03T14:00:00Z".into());
+    let o = simulate(&d, &db());
+    let main = &o.bodies[0];
+    let land = main.landing.unwrap();
+    assert!(
+        land[3] > 100.0,
+        "paraquedas deriva para leste com vento de oeste: leste = {} m",
+        land[3]
+    );
+    let last = main.samples.last().unwrap();
+    assert!(
+        (last[10] - d.launch.lat_deg).abs() < 0.05 && (last[11] - d.launch.lon_deg).abs() < 0.05
+    );
+    assert!((last[12] - d.launch.altitude).abs() < 1.0);
+    let first = &main.samples[0];
+    let axis = Vec3Like(first[13], first[14], first[15]);
+    // No trilho, o eixo aponta para cima (85°): componente radial ≈ sen(85°).
+    let up = {
+        let (la, lo) = (d.launch.lat_deg.to_radians(), d.launch.lon_deg.to_radians());
+        Vec3Like(la.cos() * lo.cos(), la.cos() * lo.sin(), la.sin())
+    };
+    assert!(
+        (axis.dot(&up) - 85.0_f64.to_radians().sin()).abs() < 0.01,
+        "eixo·cima {}",
+        axis.dot(&up)
+    );
+
+    // Zona proibida exatamente onde o foguete cai.
+    let (lat, lon) = (last[10], last[11]);
+    d.zones = vec![Zone {
+        name: "Estacionamento".into(),
+        lat_deg: lat,
+        lon_deg: lon,
+        radius: 50.0,
+        kind: ZoneKind::KeepOut,
+    }];
+    let v = validate(&d, &db(), true);
+    assert!(
+        v.issues
+            .iter()
+            .any(|i| i.code == "keepOut" && i.message.contains("Estacionamento")),
+        "{:#?}",
+        v.issues
+    );
+
+    // Mesma semente, mesmo voo (determinismo com rajadas).
+    let again = simulate(&d, &db());
+    assert_eq!(again.bodies[0].landing, o.bodies[0].landing);
+}
+
+struct Vec3Like(f64, f64, f64);
+impl Vec3Like {
+    fn dot(&self, o: &Self) -> f64 {
+        self.0 * o.0 + self.1 * o.1 + self.2 * o.2
+    }
+}

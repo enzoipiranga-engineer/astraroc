@@ -718,6 +718,7 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
                 }
             }
             load_issues(&asm, design, &nom.margins, &mut v);
+            zone_issues(design, &nom.out, &mut v);
             for e in nom
                 .out
                 .events
@@ -830,6 +831,64 @@ fn load_issues(
                 suggestion: fix.to_owned(),
                 parts,
                 joints,
+            });
+        }
+    }
+}
+
+/// Distância (m) entre dois pontos pela aproximação equirretangular (erro < 0,1% abaixo
+/// de alguns quilômetros).
+fn ground_distance(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+    let re = 6_371_008.8;
+    let (p1, p2) = (lat1.to_radians(), lat2.to_radians());
+    let x = (lon2 - lon1).to_radians() * (0.5 * (p1 + p2)).cos();
+    re * x.hypot(p2 - p1)
+}
+
+fn zone_issues(design: &Design, out: &crate::sim::SimOutput, v: &mut Vec<Issue>) {
+    use crate::model::ZoneKind;
+    if design.zones.is_empty() {
+        return;
+    }
+    let landing_zones: Vec<_> = design
+        .zones
+        .iter()
+        .filter(|z| z.kind == ZoneKind::Landing)
+        .collect();
+    for b in &out.bodies {
+        let Some(last) = b.samples.last() else {
+            continue;
+        };
+        if b.landing.is_none() {
+            continue;
+        }
+        let (lat, lon) = (last[10], last[11]);
+        for z in design.zones.iter().filter(|z| z.kind == ZoneKind::KeepOut) {
+            let d = ground_distance(lat, lon, z.lat_deg, z.lon_deg);
+            if d <= z.radius {
+                v.push(Issue {
+                    severity: Severity::Error,
+                    code: "keepOut".to_owned(),
+                    message: format!("{} cai dentro da zona proibida \"{}\" (a {:.0} m do centro, raio de {:.0} m).", b.name, z.name, d, z.radius),
+                    suggestion: "Mude o azimute ou a elevação do trilho, o vento de projeto ou o local de lançamento.".to_owned(),
+                    parts: vec![],
+                    joints: vec![],
+                });
+            }
+        }
+        if !landing_zones.is_empty()
+            && !landing_zones
+                .iter()
+                .any(|z| ground_distance(lat, lon, z.lat_deg, z.lon_deg) <= z.radius)
+        {
+            v.push(Issue {
+                severity: Severity::Warning,
+                code: "outsideLanding".to_owned(),
+                message: format!("{} cai fora das áreas de pouso previstas.", b.name),
+                suggestion: "Ajuste o lançador ou a recuperação (paraquedas menor deriva menos)."
+                    .to_owned(),
+                parts: vec![],
+                joints: vec![],
             });
         }
     }

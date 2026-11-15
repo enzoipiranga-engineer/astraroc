@@ -116,6 +116,7 @@ pub fn flight3_constant(p: &[f64]) -> Result<FlightOutput, String> {
             ..Options::default()
         },
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let res = simulate3(&cfg).map_err(|e| e.to_string())?;
     let samples = res
@@ -193,6 +194,7 @@ pub fn water_rocket_flight(p: &[f64]) -> Result<WaterFlight, String> {
             ..Options::default()
         },
         start: None,
+        wind: astra_env::Wind::calm(),
     };
     let res = simulate6(&cfg).map_err(|e| e.to_string())?;
     let samples = res

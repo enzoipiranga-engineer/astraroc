@@ -8,8 +8,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 1 | Referenciais (ECI/ECEF/ENU/corpo), WGS84, gravidade com J2, atmosfera USSA 1976 até 86 km, RK4 e Dormand-Prince com eventos, 3-DOF e 6-DOF, trilho | Balística no vácuo, Tsiolkovsky, tabela ISA, período orbital e conservação de energia dentro da tolerância | **Feita** |
 | 2 | Barrowman estendido, Cd(Mach, α, Re), motor sólido (.eng/.rse e grão BATES), foguete de água, paraquedas | Casos de CP da literatura; curva de motor comercial reproduzida; voo de garrafa PET contra dado medido | **Feita, com uma pendência:** falta voo medido de garrafa PET |
 | 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | **Feita** |
-| 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | Próxima |
-| 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | |
+| 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | **Feita** |
+| 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | Próxima |
 | 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | |
 | 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | |
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | |
@@ -58,3 +58,16 @@ Ficam registrados aqui para não virarem promessa falsa:
 - Aletas de forma livre e elípticas no editor (o núcleo aerodinâmico já tem a elíptica).
 - Banco com "milhares" de materiais: hoje são 50, cada um com fonte e confiabilidade.
 - Teste de navegador fora da CI (precisa de Chromium no executor).
+
+## Fase 4: o que ficou para depois
+
+- Elipse de dispersão 50/90/99%: depende do Monte Carlo (fase 11).
+- Exportação de vídeo (MP4/GIF) e várias simulações sobrepostas no globo (fase 11/12).
+- Fumaça, diamantes de choque e pluma que muda com a altitude: hoje a pluma é um ponto
+  luminoso enquanto o motor queima.
+- Modelo 3D detalhado do foguete (Three.js): hoje é um cilindro em escala real orientado
+  pela atitude simulada, com marcador e rótulo à distância.
+- Lua, planetas e efemérides JPL ficam na fase 10.
+- A API de previsão da Open-Meteo não pôde ser chamada desta sessão (limite diário do IP
+  compartilhado); a conversão foi testada com uma resposta no formato documentado. A busca
+  de locais foi testada de verdade.

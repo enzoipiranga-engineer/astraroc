@@ -50,13 +50,22 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 | Corpo capotando: Cd ≈ 1 sobre a área projetada média (superfície/4, Cauchy) | `limits::TUMBLE_CD` | Fórmula de Cauchy; Hoerner cap. 3 | Rotação aleatória rápida | ±50% |
 | Sistema sob paraquedas como ponto de massa; força de abertura q·CdS(t) contra o cordão mais fraco | `limits::PointSystem` | Knacke (1992) | Corpos amarrados alinhados com o fluxo | Força de pico ±30% |
 | Separação: partes herdam r e v do corpo (com ω × d) | `sim.rs` | Cinemática de corpo rígido | Separação instantânea, sem impulso de mola ou carga | Desvio da ordem do impulso desprezado |
+| Vento médio por altura (componentes interpoladas linearmente) | `astra-env::Wind` | — | Perfil dado | Igual ao do dado de entrada |
+| Lei de potência da camada limite | `Wind::power_law` | Hellmann (1916); ESDU 82026 | Até ~300 m, terreno homogêneo | ±20% |
+| Turbulência de Dryden por representação espectral (campo congelado fixo à Terra) | `astra-env::Turbulence` | MIL-HDBK-1797; Shinozuka & Deodatis (1991) | Isotrópica, σ e L constantes | Estatística correta em média; forma transversal de Dryden não modelada |
+| Hora sideral média de Greenwich | `astra-env::time::gmst` | Vallado eq. 3-47 (IAU-82) | 1950 a 2100 | < 1e-5° (teste do exemplo 3-5) |
+| Perfil de vento previsto/histórico | `apps/web/src/geo.ts` | Open-Meteo (GFS, ICON, ECMWF) | Grade dos modelos (~10 a 25 km), horário | Típico de previsão: 1 a 3 m/s |
 ## Simplificações em vigor
 
-- **ECI simplificado.** O referencial inercial coincide com o ECEF girado de θ0 + ω·t em z.
-  Não há precessão, nutação nem movimento do polo, e θ0 ainda não vem da data/hora (Fase 4).
+- **ECI simplificado.** O referencial inercial coincide com o ECEF girado de θ0 + ω·t em z,
+  com θ0 = hora sideral média de Greenwich da data do lançamento (zero sem data). Não há
+  precessão, nutação nem movimento do polo.
   Efeito desprezível em voos suborbitais; em órbita, erro de orientação absoluta de até
   dezenas de km por não usar o tempo sideral real.
-- **Atmosfera gira com o planeta, sem vento.** Vento entra na Fase 4.
+- **Vento horizontal só no perfil médio;** componente vertical só pela turbulência. A
+  turbulência usa o mesmo espectro para as três componentes e não varia com a altitude.
+- **Altura geopotencial tratada como geométrica** ao converter níveis de pressão (erro
+  abaixo de 0,3% até 12 km).
 - **Acima de 86 km a temperatura fica fixa em 186,87 K** e só a massa específica varia.
   Mach e pressão acima de 86 km são aproximações grosseiras; o arrasto usa só ρ. Será
   substituído por NRLMSISE-00 na Fase 10.
@@ -115,3 +124,7 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
   simétrico de Barrowman (a assimetria real e o rolamento que ela causa não entram).
 - **Flambagem:** quando um tubo flamba, o foguete inteiro passa a capotar; a quebra do
   tubo em duas partes não é modelada.
+- **Visualização sem terreno:** sem chave do Cesium ion, o solo é o elipsoide e a trajetória
+  é desenhada pela altura acima do solo. Com terreno, a altura do terreno no local é somada.
+- **Mapa de recuperação no plano tangente** (aproximação equirretangular), com erro
+  desprezível a poucos quilômetros do lançador.

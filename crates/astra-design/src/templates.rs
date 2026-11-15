@@ -167,11 +167,14 @@ pub fn pet_bottle() -> Design {
             rail_elevation_deg: 88.0,
             rail_azimuth_deg: 0.0,
             delta_t: 0.0,
+            utc: None,
+            wind: WindSpec::default(),
         },
         roughness: 5e-6,
         safety_factor: 1.5,
         drag_table: None,
         materials: Vec::new(),
+        zones: Vec::new(),
     }
 }
 
@@ -415,11 +418,14 @@ pub fn competition_500m() -> Design {
             rail_elevation_deg: 85.0,
             rail_azimuth_deg: 0.0,
             delta_t: 0.0,
+            utc: None,
+            wind: WindSpec::default(),
         },
         roughness: 3e-5,
         safety_factor: 1.5,
         drag_table: None,
         materials: Vec::new(),
+        zones: Vec::new(),
     }
 }
 

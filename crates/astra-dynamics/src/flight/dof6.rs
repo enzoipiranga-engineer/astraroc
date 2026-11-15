@@ -85,6 +85,8 @@ pub struct Config6<'a> {
     pub output_dt: f64,
     /// Opções do integrador.
     pub ode: Options,
+    /// Vento.
+    pub wind: astra_env::Wind,
     /// Começar de um estado dado em vez do lançador (`launch` continua definindo o solo).
     pub start: Option<Start6>,
 }
@@ -163,11 +165,12 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         planet: cfg.planet,
         atmosphere: cfg.atmosphere,
         launch: cfg.launch,
+        wind: cfg.wind.clone(),
     };
     let rhs = |ph: &Phase, t: f64, y: &[f64; 14]| -> [f64; 14] {
         let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y), v3(y, 10), y[13]);
         let qn = q.normalized();
-        let air = world.air(r, v);
+        let air = world.air(t, r, v);
         let ctx = world.ctx(&air, t, m, ph);
         let loads = cfg.vehicle.loads(&ctx, qn.conj().rotate(air.v_rel), w);
         let a_free = world.planet.gravity(r) + qn.rotate(loads.force_body) / m;
@@ -207,7 +210,7 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
 
     let margin = |ph: &Phase, t: f64, y: &[f64; 14], i: usize| -> f64 {
         let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y).normalized(), v3(y, 10), y[13]);
-        let air = world.air(r, v);
+        let air = world.air(t, r, v);
         let ctx = world.ctx(&air, t, m, ph);
         cfg.vehicle.margin(&ctx, q.conj().rotate(air.v_rel), w, i)
     };
@@ -217,7 +220,12 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
     let (_, axis) = world.rail_eci(0.0);
     let up = Planet::enu_basis(cfg.launch.site.lat, cfg.launch.site.lon + cfg.launch.theta0).2;
     let east = Planet::enu_basis(cfg.launch.site.lat, cfg.launch.site.lon + cfg.launch.theta0).0;
-    let yb = up.cross(axis).normalized().unwrap_or(east);
+    // Eixo y horizontal. Com trilho quase vertical, up × eixo é quase nulo e perde a
+    // ortogonalidade por arredondamento: nesse caso usa o leste, e em todo caso
+    // ortogonaliza contra o eixo (Gram-Schmidt) antes de montar a matriz.
+    let cross = up.cross(axis);
+    let seed = if cross.norm() > 1e-6 { cross } else { east };
+    let yb = (seed - axis * seed.dot(axis)).normalized().unwrap_or(east);
     let q0 = Quat::from_mat3(Mat3::from_cols(axis, yb, axis.cross(yb)));
     let w0 = q0.conj().rotate(cfg.planet.omega_vec()) + cfg.initial_omega_body;
     let start = match &cfg.start {
@@ -255,7 +263,7 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         &mut |kind: Option<EventKind>, t, y| {
             let (r, v, q) = (v3(y, 0), v3(y, 3), quat(y).normalized());
             let nav = world.nav(t, r, v);
-            let vb = q.conj().rotate(world.air(r, v).v_rel);
+            let vb = q.conj().rotate(world.air(t, r, v).v_rel);
             let alpha = if nav.speed > 1e-6 {
                 vb.y.hypot(vb.z).atan2(vb.x)
             } else {

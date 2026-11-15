@@ -1,17 +1,6 @@
 import type { Design, MotorSpec } from "@astra/core-js";
 import { NumberField, SelectField } from "./Field";
 
-/** Locais pré-definidos (coordenadas aproximadas). */
-export const SITES = [
-  { id: "sp", name: "São Paulo (SP)", lat: -23.55, lon: -46.63, alt: 760 },
-  { id: "alcantara", name: "Alcântara (MA), aprox.", lat: -2.32, lon: -44.37, alt: 40 },
-  { id: "kourou", name: "Kourou, aprox.", lat: 5.24, lon: -52.77, alt: 10 },
-  { id: "canaveral", name: "Cabo Canaveral, aprox.", lat: 28.49, lon: -80.58, alt: 3 },
-  { id: "spaceport", name: "Spaceport America", lat: 32.99, lon: -106.975, alt: 1400 },
-  { id: "blackrock", name: "Black Rock Desert, aprox.", lat: 40.9, lon: -119.06, alt: 1190 },
-  { id: "esrange", name: "Esrange, aprox.", lat: 67.89, lon: 21.11, alt: 330 },
-] as const;
-
 interface Props {
   design: Design;
   onChange: (d: Design) => void;
@@ -22,7 +11,6 @@ export function SetupPanel({ design, onChange }: Props) {
   const setL = (k: keyof Design["launch"], v: number | null) => v !== null && onChange({ ...design, launch: { ...l, [k]: v } });
   const m = design.motor;
   const setM = (patch: Partial<MotorSpec>) => onChange({ ...design, motor: { ...m, ...patch } as MotorSpec });
-  const site = SITES.find((s) => Math.abs(s.lat - l.latDeg) < 1e-6 && Math.abs(s.lon - l.lonDeg) < 1e-6)?.id ?? "";
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
@@ -34,7 +22,7 @@ export function SetupPanel({ design, onChange }: Props) {
 
   return (
     <section className="panel setup">
-      <h2>Motor e lançamento</h2>
+      <h2>Motor e lançador</h2>
       <SelectField
         label="Motor"
         value={m.type}
@@ -71,20 +59,6 @@ export function SetupPanel({ design, onChange }: Props) {
           <NumberField label="Bocal na estação" unit="mm" value={m.aftStation} onChange={(v) => v !== null && setM({ aftStation: v })} />
         </>
       )}
-      <SelectField
-        label="Local"
-        value={site}
-        options={[{ value: "", label: "personalizado" }, ...SITES.map((s) => ({ value: s.id, label: s.name }))]}
-        onChange={(id) => {
-          const s = SITES.find((x) => x.id === id);
-          if (s) onChange({ ...design, launch: { ...l, latDeg: s.lat, lonDeg: s.lon, altitude: s.alt } });
-        }}
-      />
-      <div className="row">
-        <NumberField label="Latitude" unit="deg" value={l.latDeg} onChange={(v) => setL("latDeg", v)} />
-        <NumberField label="Longitude" unit="deg" value={l.lonDeg} onChange={(v) => setL("lonDeg", v)} />
-      </div>
-      <NumberField label="Altitude do solo" unit="m" value={l.altitude} onChange={(v) => setL("altitude", v)} />
       <div className="row">
         <NumberField label="Trilho" unit="m" value={l.railLength} onChange={(v) => setL("railLength", v)} />
         <NumberField label="Elevação" unit="deg" value={l.railElevationDeg} onChange={(v) => setL("railElevationDeg", v)} />
@@ -93,7 +67,6 @@ export function SetupPanel({ design, onChange }: Props) {
         <NumberField label="Azimute" unit="deg" value={l.railAzimuthDeg} help="A partir do norte, sentido horário." onChange={(v) => setL("railAzimuthDeg", v)} />
         <NumberField label="Desvio de temperatura" unit="count" value={l.deltaT} help="Em K (ou °C) em relação à atmosfera padrão." onChange={(v) => setL("deltaT", v)} />
       </div>
-      <p className="note">Sem vento nesta versão (o vento entra na fase 4).</p>
     </section>
   );
 }

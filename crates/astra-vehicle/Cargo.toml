@@ -1,0 +1,16 @@
+[package]
+name = "astra-vehicle"
+description = "ASTRA: foguete montado (massa, aerodinâmica, motor, recuperação) pronto para voar."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-math = { path = "../astra-math" }
+astra-env = { path = "../astra-env" }
+astra-dynamics = { path = "../astra-dynamics" }
+astra-aero = { path = "../astra-aero" }
+astra-propulsion = { path = "../astra-propulsion" }
+
+[lints]
+workspace = true

@@ -9,7 +9,7 @@ mod dof3;
 mod dof6;
 
 pub use dof3::{simulate3, Config3, ConstantVehicle, PointVehicle, Result3, Sample3};
-pub use dof6::{simulate6, Config6, Kinematics6, Loads, MassProps, Result6, RigidVehicle, Sample6};
+pub use dof6::{simulate6, Config6, Loads, MassProps, Result6, RigidVehicle, Sample6};
 
 use crate::ode::{integrate, Direction, EventSpec, OdeError, Options};
 use astra_env::{rot_z, AtmoState, AtmosphereModel, Geodetic, Planet};
@@ -55,6 +55,68 @@ pub enum EventKind {
     Apogee,
     /// Altitude cruzou o nível do solo descendo.
     Impact,
+    /// Disparou o gatilho de índice dado (ver [`Sequencer::triggers`]).
+    Trigger(usize),
+}
+
+/// Gatilho de sequência de voo (abertura de paraquedas, por exemplo).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Trigger {
+    /// Em um instante fixo, s.
+    Time(f64),
+    /// `delay` segundos depois do apogeu.
+    AfterApogee {
+        /// Atraso após o apogeu, s.
+        delay: f64,
+    },
+    /// Ao cruzar, descendo, a altura `agl` acima do solo, m.
+    DescendingThrough {
+        /// Altura acima do nível do solo, m.
+        agl: f64,
+    },
+}
+
+/// O que o veículo enxerga do voo para calcular forças.
+#[derive(Clone, Copy, Debug)]
+pub struct FlightCtx<'a> {
+    /// Tempo, s.
+    pub t: f64,
+    /// Massa atual, kg.
+    pub mass: f64,
+    /// Altitude acima do elipsoide, m.
+    pub altitude: f64,
+    /// Estado do ar local.
+    pub atmo: AtmoState,
+    /// Velocidade em relação ao ar, m/s.
+    pub speed: f64,
+    /// Número de Mach.
+    pub mach: f64,
+    /// Pressão dinâmica, Pa.
+    pub q_dyn: f64,
+    /// Verdadeiro enquanto o veículo está preso ao trilho.
+    pub on_rail: bool,
+    /// Verdadeiro até `burnout_time()`. O veículo deve decidir se há empuxo por este
+    /// campo, não comparando `t` com o fim da queima: o integrador avalia as equações
+    /// exatamente no instante da descontinuidade, dos dois lados.
+    pub burning: bool,
+    /// Instante em que cada gatilho disparou (`None` enquanto não disparou), na ordem
+    /// de [`Sequencer::triggers`].
+    pub fired: &'a [Option<f64>],
+}
+
+/// Linha do tempo do veículo: instantes e condições em que as forças mudam de regime.
+/// A integração é reiniciada em cada um deles.
+pub trait Sequencer {
+    /// Instante do fim da queima, s (0 se não há motor).
+    fn burnout_time(&self) -> f64;
+    /// Instantes em que a curva de empuxo tem quina (pontos da tabela), s.
+    fn breakpoints(&self) -> Vec<f64> {
+        Vec::new()
+    }
+    /// Gatilhos de sequência.
+    fn triggers(&self) -> Vec<Trigger> {
+        Vec::new()
+    }
 }
 
 /// Grandezas de navegação derivadas do estado, comuns ao 3-DOF e ao 6-DOF.
@@ -91,10 +153,11 @@ pub(crate) struct AirData {
 /// Fase do voo, constante dentro de cada trecho integrado. As descontinuidades
 /// (saída do trilho, fim da queima) são fronteiras de trecho: a equação de movimento
 /// nunca é avaliada dos dois lados de uma descontinuidade no mesmo passo.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct Phase {
     pub on_rail: bool,
     pub burning: bool,
+    pub fired: Vec<Option<f64>>,
 }
 
 pub(crate) struct World {
@@ -127,6 +190,21 @@ impl World {
             mach,
             q_dyn: 0.5 * atmo.density * speed * speed,
             up,
+        }
+    }
+
+    pub fn ctx<'a>(&self, air: &AirData, t: f64, mass: f64, ph: &'a Phase) -> FlightCtx<'a> {
+        FlightCtx {
+            t,
+            mass,
+            altitude: air.geo.h,
+            atmo: air.atmo,
+            speed: air.speed,
+            mach: air.mach,
+            q_dyn: air.q_dyn,
+            on_rail: ph.on_rail,
+            burning: ph.burning,
+            fired: &ph.fired,
         }
     }
 
@@ -200,19 +278,46 @@ impl World {
     }
 }
 
-type Rhs<'a, const N: usize> = dyn Fn(Phase, f64, &[f64; N]) -> [f64; N] + 'a;
+type EventFn<'a, const N: usize> = dyn Fn(f64, &[f64; N]) -> f64 + 'a;
+type Rhs<'a, const N: usize> = dyn Fn(&Phase, f64, &[f64; N]) -> [f64; N] + 'a;
 type Emit<'a, const N: usize> = dyn FnMut(Option<EventKind>, f64, &[f64; N]) + 'a;
 
 /// Tempos e opções de uma simulação.
 pub(crate) struct Schedule {
     pub burnout: f64,
+    pub breakpoints: Vec<f64>,
+    pub triggers: Vec<Trigger>,
     pub t_max: f64,
     pub output_dt: f64,
     pub ode: Options,
 }
 
-/// Integra as fases do voo (trilho, queima, voo livre) e entrega amostras e eventos.
+impl Schedule {
+    pub fn new(seq: &(impl Sequencer + ?Sized), t_max: f64, output_dt: f64, ode: Options) -> Self {
+        Self {
+            burnout: seq.burnout_time(),
+            breakpoints: seq.breakpoints(),
+            triggers: seq.triggers(),
+            t_max,
+            output_dt,
+            ode,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Tag {
+    RailExit,
+    Apogee,
+    Impact,
+    Altitude(usize),
+}
+
+/// Integra as fases do voo e entrega amostras e eventos.
 ///
+/// O voo é cortado em trechos nos instantes conhecidos (fim da queima, quinas da curva
+/// de empuxo, gatilhos por tempo) e nos eventos de estado (saída do trilho, apogeu,
+/// gatilhos por altitude, impacto). Dentro de um trecho as equações são suaves.
 /// `rhs(fase, t, y)` é a equação de movimento; `emit(kind, t, y)` recebe as amostras
 /// na grade de `output_dt` (`kind = None`) e os eventos (`kind = Some`).
 pub(crate) fn run_phases<const N: usize>(
@@ -222,13 +327,8 @@ pub(crate) fn run_phases<const N: usize>(
     sched: &Schedule,
     emit: &mut Emit<'_, N>,
 ) -> Result<(), OdeError> {
-    let Schedule {
-        burnout,
-        t_max,
-        output_dt,
-        ode: ref opts,
-    } = *sched;
     let rail_len = world.launch.rail.length;
+    let ground = world.launch.ground_h;
     let g_rail = |t: f64, y: &[f64; N]| {
         let (r0, u) = world.rail_eci(t);
         (v3(y, 0) - r0).dot(u) - rail_len
@@ -237,49 +337,113 @@ pub(crate) fn run_phases<const N: usize>(
         let a = world.air(v3(y, 0), v3(y, 3));
         a.v_rel.dot(a.up)
     };
-    let g_impact =
-        |_: f64, y: &[f64; N]| world.planet.ecef_to_geodetic(v3(y, 0)).h - world.launch.ground_h;
+    let g_impact = |_: f64, y: &[f64; N]| world.planet.ecef_to_geodetic(v3(y, 0)).h - ground;
+    let g_alt: Vec<Option<Box<EventFn<'_, N>>>> = sched
+        .triggers
+        .iter()
+        .map(|tr| match *tr {
+            Trigger::DescendingThrough { agl } => Some(Box::new(move |_: f64, y: &[f64; N]| {
+                world.planet.ecef_to_geodetic(v3(y, 0)).h - ground - agl
+            })
+                as Box<dyn Fn(f64, &[f64; N]) -> f64>),
+            _ => None,
+        })
+        .collect();
 
     let (mut t, mut y) = (0.0, y0);
-    let mut on_rail = rail_len > 0.0;
-    let mut burned_out = burnout <= 0.0;
+    let mut ph = Phase {
+        on_rail: rail_len > 0.0,
+        burning: sched.burnout > 0.0,
+        fired: vec![None; sched.triggers.len()],
+    };
+    let mut apogee_t: Option<f64> = None;
     let mut k_out: u64 = 1;
     emit(None, t, &y);
     loop {
-        let seg_end = if !burned_out && burnout < t_max {
-            burnout
-        } else {
-            t_max
-        };
-        let events: Vec<EventSpec<'_, N>> = if on_rail {
-            vec![EventSpec {
+        // Fronteiras de tempo pendentes.
+        let mut seg_end = sched.t_max;
+        if ph.burning {
+            if sched.burnout <= t {
+                ph.burning = false;
+                emit(Some(EventKind::Burnout), t, &y);
+                continue;
+            }
+            seg_end = seg_end.min(sched.burnout);
+        }
+        let mut fired_now = false;
+        for (i, tr) in sched.triggers.iter().enumerate() {
+            if ph.fired[i].is_some() {
+                continue;
+            }
+            let due = match *tr {
+                Trigger::Time(tt) => Some(tt),
+                Trigger::AfterApogee { delay } => apogee_t.map(|ta| ta + delay),
+                Trigger::DescendingThrough { .. } => None,
+            };
+            if let Some(due) = due {
+                if due <= t {
+                    ph.fired[i] = Some(t);
+                    emit(Some(EventKind::Trigger(i)), t, &y);
+                    fired_now = true;
+                } else {
+                    seg_end = seg_end.min(due);
+                }
+            }
+        }
+        if fired_now {
+            continue;
+        }
+        if ph.burning {
+            for &bp in &sched.breakpoints {
+                if bp > t + 1e-12 {
+                    seg_end = seg_end.min(bp);
+                }
+            }
+        }
+        if t >= sched.t_max {
+            break;
+        }
+
+        let mut events: Vec<EventSpec<'_, N>> = Vec::new();
+        let mut tags: Vec<Tag> = Vec::new();
+        if ph.on_rail {
+            events.push(EventSpec {
                 g: &g_rail,
                 direction: Direction::Rising,
                 terminal: true,
-            }]
+            });
+            tags.push(Tag::RailExit);
         } else {
-            vec![
-                EventSpec {
+            if apogee_t.is_none() {
+                events.push(EventSpec {
                     g: &g_apogee,
                     direction: Direction::Falling,
-                    terminal: false,
-                },
-                EventSpec {
-                    g: &g_impact,
-                    direction: Direction::Falling,
                     terminal: true,
-                },
-            ]
-        };
-        let phase = Phase {
-            on_rail,
-            burning: !burned_out,
-        };
-        let f = |t: f64, y: &[f64; N]| rhs(phase, t, y);
+                });
+                tags.push(Tag::Apogee);
+            }
+            events.push(EventSpec {
+                g: &g_impact,
+                direction: Direction::Falling,
+                terminal: true,
+            });
+            tags.push(Tag::Impact);
+            for (i, g) in g_alt.iter().enumerate() {
+                if let (Some(g), None) = (g, ph.fired[i]) {
+                    events.push(EventSpec {
+                        g: g.as_ref(),
+                        direction: Direction::Falling,
+                        terminal: true,
+                    });
+                    tags.push(Tag::Altitude(i));
+                }
+            }
+        }
+        let f = |t: f64, y: &[f64; N]| rhs(&ph, t, y);
         let mut grid: Vec<(f64, [f64; N])> = Vec::new();
-        let out = integrate(&f, t, y, seg_end, &events, opts, |step, t_valid| {
-            while (k_out as f64) * output_dt <= t_valid {
-                let to = k_out as f64 * output_dt;
+        let out = integrate(&f, t, y, seg_end, &events, &sched.ode, |step, t_valid| {
+            while (k_out as f64) * sched.output_dt <= t_valid {
+                let to = k_out as f64 * sched.output_dt;
                 grid.push((to, step.dense(to)));
                 k_out += 1;
             }
@@ -287,22 +451,25 @@ pub(crate) fn run_phases<const N: usize>(
         for (to, yo) in &grid {
             emit(None, *to, yo);
         }
-        for hit in &out.events {
-            let kind = match (on_rail, hit.index) {
-                (true, _) => EventKind::RailExit,
-                (false, 0) => EventKind::Apogee,
-                (false, _) => EventKind::Impact,
-            };
-            emit(Some(kind), hit.t, &hit.y);
-        }
         (t, y) = (out.t, out.y);
-        match out.terminated_by {
-            Some(_) if on_rail => on_rail = false,
-            Some(_) => break,
-            None if t >= t_max => break,
-            None => {
-                burned_out = true;
-                emit(Some(EventKind::Burnout), t, &y);
+        if let Some(idx) = out.terminated_by {
+            match tags[idx] {
+                Tag::RailExit => {
+                    ph.on_rail = false;
+                    emit(Some(EventKind::RailExit), t, &y);
+                }
+                Tag::Apogee => {
+                    apogee_t = Some(t);
+                    emit(Some(EventKind::Apogee), t, &y);
+                }
+                Tag::Altitude(i) => {
+                    ph.fired[i] = Some(t);
+                    emit(Some(EventKind::Trigger(i)), t, &y);
+                }
+                Tag::Impact => {
+                    emit(Some(EventKind::Impact), t, &y);
+                    break;
+                }
             }
         }
     }

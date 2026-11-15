@@ -43,9 +43,9 @@ astra/
 │  ├─ astra-wasm/        Fase 0   fronteira WASM (feito; cresce a cada fase)
 │  ├─ astra-env/         Fase 1   planeta, referenciais, gravidade, atmosfera (feito); vento e efemérides depois
 │  ├─ astra-dynamics/    Fase 1   integradores, eventos, 3-DOF, 6-DOF, trilho (feito)
-│  ├─ astra-aero/        Fase 2   Barrowman, Cd(Mach, α, Re), aquecimento, recuperação
-│  ├─ astra-propulsion/  Fase 2   sólido, água; Fase 5: líquido, híbrido e demais
-│  ├─ astra-vehicle/     Fase 3   peças, materiais, juntas, grafo, validação, falha
+│  ├─ astra-aero/        Fase 2   geometria, Barrowman, Cd por componentes (feito); aquecimento depois
+│  ├─ astra-propulsion/  Fase 2   curvas .eng/.rse, BATES, água (feito); Fase 5: líquido, híbrido e demais
+│  ├─ astra-vehicle/     Fase 2   foguete montado, paraquedas, exemplos (feito); Fase 3: peças, materiais, juntas, falha
 │  ├─ astra-launch/      Fase 6   contrato LaunchSystem e modos nativos
 │  ├─ astra-avionics/    Fase 7   sensores, circuito, barramentos
 │  ├─ astra-mission/     Fase 5   estágios, guiagem, GNC, sequência de voo

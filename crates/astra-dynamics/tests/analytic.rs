@@ -163,14 +163,8 @@ fn thrust_drops_with_ambient_pressure() {
         burn_time: 1.0,
         cd_a: 0.0,
     };
-    assert_eq!(v.thrust(0.5, 0.0).0, 1000.0);
-    assert!((v.thrust(0.5, 101_325.0).0 - (1000.0 - 202.65)).abs() < 1e-9);
-    assert_eq!(v.thrust(1.5, 0.0), (0.0, 0.0));
-    assert_eq!(
-        v.thrust(1.0, 0.0).0,
-        1000.0,
-        "contínuo à esquerda no fim da queima"
-    );
+    assert_eq!(v.thrust_at(0.0), 1000.0);
+    assert!((v.thrust_at(101_325.0) - (1000.0 - 202.65)).abs() < 1e-9);
 }
 
 /// Trilho inclinado com atrito, massa constante: a = F/m − g·sinθ − μ·g·cosθ e
@@ -348,8 +342,13 @@ struct Rigid {
     burn: f64,
     inertia: Mat3,
 }
+impl Sequencer for Rigid {
+    fn burnout_time(&self) -> f64 {
+        self.burn
+    }
+}
 impl RigidVehicle for Rigid {
-    fn loads(&self, k: &Kinematics6) -> Loads {
+    fn loads(&self, k: &FlightCtx<'_>, _: Vec3, _: Vec3) -> Loads {
         let on = k.burning;
         Loads {
             force_body: Vec3::new(if on { self.thrust } else { 0.0 }, 0.0, 0.0),
@@ -362,9 +361,6 @@ impl RigidVehicle for Rigid {
             inertia: self.inertia,
             inertia_rate: Mat3::ZERO,
         }
-    }
-    fn burnout_time(&self) -> f64 {
-        self.burn
     }
 }
 
@@ -462,6 +458,78 @@ fn asymmetric_body_conserves_momentum_while_tumbling() {
     for s in &r.samples {
         assert!((s.q.rotate(body.inertia * s.omega) - l0).norm() < 1e-7);
     }
+}
+
+/// Gatilhos: por tempo, após o apogeu e por altitude na descida disparam no instante
+/// certo e na ordem certa.
+#[test]
+fn triggers_fire_at_the_right_moments() {
+    struct Seq(ConstantVehicle);
+    impl Sequencer for Seq {
+        fn burnout_time(&self) -> f64 {
+            self.0.burn_time
+        }
+        fn triggers(&self) -> Vec<Trigger> {
+            vec![
+                Trigger::DescendingThrough { agl: 200.0 },
+                Trigger::AfterApogee { delay: 1.5 },
+                Trigger::Time(0.7),
+            ]
+        }
+    }
+    impl PointVehicle for Seq {
+        fn thrust(&self, c: &FlightCtx<'_>) -> (f64, f64) {
+            self.0.thrust(c)
+        }
+        fn drag_area(&self, c: &FlightCtx<'_>) -> f64 {
+            // Paraquedas "abre" 1,5 s depois do apogeu.
+            if c.fired[1].is_some() {
+                1.0
+            } else {
+                0.0
+            }
+        }
+    }
+    let v = Seq(ConstantVehicle {
+        thrust_vac: 200.0,
+        exit_area: 0.0,
+        mdot: 0.0,
+        burn_time: 3.0,
+        cd_a: 0.0,
+    });
+    let p = Planet::EARTH.spherical().non_rotating();
+    let c = Config3 {
+        planet: p,
+        atmosphere: AtmosphereModel::Ussa1976 { delta_t: 0.0 },
+        vehicle: &v,
+        launch: launch(FRAC_PI_2, 0.0, 0.0, 0.0),
+        m0: 5.0,
+        t_max: 600.0,
+        output_dt: 0.1,
+        ode: tight(),
+    };
+    let r = simulate3(&c).unwrap();
+    let kinds: Vec<EventKind> = r.events.iter().map(|e| e.0).collect();
+    assert_eq!(
+        kinds,
+        [
+            EventKind::Trigger(2),
+            EventKind::Burnout,
+            EventKind::Apogee,
+            EventKind::Trigger(1),
+            EventKind::Trigger(0),
+            EventKind::Impact
+        ]
+    );
+    let at = |k| r.event(k).unwrap();
+    assert!((at(EventKind::Trigger(2)).t - 0.7).abs() < 1e-12);
+    assert!((at(EventKind::Trigger(1)).t - at(EventKind::Apogee).t - 1.5).abs() < 1e-9);
+    assert!((at(EventKind::Trigger(0)).nav.alt - 200.0).abs() < 1e-6);
+    let vt = (2.0_f64 * 5.0 * 9.798 / 1.225).sqrt();
+    assert!(
+        (at(EventKind::Impact).nav.speed / vt - 1.0).abs() < 0.01,
+        "desce na velocidade terminal"
+    );
 }
 
 /// 6-DOF sem momentos reproduz o 3-DOF: mesmo foguete, Terra girando, trilho vertical.

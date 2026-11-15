@@ -1,34 +1,7 @@
-use super::{run_phases, v3, EventKind, Launch, Nav, World};
+use super::{run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, Sequencer, World};
 use crate::ode::{OdeError, Options};
-use astra_env::{AtmoState, AtmosphereModel, Planet};
+use astra_env::{AtmosphereModel, Planet};
 use astra_math::{Mat3, Quat, Vec3};
-
-/// O que o veículo enxerga do voo para calcular forças e momentos.
-#[derive(Clone, Copy, Debug)]
-pub struct Kinematics6 {
-    /// Tempo, s.
-    pub t: f64,
-    /// Massa atual, kg.
-    pub mass: f64,
-    /// Altitude acima do elipsoide, m.
-    pub altitude: f64,
-    /// Estado do ar local.
-    pub atmo: AtmoState,
-    /// Velocidade em relação ao ar, nos eixos do corpo, m/s.
-    pub v_air_body: Vec3,
-    /// Velocidade angular inercial, nos eixos do corpo, rad/s.
-    pub omega_body: Vec3,
-    /// Número de Mach.
-    pub mach: f64,
-    /// Pressão dinâmica, Pa.
-    pub q_dyn: f64,
-    /// Verdadeiro enquanto o veículo está preso ao trilho.
-    pub on_rail: bool,
-    /// Verdadeiro até `burnout_time()`. O veículo deve decidir se há empuxo por este
-    /// campo, não comparando `t` com o fim da queima: o integrador avalia as equações
-    /// exatamente no instante da descontinuidade, dos dois lados.
-    pub burning: bool,
-}
 
 /// Forças e momentos não gravitacionais sobre o veículo.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -51,13 +24,12 @@ pub struct MassProps {
 }
 
 /// Veículo rígido para o 6-DOF. Eixo x do corpo = eixo longitudinal, apontando para o nariz.
-pub trait RigidVehicle {
-    /// Forças, momentos e vazão.
-    fn loads(&self, k: &Kinematics6) -> Loads;
+pub trait RigidVehicle: Sequencer {
+    /// Forças, momentos e vazão. `v_air_body` é a velocidade em relação ao ar e
+    /// `omega_body` a velocidade angular inercial, ambas nos eixos do corpo.
+    fn loads(&self, ctx: &FlightCtx<'_>, v_air_body: Vec3, omega_body: Vec3) -> Loads;
     /// Inércia para a massa e o instante dados.
     fn mass_props(&self, t: f64, mass: f64) -> MassProps;
-    /// Instante do fim da queima, s (0 se não há motor).
-    fn burnout_time(&self) -> f64;
 }
 
 /// Entrada de uma simulação 6-DOF.
@@ -149,23 +121,12 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         atmosphere: cfg.atmosphere,
         launch: cfg.launch,
     };
-    let rhs = |ph: super::Phase, t: f64, y: &[f64; 14]| -> [f64; 14] {
+    let rhs = |ph: &Phase, t: f64, y: &[f64; 14]| -> [f64; 14] {
         let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y), v3(y, 10), y[13]);
         let qn = q.normalized();
         let air = world.air(r, v);
-        let kin = Kinematics6 {
-            t,
-            mass: m,
-            altitude: air.geo.h,
-            atmo: air.atmo,
-            v_air_body: qn.conj().rotate(air.v_rel),
-            omega_body: w,
-            mach: air.mach,
-            q_dyn: air.q_dyn,
-            on_rail: ph.on_rail,
-            burning: ph.burning,
-        };
-        let loads = cfg.vehicle.loads(&kin);
+        let ctx = world.ctx(&air, t, m, ph);
+        let loads = cfg.vehicle.loads(&ctx, qn.conj().rotate(air.v_rel), w);
         let a_free = world.planet.gravity(r) + qn.rotate(loads.force_body) / m;
         let (a, wdot) = if ph.on_rail {
             (
@@ -218,12 +179,7 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         &world,
         &rhs,
         y0,
-        &super::Schedule {
-            burnout: cfg.vehicle.burnout_time(),
-            t_max: cfg.t_max,
-            output_dt: cfg.output_dt,
-            ode: cfg.ode,
-        },
+        &Schedule::new(cfg.vehicle, cfg.t_max, cfg.output_dt, cfg.ode),
         &mut |kind: Option<EventKind>, t, y| {
             let (r, v, q) = (v3(y, 0), v3(y, 3), quat(y).normalized());
             let nav = world.nav(t, r, v);

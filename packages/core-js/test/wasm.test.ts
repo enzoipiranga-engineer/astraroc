@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { initSync, atmosphere, coreVersion, flight3Constant, selfCheck } from "../wasm/astra_wasm.js";
+import {
+  initSync,
+  atmosphere,
+  coreVersion,
+  flight3Constant,
+  selfCheck,
+  waterRocketFlight,
+} from "../wasm/astra_wasm.js";
 import { CoreClient, type WorkerLike } from "../src/client";
 import type { CoreRequest } from "../src/protocol";
 
@@ -39,6 +46,25 @@ describe("física no WASM", () => {
     expect(apogee).toBeLessThan(1000);
     expect(out.samples.length % 8).toBe(0);
     expect(() => flight3Constant(new Float64Array(3))).toThrow(/14 parâmetros/);
+  });
+});
+
+describe("foguete de água no WASM", () => {
+  const rad = Math.PI / 180;
+  const site = [-23.5 * rad, -46.6 * rad, 760, 88 * rad];
+
+  it("garrafa PET de 2 L a 4 bar sobe algumas dezenas de metros", () => {
+    const out = waterRocketFlight(new Float64Array([2e-3, 0.66e-3, 4e5, ...site]));
+    const ev = Array.from(out.events);
+    const apogee = ev[ev.findIndex((v, i) => i % 4 === 0 && v === 2) + 2]! - 760;
+    expect(apogee).toBeGreaterThan(30);
+    expect(apogee).toBeLessThan(80);
+    expect(out.warnings).toEqual([]);
+  });
+
+  it("avisa quando a pressão passa do limite de segurança", () => {
+    const out = waterRocketFlight(new Float64Array([2e-3, 0.66e-3, 9e5, ...site]));
+    expect(out.warnings.join(" ")).toMatch(/limite de segurança/);
   });
 });
 

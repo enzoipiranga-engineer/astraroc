@@ -12,6 +12,8 @@ crate-type = ["cdylib", "rlib"]
 astra-math = { path = "../astra-math" }
 astra-env = { path = "../astra-env" }
 astra-dynamics = { path = "../astra-dynamics" }
+astra-propulsion = { path = "../astra-propulsion" }
+astra-vehicle = { path = "../astra-vehicle" }
 wasm-bindgen = "=0.2.130"
 
 [lints]

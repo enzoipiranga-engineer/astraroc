@@ -61,7 +61,8 @@ impl FlightOutput {
     }
 
     /// Eventos, 4 valores por linha: tipo (0 saída do trilho, 1 fim da queima, 2 apogeu,
-    /// 3 impacto), t (s), altitude (m), velocidade (m/s).
+    /// 3 impacto,
+    /// 10 + i abertura do paraquedas i), t (s), altitude (m), velocidade (m/s).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn events(&self) -> Vec<f64> {
@@ -136,17 +137,129 @@ pub fn flight3_constant(p: &[f64]) -> Result<FlightOutput, String> {
     let events = res
         .events
         .iter()
-        .flat_map(|(k, s)| {
-            let code = match k {
-                EventKind::RailExit => 0.0,
-                EventKind::Burnout => 1.0,
-                EventKind::Apogee => 2.0,
-                EventKind::Impact => 3.0,
-            };
-            [code, s.t, s.nav.alt, s.nav.speed]
-        })
+        .flat_map(|(k, s)| [event_code(*k), s.t, s.nav.alt, s.nav.speed])
         .collect();
     Ok(FlightOutput { samples, events })
+}
+
+/// Voo 6-DOF do foguete de garrafa PET de exemplo, na Terra, com atmosfera padrão.
+///
+/// `p` tem 7 valores em SI (ângulos em rad): volume da garrafa (m³), volume de água
+/// (m³), pressão manométrica (Pa), latitude, longitude, altitude do local (m),
+/// elevação do lançador. Devolve a telemetria no formato de [`FlightOutput`]; os avisos
+/// do motor de água (pressão acima do limite, água sobrando) vêm em `warnings`.
+///
+/// # Errors
+/// Mensagem de texto se `p` tiver tamanho errado ou a integração falhar.
+#[wasm_bindgen(js_name = waterRocketFlight)]
+pub fn water_rocket_flight(p: &[f64]) -> Result<WaterFlight, String> {
+    use astra_dynamics::flight::{simulate6, Config6};
+    let &[bottle_volume, water_volume, gauge_pressure, lat, lon, h, elevation] = p else {
+        return Err(format!("esperados 7 parâmetros, recebidos {}", p.len()));
+    };
+    let water = astra_propulsion::WaterRocket {
+        bottle_volume,
+        water_volume,
+        gauge_pressure,
+        ..astra_propulsion::WaterRocket::pet_2l()
+    };
+    let warnings = water.simulate().warnings;
+    let rocket = astra_vehicle::templates::pet_bottle(&water);
+    let cfg = Config6 {
+        planet: Planet::EARTH,
+        atmosphere: AtmosphereModel::Ussa1976 { delta_t: 0.0 },
+        vehicle: &rocket,
+        launch: Launch {
+            site: Geodetic { lat, lon, h },
+            ground_h: h,
+            rail: Rail {
+                length: 0.5,
+                elevation,
+                azimuth: 0.0,
+                friction: 0.0,
+            },
+            initial_speed: 0.0,
+            theta0: 0.0,
+        },
+        m0: rocket.mass(0.0),
+        initial_omega_body: Vec3::ZERO,
+        t_max: 120.0,
+        output_dt: 0.02,
+        ode: Options {
+            rtol: 1e-8,
+            atol: 1e-8,
+            h_max: 0.5,
+            ..Options::default()
+        },
+    };
+    let res = simulate6(&cfg).map_err(|e| e.to_string())?;
+    let samples = res
+        .samples
+        .iter()
+        .flat_map(|s| {
+            let n = s.nav;
+            [
+                s.t,
+                n.alt,
+                n.speed,
+                n.vertical_speed,
+                n.mach,
+                n.q_dyn,
+                n.lat,
+                n.lon,
+            ]
+        })
+        .collect();
+    let events = res
+        .events
+        .iter()
+        .flat_map(|(k, s)| [event_code(*k), s.t, s.nav.alt, s.nav.speed])
+        .collect();
+    Ok(WaterFlight {
+        flight: FlightOutput { samples, events },
+        warnings,
+    })
+}
+
+/// Resultado de [`water_rocket_flight`].
+#[wasm_bindgen]
+pub struct WaterFlight {
+    flight: FlightOutput,
+    warnings: Vec<String>,
+}
+
+#[wasm_bindgen]
+impl WaterFlight {
+    /// Amostras (ver [`FlightOutput::samples`]).
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn samples(&self) -> Vec<f64> {
+        self.flight.samples.clone()
+    }
+
+    /// Eventos (ver [`FlightOutput::events`]).
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn events(&self) -> Vec<f64> {
+        self.flight.events.clone()
+    }
+
+    /// Avisos em linguagem simples.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn warnings(&self) -> Vec<String> {
+        self.warnings.clone()
+    }
+}
+
+fn event_code(k: EventKind) -> f64 {
+    match k {
+        EventKind::RailExit => 0.0,
+        EventKind::Burnout => 1.0,
+        EventKind::Apogee => 2.0,
+        EventKind::Impact => 3.0,
+        EventKind::Trigger(i) => 10.0 + i as f64,
+    }
 }
 
 #[cfg(test)]

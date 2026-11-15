@@ -10,3 +10,6 @@ inventado: enquanto o dado não chegar, o recurso correspondente não é impleme
 | Regras da Spaceport America Cup / IREC | 8 | Documentos oficiais em soundingrocket.org, também fora da rede permitida. Fontes secundárias citam payload de 8,8 lb e alvos de 10.000 e 30.000 ft AGL; a fórmula de pontuação não foi confirmada. |
 | Chave do Cesium ion | 4 | O usuário aceitou criar; será pedida na Fase 4. |
 | Repositório GitHub | já | Conta GitHub não conectada à sessão; o código está só em commit local. |
+| Voo medido de garrafa PET (altímetro) | 2 | Nenhum dado medido disponível na sessão; a validação do foguete de água é só analítica. |
+| Conferir tabela da atmosfera acima de 86 km (Vallado, Tabela 8-4) e dados do KNSB (Nakka) | 1 e 2 | Transcritos de memória; fontes não acessíveis nesta sessão. |
+| Curvas de motores pequenos (Estes etc.) | 2 | thrustcurve.org fora da rede permitida; só o Cesaroni M1670 está embutido. |

@@ -3,11 +3,18 @@
 version = 3
 
 [[package]]
+name = "astra-aero"
+version = "0.0.1"
+
+[[package]]
 name = "astra-cli"
 version = "0.0.1"
 dependencies = [
  "astra-dynamics",
  "astra-env",
+ "astra-math",
+ "astra-propulsion",
+ "astra-vehicle",
 ]
 
 [[package]]
@@ -30,12 +37,29 @@ name = "astra-math"
 version = "0.0.1"
 
 [[package]]
+name = "astra-propulsion"
+version = "0.0.1"
+
+[[package]]
+name = "astra-vehicle"
+version = "0.0.1"
+dependencies = [
+ "astra-aero",
+ "astra-dynamics",
+ "astra-env",
+ "astra-math",
+ "astra-propulsion",
+]
+
+[[package]]
 name = "astra-wasm"
 version = "0.0.1"
 dependencies = [
  "astra-dynamics",
  "astra-env",
  "astra-math",
+ "astra-propulsion",
+ "astra-vehicle",
  "wasm-bindgen",
 ]
 

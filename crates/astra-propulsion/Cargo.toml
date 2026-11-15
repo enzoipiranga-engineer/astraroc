@@ -1,0 +1,9 @@
+[package]
+name = "astra-propulsion"
+description = "ASTRA: motores (curvas de empuxo, grão BATES, foguete de água)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true

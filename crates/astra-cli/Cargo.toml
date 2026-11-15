@@ -8,6 +8,9 @@ rust-version.workspace = true
 [dependencies]
 astra-env = { path = "../astra-env" }
 astra-dynamics = { path = "../astra-dynamics" }
+astra-math = { path = "../astra-math" }
+astra-propulsion = { path = "../astra-propulsion" }
+astra-vehicle = { path = "../astra-vehicle" }
 
 [lints]
 workspace = true

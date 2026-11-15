@@ -1,19 +1,15 @@
-use super::{run_phases, v3, EventKind, Launch, Nav, World};
+use super::{run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, Sequencer, World};
 use crate::ode::{OdeError, Options};
 use astra_env::{AtmosphereModel, Planet};
 use astra_math::Vec3;
 
 /// Veículo visto como massa pontual: só empuxo, vazão e arrasto.
-pub trait PointVehicle {
-    /// Empuxo (N) e vazão mássica de propelente (kg/s, ≥ 0) no instante `t`,
-    /// para a pressão ambiente `p_amb` (Pa). Só é chamado com `t ≤ burnout_time()`;
-    /// depois disso o simulador assume empuxo e vazão nulos.
-    fn thrust(&self, t: f64, p_amb: f64) -> (f64, f64);
-    /// Área de arrasto Cd·A (m²) no número de Mach dado.
-    fn drag_area(&self, mach: f64) -> f64;
-    /// Instante do fim da queima, s (0 se não há motor). A integração é reiniciada
-    /// nesse instante para não atravessar a descontinuidade de empuxo.
-    fn burnout_time(&self) -> f64;
+pub trait PointVehicle: Sequencer {
+    /// Empuxo (N) e vazão mássica de propelente (kg/s, ≥ 0). Só é chamado enquanto
+    /// `ctx.burning`; depois o simulador assume empuxo e vazão nulos.
+    fn thrust(&self, ctx: &FlightCtx<'_>) -> (f64, f64);
+    /// Área de arrasto Cd·A (m²).
+    fn drag_area(&self, ctx: &FlightCtx<'_>) -> f64;
 }
 
 /// Motor de empuxo de vácuo e vazão constantes, com arrasto de Cd·A constante.
@@ -31,21 +27,28 @@ pub struct ConstantVehicle {
     pub cd_a: f64,
 }
 
-impl PointVehicle for ConstantVehicle {
-    /// F = F_vác − p_amb·A_e, forma equivalente a F = ṁ·v_e + (p_e − p_amb)·A_e.
-    /// Fonte: Sutton & Biblarz, "Rocket Propulsion Elements", 9ª ed., eq. 2-13.
-    fn thrust(&self, t: f64, p_amb: f64) -> (f64, f64) {
-        if t <= self.burn_time {
-            (self.thrust_vac - p_amb * self.exit_area, self.mdot)
-        } else {
-            (0.0, 0.0)
-        }
+impl ConstantVehicle {
+    /// Empuxo sob pressão ambiente `p_amb` (Pa): F = F_vác − p_amb·A_e, forma
+    /// equivalente a F = ṁ·v_e + (p_e − p_amb)·A_e.
+    /// Fonte: Sutton & Biblarz, "Rocket Propulsion Elements", 9ª ed., cap. 2 (equação do empuxo).
+    #[must_use]
+    pub fn thrust_at(&self, p_amb: f64) -> f64 {
+        self.thrust_vac - p_amb * self.exit_area
     }
-    fn drag_area(&self, _mach: f64) -> f64 {
-        self.cd_a
-    }
+}
+
+impl Sequencer for ConstantVehicle {
     fn burnout_time(&self) -> f64 {
         self.burn_time
+    }
+}
+
+impl PointVehicle for ConstantVehicle {
+    fn thrust(&self, ctx: &FlightCtx<'_>) -> (f64, f64) {
+        (self.thrust_at(ctx.atmo.pressure), self.mdot)
+    }
+    fn drag_area(&self, _: &FlightCtx<'_>) -> f64 {
+        self.cd_a
     }
 }
 
@@ -118,7 +121,7 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
         atmosphere: cfg.atmosphere,
         launch: cfg.launch,
     };
-    let rhs = |ph: super::Phase, t: f64, y: &[f64; 7]| -> [f64; 7] {
+    let rhs = |ph: &Phase, t: f64, y: &[f64; 7]| -> [f64; 7] {
         let (r, v, m) = (v3(y, 0), v3(y, 3), y[6]);
         let air = world.air(r, v);
         let (_, axis) = world.rail_eci(t);
@@ -127,13 +130,13 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
         } else {
             air.v_rel / air.speed
         };
+        let ctx = world.ctx(&air, t, m, ph);
         let (thrust, mdot) = if ph.burning {
-            cfg.vehicle.thrust(t, air.atmo.pressure)
+            cfg.vehicle.thrust(&ctx)
         } else {
             (0.0, 0.0)
         };
-        let drag =
-            -0.5 * air.atmo.density * air.speed * cfg.vehicle.drag_area(air.mach) * air.v_rel;
+        let drag = -0.5 * air.atmo.density * air.speed * cfg.vehicle.drag_area(&ctx) * air.v_rel;
         let a_free = world.planet.gravity(r) + (thrust * dir + drag) / m;
         let a = if ph.on_rail {
             world.rail_accel(a_free, r, v, axis)
@@ -149,12 +152,7 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
         &world,
         &rhs,
         y0,
-        &super::Schedule {
-            burnout: cfg.vehicle.burnout_time(),
-            t_max: cfg.t_max,
-            output_dt: cfg.output_dt,
-            ode: cfg.ode,
-        },
+        &Schedule::new(cfg.vehicle, cfg.t_max, cfg.output_dt, cfg.ode),
         &mut |kind, t, y| {
             let (r, v) = (v3(y, 0), v3(y, 3));
             let s = Sample3 {

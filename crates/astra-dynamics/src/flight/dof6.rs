@@ -1,4 +1,7 @@
-use super::{run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, Sequencer, World};
+use super::{
+    run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, SequenceState, Sequencer,
+    Start, World,
+};
 use crate::ode::{OdeError, Options};
 use astra_env::{AtmosphereModel, Planet};
 use astra_math::{Mat3, Quat, Vec3};
@@ -30,6 +33,36 @@ pub trait RigidVehicle: Sequencer {
     fn loads(&self, ctx: &FlightCtx<'_>, v_air_body: Vec3, omega_body: Vec3) -> Loads;
     /// Inércia para a massa e o instante dados.
     fn mass_props(&self, t: f64, mass: f64) -> MassProps;
+    /// Margem `index` de limite físico (0 ≤ index < `margin_count()`): positiva enquanto
+    /// o limite é respeitado, negativa quando é ultrapassado. Use uma grandeza contínua
+    /// no tempo, como (capacidade − carga)/capacidade, para o evento ser localizado.
+    fn margin(&self, ctx: &FlightCtx<'_>, v_air_body: Vec3, omega_body: Vec3, index: usize) -> f64 {
+        let _ = (ctx, v_air_body, omega_body, index);
+        1.0
+    }
+}
+
+/// Estado inicial de um trecho que não começa no lançador (corpo recém-separado).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Start6 {
+    /// Instante, s.
+    pub t: f64,
+    /// Posição ECI, m.
+    pub r: Vec3,
+    /// Velocidade ECI, m/s.
+    pub v: Vec3,
+    /// Atitude (corpo → ECI).
+    pub q: Quat,
+    /// Velocidade angular inercial nos eixos do corpo, rad/s.
+    pub omega: Vec3,
+    /// Massa, kg.
+    pub mass: f64,
+    /// Motor ainda aceso.
+    pub burning: bool,
+    /// Instante de disparo de cada gatilho do novo veículo.
+    pub fired: Vec<Option<f64>>,
+    /// Instante do apogeu, se já ocorreu.
+    pub apogee: Option<f64>,
 }
 
 /// Entrada de uma simulação 6-DOF.
@@ -52,6 +85,8 @@ pub struct Config6<'a> {
     pub output_dt: f64,
     /// Opções do integrador.
     pub ode: Options,
+    /// Começar de um estado dado em vez do lançador (`launch` continua definindo o solo).
+    pub start: Option<Start6>,
 }
 
 /// Amostra de telemetria 6-DOF.
@@ -82,9 +117,17 @@ pub struct Result6 {
     pub samples: Vec<Sample6>,
     /// Eventos em ordem de ocorrência.
     pub events: Vec<(EventKind, Sample6)>,
+    /// Estado da sequência no fim (para continuar após uma quebra).
+    pub end: Option<SequenceState>,
 }
 
 impl Result6 {
+    /// Última amostra (estado final).
+    #[must_use]
+    pub fn last(&self) -> Option<&Sample6> {
+        self.samples.last()
+    }
+
     /// Primeiro evento do tipo dado, se ocorreu.
     #[must_use]
     pub fn event(&self, kind: EventKind) -> Option<&Sample6> {
@@ -162,6 +205,13 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         ]
     };
 
+    let margin = |ph: &Phase, t: f64, y: &[f64; 14], i: usize| -> f64 {
+        let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y).normalized(), v3(y, 10), y[13]);
+        let air = world.air(r, v);
+        let ctx = world.ctx(&air, t, m, ph);
+        cfg.vehicle.margin(&ctx, q.conj().rotate(air.v_rel), w, i)
+    };
+    let n_margins = cfg.vehicle.margin_count();
     let (r0, v0) = world.initial_rv();
     // Atitude inicial: x do corpo no eixo do trilho; y horizontal; z completa o triedro.
     let (_, axis) = world.rail_eci(0.0);
@@ -170,16 +220,38 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
     let yb = up.cross(axis).normalized().unwrap_or(east);
     let q0 = Quat::from_mat3(Mat3::from_cols(axis, yb, axis.cross(yb)));
     let w0 = q0.conj().rotate(cfg.planet.omega_vec()) + cfg.initial_omega_body;
-    let y0 = [
-        r0.x, r0.y, r0.z, v0.x, v0.y, v0.z, q0.w, q0.x, q0.y, q0.z, w0.x, w0.y, w0.z, cfg.m0,
-    ];
+    let start = match &cfg.start {
+        None => Start {
+            t: 0.0,
+            y: [
+                r0.x, r0.y, r0.z, v0.x, v0.y, v0.z, q0.w, q0.x, q0.y, q0.z, w0.x, w0.y, w0.z,
+                cfg.m0,
+            ],
+            on_rail: cfg.launch.rail.length > 0.0,
+            burning: cfg.vehicle.burnout_time() > 0.0,
+            fired: Vec::new(),
+            apogee: None,
+        },
+        Some(s) => Start {
+            t: s.t,
+            y: [
+                s.r.x, s.r.y, s.r.z, s.v.x, s.v.y, s.v.z, s.q.w, s.q.x, s.q.y, s.q.z, s.omega.x,
+                s.omega.y, s.omega.z, s.mass,
+            ],
+            on_rail: false,
+            burning: s.burning && s.t < cfg.vehicle.burnout_time(),
+            fired: s.fired.clone(),
+            apogee: s.apogee,
+        },
+    };
 
     let mut res = Result6::default();
-    run_phases(
+    let (end, _) = run_phases(
         &world,
         &rhs,
-        y0,
+        start,
         &Schedule::new(cfg.vehicle, cfg.t_max, cfg.output_dt, cfg.ode),
+        (n_margins > 0).then_some((&margin as &super::Margins<'_, 14>, n_margins)),
         &mut |kind: Option<EventKind>, t, y| {
             let (r, v, q) = (v3(y, 0), v3(y, 3), quat(y).normalized());
             let nav = world.nav(t, r, v);
@@ -205,5 +277,6 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
             }
         },
     )?;
+    res.end = Some(end);
     Ok(res)
 }

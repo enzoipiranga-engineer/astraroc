@@ -49,6 +49,7 @@ fn fly6(r: &Rocket, l: Launch, t_max: f64) -> (Result6, FlightSummary) {
         t_max,
         output_dt: 0.02,
         ode: opts(),
+        start: None,
     };
     let res = simulate6(&cfg).unwrap();
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();
@@ -67,6 +68,7 @@ fn fly3(r: &Rocket, l: Launch, t_max: f64) -> (Result3, FlightSummary) {
         t_max,
         output_dt: 0.02,
         ode: opts(),
+        start: None,
     };
     let res = simulate3(&cfg).unwrap();
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();

@@ -12,7 +12,8 @@
   "dependencies": {
     "@astra/core-js": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "uplot": "^1.6.32"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

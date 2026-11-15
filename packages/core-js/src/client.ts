@@ -1,4 +1,5 @@
-import type { CoreInfo, CoreRequest, CoreResponse } from "./protocol";
+import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, RequestBody } from "./protocol";
+import type { Design, Material, SimOutput, TemplateEntry, Validation } from "./types";
 
 /** O mínimo de `Worker` que o cliente usa (permite testar sem navegador). */
 export interface WorkerLike {
@@ -13,7 +14,6 @@ type Pending = { resolve: (r: CoreResponse) => void; reject: (e: Error) => void 
 export class CoreClient {
   private nextId = 1;
   private readonly pending = new Map<number, Pending>();
-
   private readonly worker: WorkerLike;
 
   constructor(worker: WorkerLike | Worker) {
@@ -32,18 +32,38 @@ export class CoreClient {
     };
   }
 
-  private call(kind: CoreRequest["kind"]): Promise<CoreResponse> {
+  private async call<K extends CoreResult["kind"]>(body: RequestBody & { kind: K }): Promise<Extract<CoreResult, { kind: K }>> {
     const id = this.nextId++;
-    return new Promise((resolve, reject) => {
+    const res = await new Promise<CoreResponse>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ id, kind });
+      this.worker.postMessage({ ...body, id } as CoreRequest);
     });
+    if (!res.ok) throw new Error(res.error);
+    return res as unknown as Extract<CoreResult, { kind: K }>;
   }
 
   /** Versão e autoteste do núcleo carregado. */
   async info(): Promise<CoreInfo> {
-    const res = await this.call("info");
-    if (!res.ok) throw new Error(res.error);
-    return res.info;
+    return (await this.call({ kind: "info" })).info;
+  }
+
+  /** Projetos de exemplo. */
+  async templates(): Promise<TemplateEntry[]> {
+    return (await this.call({ kind: "templates" })).templates;
+  }
+
+  /** Banco de materiais embutido. */
+  async materials(): Promise<Material[]> {
+    return (await this.call({ kind: "materials" })).materials;
+  }
+
+  /** Verifica o projeto; com `withFlight`, inclui as cargas do voo sem falhas. */
+  async validate(design: Design, withFlight: boolean): Promise<Validation> {
+    return (await this.call({ kind: "validate", design, withFlight })).validation;
+  }
+
+  /** Simula o voo com falhas físicas. */
+  async simulate(design: Design): Promise<SimOutput> {
+    return (await this.call({ kind: "simulate", design })).output;
   }
 }

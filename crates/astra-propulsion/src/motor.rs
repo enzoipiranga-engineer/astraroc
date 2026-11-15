@@ -34,6 +34,26 @@ pub struct Motor {
 pub(crate) const P_SL: f64 = 101_325.0;
 
 impl Motor {
+    /// Ausência de motor: tabela sem empuxo e sem propelente.
+    #[must_use]
+    pub fn none() -> Self {
+        let z = |t| MotorPoint {
+            t,
+            thrust: 0.0,
+            prop_mass: 0.0,
+        };
+        Self {
+            name: "sem motor".to_owned(),
+            manufacturer: String::new(),
+            diameter: 0.0,
+            length: 0.0,
+            dry_mass: 0.0,
+            points: vec![z(0.0), z(1e-6)],
+            ref_pressure: P_SL,
+            exit_area: 0.0,
+        }
+    }
+
     /// Monta um motor a partir de pares (tempo, empuxo), assumindo impulso específico
     /// constante: a massa de propelente cai na proporção do impulso já entregue,
     /// m(t) = m_p·(1 − I(t)/I_total). Se o primeiro ponto tem t > 0, um ponto (0, 0)

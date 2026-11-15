@@ -35,6 +35,21 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 | Foguete montado (massa, CG, inércia, cargas 6-DOF) | `astra-vehicle::Rocket` | Steiner; composição dos modelos acima | Um estágio | — |
 | Volume ótimo de água | `astra-vehicle::optimal_water_volume` | Seção áurea (Kiefer 1953) | Um único máximo | ~1% do volume |
 
+| Massa, CG e inércia por peça (cascas finas de revolução, cilindros, discos, placas) | `astra-design::PartProps` | Integração numérica; Steiner | Paredes finas frente ao raio | Massa ~2 a 5% (colas, acabamento e furos não entram) |
+| Capacidade de colagem | `astra-design::Assembly` | τ = menor resistência ao cisalhamento entre adesivo e peças × área de contato | Sobreposição cilíndrica ou face | ±50%: colagem real depende de preparo e cura |
+| Raiz da aleta (filetes como binário; placa σ·c·t²/6) | idem | Modelo de engenharia próprio, documentado no código | Aleta colada na superfície ou atravessando o tubo | ±50% |
+| Parafusos (cisalhamento 0,6·σ_rup ou τ do material; esmagamento σ_esc·d·t) | idem | Prática de projeto de juntas (Shigley, cap. 8) | Parede fina | ±30% |
+| Pinos de cisalhamento τ·πd²/4 | idem | Resistência ao cisalhamento do material | Pino íntegro e seco | ±30% (náilon varia com umidade) |
+| Contato entre peças externas sem junta | idem | Só compressão, tração nula | Sempre | — |
+| Carga axial numa junta: F = m_distal·a_x − F_aero,distal | `astra-design` (`limits.rs`) | Segunda lei de Newton no subconjunto | Corpo rígido; arrasto repartido por peça | Igual ao erro do arrasto por peça (~20%) |
+| Pressão da baia fechada: Δp·A, com Δp = p_solo − p_ambiente | idem | Hidrostática | Baia sem respiro, sem vazamento | Superestima: baias reais vazam |
+| Força de ejeção p·A, p = m·R·T/V (pólvora negra, R·T ≈ 2,19e5 J/kg) | `Assembly::ejection_force` | Regra usual de dimensionamento (R = 22,16 ft·lbf/(lbm·°R), T = 3307 °R) | Gás ideal, sem perdas | Superestima (perdas térmicas e vazamento); estimado |
+| Flutter de aleta (NACA TN 4197) | `limits::flutter_speed` | Martin (1958); Apogee Peak of Flight nº 291 | Placa fina isotrópica | ±30% |
+| Flambagem local de tubo (com fator γ) e escoamento | `limits::shell_buckling_stress` | NASA SP-8007 | Casca fina, ν = 0,3 | ±30%; não modela flambagem global de coluna |
+| Momento fletor no tubo pelas forças normais à frente | `limits.rs` | Barrowman por componente; inércia lateral | α pequeno; sem aceleração angular | ~30% |
+| Corpo capotando: Cd ≈ 1 sobre a área projetada média (superfície/4, Cauchy) | `limits::TUMBLE_CD` | Fórmula de Cauchy; Hoerner cap. 3 | Rotação aleatória rápida | ±50% |
+| Sistema sob paraquedas como ponto de massa; força de abertura q·CdS(t) contra o cordão mais fraco | `limits::PointSystem` | Knacke (1992) | Corpos amarrados alinhados com o fluxo | Força de pico ±30% |
+| Separação: partes herdam r e v do corpo (com ω × d) | `sim.rs` | Cinemática de corpo rígido | Separação instantânea, sem impulso de mola ou carga | Desvio da ordem do impulso desprezado |
 ## Simplificações em vigor
 
 - **ECI simplificado.** O referencial inercial coincide com o ECEF girado de θ0 + ω·t em z.
@@ -82,3 +97,21 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
   como peso morto (na realidade escorre).
 - **Motor sólido só com grão BATES.** Estrela e finocyl ficam para a Fase 5, com o projeto
   de motor.
+- **Gêmeo digital (fase 3):** colas, tinta, parafusos e fiação não entram na massa
+  automática; use "massa medida" para corrigir. A geometria das peças internas é axial
+  (cilindros centrados).
+- **Cargas nas juntas só axiais**, mais flexão na raiz das aletas e no tubo. Torção e
+  cargas de lançador ainda não entram.
+- **No trilho, a carga nas juntas usa só empuxo e arrasto** (sem a reação do trilho):
+  antes de sair da base a compressão real é um pouco maior.
+- **Juntas implícitas:** peças externas encostadas sem junta ficam apoiadas (só
+  compressão); peças internas soltas ficam confinadas no tubo que as envolve e não saem
+  nem quando a baia abre.
+- **Ejeção sem a carga de voo:** a decisão de abrir a baia compara só a força da carga de
+  ejeção com a capacidade da junta.
+- **Peças separadas** voltam ao 6-DOF só se tiverem nariz e margem acima de 0,3 calibre;
+  senão capotam como ponto de massa (sem empuxo útil se o motor ainda queimar).
+- **Aleta perdida:** o conjunto passa a ter uma aleta a menos, com o mesmo modelo
+  simétrico de Barrowman (a assimetria real e o rolamento que ela causa não entram).
+- **Flambagem:** quando um tubo flamba, o foguete inteiro passa a capotar; a quebra do
+  tubo em duas partes não é modelada.

@@ -1,0 +1,19 @@
+[package]
+name = "astra-design"
+description = "ASTRA: gêmeo digital do foguete (peças, materiais, juntas, validação, falha simulada)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-math = { path = "../astra-math" }
+astra-env = { path = "../astra-env" }
+astra-dynamics = { path = "../astra-dynamics" }
+astra-aero = { path = "../astra-aero" }
+astra-propulsion = { path = "../astra-propulsion" }
+astra-vehicle = { path = "../astra-vehicle" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true

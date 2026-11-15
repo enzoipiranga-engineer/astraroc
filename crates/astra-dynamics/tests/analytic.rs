@@ -58,6 +58,7 @@ fn cfg3<'a>(
         t_max,
         output_dt: 0.1,
         ode: tight(),
+        start: None,
     }
 }
 
@@ -382,6 +383,7 @@ fn cfg6<'a>(
         t_max,
         output_dt: 0.1,
         ode: tight(),
+        start: None,
     }
 }
 
@@ -507,6 +509,7 @@ fn triggers_fire_at_the_right_moments() {
         t_max: 600.0,
         output_dt: 0.1,
         ode: tight(),
+        start: None,
     };
     let r = simulate3(&c).unwrap();
     let kinds: Vec<EventKind> = r.events.iter().map(|e| e.0).collect();
@@ -594,4 +597,93 @@ fn six_dof_matches_three_dof_without_moments() {
         "no trilho gira com a Terra"
     );
     assert!(b.event(EventKind::Apogee).is_some() && b.event(EventKind::Impact).is_some());
+}
+
+/// Limite físico: a margem cruza zero em t = 3 s, o voo para ali, e retomar do estado
+/// final reproduz o voo sem interrupção.
+#[test]
+fn limit_event_stops_and_restart_is_seamless() {
+    struct Timed(Rigid, f64);
+    impl Sequencer for Timed {
+        fn burnout_time(&self) -> f64 {
+            self.0.burn
+        }
+        fn margin_count(&self) -> usize {
+            1
+        }
+    }
+    impl RigidVehicle for Timed {
+        fn loads(&self, k: &FlightCtx<'_>, a: Vec3, b: Vec3) -> Loads {
+            self.0.loads(k, a, b)
+        }
+        fn mass_props(&self, t: f64, m: f64) -> MassProps {
+            self.0.mass_props(t, m)
+        }
+        fn margin(&self, k: &FlightCtx<'_>, _: Vec3, _: Vec3, _: usize) -> f64 {
+            self.1 - k.t
+        }
+    }
+    let p = Planet::EARTH;
+    let body = Timed(
+        Rigid {
+            thrust: 600.0,
+            mdot: 0.5,
+            burn: 5.0,
+            inertia: Mat3::diag(0.1, 3.0, 3.0),
+        },
+        3.0,
+    );
+    let l = launch(80.0_f64.to_radians(), 0.5, 3.0, 0.0);
+    fn mk(p: Planet, l: Launch, v: &Timed, start: Option<Start6>) -> Config6<'_> {
+        Config6 {
+            planet: p,
+            atmosphere: AtmosphereModel::Vacuum,
+            vehicle: v,
+            launch: l,
+            m0: 20.0,
+            initial_omega_body: Vec3::new(0.0, 0.01, 0.0),
+            t_max: 400.0,
+            output_dt: 0.1,
+            ode: tight(),
+            start,
+        }
+    }
+    let first = simulate6(&mk(p, l, &body, None)).unwrap();
+    let end = first.end.clone().unwrap();
+    assert_eq!(end.reason, EndReason::Limit(0));
+    assert!((end.t - 3.0).abs() < 1e-9 && end.burning);
+    let s = first.last().unwrap();
+    let never = Timed(
+        Rigid {
+            thrust: 600.0,
+            mdot: 0.5,
+            burn: 5.0,
+            inertia: Mat3::diag(0.1, 3.0, 3.0),
+        },
+        1e9,
+    );
+    let start = Start6 {
+        t: s.t,
+        r: s.r,
+        v: s.v,
+        q: s.q,
+        omega: s.omega,
+        mass: s.mass,
+        burning: end.burning,
+        fired: end.fired.clone(),
+        apogee: end.apogee,
+    };
+    let rest = simulate6(&mk(p, l, &never, Some(start))).unwrap();
+    let whole = simulate6(&mk(p, l, &never, None)).unwrap();
+    let (a, b) = (
+        rest.event(EventKind::Impact).unwrap(),
+        whole.event(EventKind::Impact).unwrap(),
+    );
+    assert!((a.t - b.t).abs() < 1e-6, "impacto {} vs {}", a.t, b.t);
+    assert!(
+        (a.r - b.r).norm() < 1e-3,
+        "posição de impacto difere {} m",
+        (a.r - b.r).norm()
+    );
+    assert_eq!(rest.end.unwrap().reason, EndReason::Impact);
 }

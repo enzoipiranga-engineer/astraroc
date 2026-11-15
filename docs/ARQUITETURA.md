@@ -45,7 +45,8 @@ astra/
 │  ├─ astra-dynamics/    Fase 1   integradores, eventos, 3-DOF, 6-DOF, trilho (feito)
 │  ├─ astra-aero/        Fase 2   geometria, Barrowman, Cd por componentes (feito); aquecimento depois
 │  ├─ astra-propulsion/  Fase 2   curvas .eng/.rse, BATES, água (feito); Fase 5: líquido, híbrido e demais
-│  ├─ astra-vehicle/     Fase 2   foguete montado, paraquedas, exemplos (feito); Fase 3: peças, materiais, juntas, falha
+│  ├─ astra-vehicle/     Fase 2   foguete montado, paraquedas, exemplos (feito)
+│  ├─ astra-design/      Fase 3   gêmeo digital: peças, materiais, juntas, verificação, falha simulada (feito)
 │  ├─ astra-launch/      Fase 6   contrato LaunchSystem e modos nativos
 │  ├─ astra-avionics/    Fase 7   sensores, circuito, barramentos
 │  ├─ astra-mission/     Fase 5   estágios, guiagem, GNC, sequência de voo
@@ -54,13 +55,13 @@ astra/
 │  └─ astra-cli/         Fase 1   execução sem UI para benchmarks e validação (feito)
 ├─ packages/
 │  ├─ core-js/           Fase 0   cliente tipado do worker (feito)
-│  ├─ schema/            Fase 3   formato do projeto (.astra, JSON versionado)
+│  │                              (o formato do projeto vive em astra-design e em core-js/src/types.ts)
 │  ├─ plugin-sdk/        Fase 6   contrato e sandbox de plugins de lançador
 │  └─ finance/           Fase 9   BOM, orçamento, câmbio (TypeScript puro)
 ├─ apps/
-│  ├─ web/               Fase 0   React + Vite (feito: casca que carrega o núcleo)
+│  ├─ web/               Fase 3   editor, verificação contínua, desenho, gráficos (feito)
 │  └─ desktop/           Fase 12  Tauri
-├─ data/                 Fase 2+  motores, materiais, locais, cada item com fonte
+├─ data/                 Fase 2+  motores, materiais (materials.json), cada item com fonte
 ├─ docs/
 └─ scripts/
 ```
@@ -98,3 +99,18 @@ ficam fisicamente corretas por construção.
   push e PR (`.github/workflows/ci.yml`).
 - Benchmarks contra voos reais e outros simuladores ficam em `astra-cli` e alimentam
   `docs/VALIDACAO.md`.
+
+## 7. Gêmeo digital e falha simulada (Fase 3)
+
+- O projeto é um grafo: peças (nós) e juntas (arestas) com capacidade em tração,
+  compressão e flexão. Peças encostadas sem junta ganham uma junta implícita de contato.
+- Para cada corpo rígido, os **cortes mínimos** (até três juntas) definem o que pode se
+  soltar. A cada instante a carga num corte é a força para manter a parte de fora junto
+  com o resto: F = m·a − F_aero, mais a pressão da baia fechada.
+- As margens (capacidade − carga) viram eventos do integrador. Quando uma margem cruza
+  zero, o voo para, as juntas do corte quebram e cada parte continua de onde estava: em
+  6-DOF se tiver nariz e for estável, senão capotando, ou sob paraquedas como ponto de
+  massa. O mesmo mecanismo cobre ejeção, paraquedas que abre cedo, cordão que rompe,
+  aleta que arranca, flutter e flambagem.
+- A verificação roda o mesmo voo sem parar nas falhas e registra a menor margem de cada
+  limite, de onde saem os fatores de segurança mostrados na tela.

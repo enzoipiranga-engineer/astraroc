@@ -348,3 +348,26 @@ fn cone_wave_drag_and_boattail() {
         "boattail curto: como base cheia"
     );
 }
+
+/// Arrasto por peça soma o total; a base fica no último trecho; um tubo sem nariz
+/// ganha arrasto de frente rombuda.
+#[test]
+fn drag_by_part_sums_to_total_and_blunt_front() {
+    let g = model_rocket();
+    let aero = Aero::new(g.clone());
+    let f = FlowState {
+        mach: 0.4,
+        reynolds_per_m: 8e6,
+        burning: false,
+    };
+    let (total, parts) = aero.drag_parts(&f);
+    let sum: f64 = parts.body.iter().chain(&parts.fins).sum();
+    assert!((sum - total.total()).abs() < 1e-12);
+    assert!((total.total() - g.drag(&f).total()).abs() < 1e-15);
+    assert!(parts.body[1] > total.base, "o tubo traseiro leva a base");
+    let mut headless = g.clone();
+    headless.parts.remove(0);
+    let blunt = headless.drag(&f);
+    assert!(blunt.forebody > 0.8, "face plana: {}", blunt.forebody);
+    assert!(blunt.total() > 2.0 * g.drag(&f).total());
+}

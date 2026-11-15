@@ -8,8 +8,8 @@
 mod dof3;
 mod dof6;
 
-pub use dof3::{simulate3, Config3, ConstantVehicle, PointVehicle, Result3, Sample3};
-pub use dof6::{simulate6, Config6, Loads, MassProps, Result6, RigidVehicle, Sample6};
+pub use dof3::{simulate3, Config3, ConstantVehicle, PointVehicle, Result3, Sample3, Start3};
+pub use dof6::{simulate6, Config6, Loads, MassProps, Result6, RigidVehicle, Sample6, Start6};
 
 use crate::ode::{integrate, Direction, EventSpec, OdeError, Options};
 use astra_env::{rot_z, AtmoState, AtmosphereModel, Geodetic, Planet};
@@ -57,6 +57,39 @@ pub enum EventKind {
     Impact,
     /// Disparou o gatilho de índice dado (ver [`Sequencer::triggers`]).
     Trigger(usize),
+    /// A margem de índice dado (ver [`Sequencer::margin_count`]) ficou negativa: um
+    /// limite físico foi ultrapassado (junta quebrou, peça arrancou). A integração para
+    /// nesse instante para que o chamador troque o veículo.
+    Limit(usize),
+}
+
+/// Por que um trecho de simulação terminou.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EndReason {
+    /// Tocou o solo.
+    Impact,
+    /// Chegou à duração máxima.
+    TimeLimit,
+    /// Um limite físico foi ultrapassado.
+    Limit(usize),
+    /// Disparou um gatilho e o veículo pediu para parar nele
+    /// ([`Sequencer::stop_on_trigger`]).
+    Trigger(usize),
+}
+
+/// Estado da sequência de voo no fim de um trecho, para continuar a partir dele.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SequenceState {
+    /// Instante, s.
+    pub t: f64,
+    /// Ainda queimando.
+    pub burning: bool,
+    /// Instante de disparo de cada gatilho.
+    pub fired: Vec<Option<f64>>,
+    /// Instante do apogeu, se já ocorreu.
+    pub apogee: Option<f64>,
+    /// Motivo do fim.
+    pub reason: EndReason,
 }
 
 /// Gatilho de sequência de voo (abertura de paraquedas, por exemplo).
@@ -116,6 +149,16 @@ pub trait Sequencer {
     /// Gatilhos de sequência.
     fn triggers(&self) -> Vec<Trigger> {
         Vec::new()
+    }
+    /// Número de margens de limite físico que o veículo informa (ver
+    /// [`RigidVehicle::margins`]).
+    fn margin_count(&self) -> usize {
+        0
+    }
+    /// Se verdadeiro, a simulação termina no disparo de qualquer gatilho, para o
+    /// chamador decidir a consequência (por exemplo, se a carga de ejeção abre a baia).
+    fn stop_on_trigger(&self) -> bool {
+        false
     }
 }
 
@@ -280,6 +323,18 @@ impl World {
 
 type EventFn<'a, const N: usize> = dyn Fn(f64, &[f64; N]) -> f64 + 'a;
 type Rhs<'a, const N: usize> = dyn Fn(&Phase, f64, &[f64; N]) -> [f64; N] + 'a;
+pub(crate) type Margins<'a, const N: usize> = dyn Fn(&Phase, f64, &[f64; N], usize) -> f64 + 'a;
+
+/// Ponto de partida de um trecho: o começo do voo ou o estado de um corpo que acabou
+/// de se separar.
+pub(crate) struct Start<const N: usize> {
+    pub t: f64,
+    pub y: [f64; N],
+    pub on_rail: bool,
+    pub burning: bool,
+    pub fired: Vec<Option<f64>>,
+    pub apogee: Option<f64>,
+}
 type Emit<'a, const N: usize> = dyn FnMut(Option<EventKind>, f64, &[f64; N]) + 'a;
 
 /// Tempos e opções de uma simulação.
@@ -287,6 +342,7 @@ pub(crate) struct Schedule {
     pub burnout: f64,
     pub breakpoints: Vec<f64>,
     pub triggers: Vec<Trigger>,
+    pub stop_on_trigger: bool,
     pub t_max: f64,
     pub output_dt: f64,
     pub ode: Options,
@@ -298,6 +354,7 @@ impl Schedule {
             burnout: seq.burnout_time(),
             breakpoints: seq.breakpoints(),
             triggers: seq.triggers(),
+            stop_on_trigger: seq.stop_on_trigger(),
             t_max,
             output_dt,
             ode,
@@ -311,6 +368,7 @@ enum Tag {
     Apogee,
     Impact,
     Altitude(usize),
+    Limit(usize),
 }
 
 /// Integra as fases do voo e entrega amostras e eventos.
@@ -323,10 +381,11 @@ enum Tag {
 pub(crate) fn run_phases<const N: usize>(
     world: &World,
     rhs: &Rhs<'_, N>,
-    y0: [f64; N],
+    start: Start<N>,
     sched: &Schedule,
+    margins: Option<(&Margins<'_, N>, usize)>,
     emit: &mut Emit<'_, N>,
-) -> Result<(), OdeError> {
+) -> Result<(SequenceState, [f64; N]), OdeError> {
     let rail_len = world.launch.rail.length;
     let ground = world.launch.ground_h;
     let g_rail = |t: f64, y: &[f64; N]| {
@@ -350,14 +409,16 @@ pub(crate) fn run_phases<const N: usize>(
         })
         .collect();
 
-    let (mut t, mut y) = (0.0, y0);
+    let (mut t, mut y) = (start.t, start.y);
     let mut ph = Phase {
-        on_rail: rail_len > 0.0,
-        burning: sched.burnout > 0.0,
-        fired: vec![None; sched.triggers.len()],
+        on_rail: start.on_rail,
+        burning: start.burning,
+        fired: start.fired,
     };
-    let mut apogee_t: Option<f64> = None;
-    let mut k_out: u64 = 1;
+    ph.fired.resize(sched.triggers.len(), None);
+    let mut apogee_t: Option<f64> = start.apogee;
+    let mut k_out: u64 = (t / sched.output_dt).floor() as u64 + 1;
+    let mut reason = EndReason::TimeLimit;
     emit(None, t, &y);
     loop {
         // Fronteiras de tempo pendentes.
@@ -371,6 +432,7 @@ pub(crate) fn run_phases<const N: usize>(
             seg_end = seg_end.min(sched.burnout);
         }
         let mut fired_now = false;
+        let mut stop_at: Option<usize> = None;
         for (i, tr) in sched.triggers.iter().enumerate() {
             if ph.fired[i].is_some() {
                 continue;
@@ -385,10 +447,17 @@ pub(crate) fn run_phases<const N: usize>(
                     ph.fired[i] = Some(t);
                     emit(Some(EventKind::Trigger(i)), t, &y);
                     fired_now = true;
+                    if sched.stop_on_trigger && stop_at.is_none() {
+                        stop_at = Some(i);
+                    }
                 } else {
                     seg_end = seg_end.min(due);
                 }
             }
+        }
+        if let Some(i) = stop_at {
+            reason = EndReason::Trigger(i);
+            break;
         }
         if fired_now {
             continue;
@@ -404,53 +473,73 @@ pub(crate) fn run_phases<const N: usize>(
             break;
         }
 
-        let mut events: Vec<EventSpec<'_, N>> = Vec::new();
-        let mut tags: Vec<Tag> = Vec::new();
-        if ph.on_rail {
-            events.push(EventSpec {
-                g: &g_rail,
-                direction: Direction::Rising,
-                terminal: true,
-            });
-            tags.push(Tag::RailExit);
-        } else {
-            if apogee_t.is_none() {
+        let (out, tags) = {
+            let g_margin: Vec<Box<EventFn<'_, N>>> = match margins {
+                Some((m, n)) => (0..n)
+                    .map(|i| {
+                        let ph = &ph;
+                        Box::new(move |t: f64, y: &[f64; N]| m(ph, t, y, i)) as Box<EventFn<'_, N>>
+                    })
+                    .collect(),
+                None => Vec::new(),
+            };
+            let mut events: Vec<EventSpec<'_, N>> = Vec::new();
+            let mut tags: Vec<Tag> = Vec::new();
+            if ph.on_rail {
                 events.push(EventSpec {
-                    g: &g_apogee,
-                    direction: Direction::Falling,
+                    g: &g_rail,
+                    direction: Direction::Rising,
                     terminal: true,
                 });
-                tags.push(Tag::Apogee);
-            }
-            events.push(EventSpec {
-                g: &g_impact,
-                direction: Direction::Falling,
-                terminal: true,
-            });
-            tags.push(Tag::Impact);
-            for (i, g) in g_alt.iter().enumerate() {
-                if let (Some(g), None) = (g, ph.fired[i]) {
+                tags.push(Tag::RailExit);
+            } else {
+                if apogee_t.is_none() {
                     events.push(EventSpec {
-                        g: g.as_ref(),
+                        g: &g_apogee,
                         direction: Direction::Falling,
                         terminal: true,
                     });
-                    tags.push(Tag::Altitude(i));
+                    tags.push(Tag::Apogee);
+                }
+                events.push(EventSpec {
+                    g: &g_impact,
+                    direction: Direction::Falling,
+                    terminal: true,
+                });
+                tags.push(Tag::Impact);
+                for (i, g) in g_alt.iter().enumerate() {
+                    if let (Some(g), None) = (g, ph.fired[i]) {
+                        events.push(EventSpec {
+                            g: g.as_ref(),
+                            direction: Direction::Falling,
+                            terminal: true,
+                        });
+                        tags.push(Tag::Altitude(i));
+                    }
                 }
             }
-        }
-        let f = |t: f64, y: &[f64; N]| rhs(&ph, t, y);
-        let mut grid: Vec<(f64, [f64; N])> = Vec::new();
-        let out = integrate(&f, t, y, seg_end, &events, &sched.ode, |step, t_valid| {
-            while (k_out as f64) * sched.output_dt <= t_valid {
-                let to = k_out as f64 * sched.output_dt;
-                grid.push((to, step.dense(to)));
-                k_out += 1;
+            for (i, g) in g_margin.iter().enumerate() {
+                events.push(EventSpec {
+                    g: g.as_ref(),
+                    direction: Direction::Falling,
+                    terminal: true,
+                });
+                tags.push(Tag::Limit(i));
             }
-        })?;
-        for (to, yo) in &grid {
-            emit(None, *to, yo);
-        }
+            let f = |t: f64, y: &[f64; N]| rhs(&ph, t, y);
+            let mut grid: Vec<(f64, [f64; N])> = Vec::new();
+            let out = integrate(&f, t, y, seg_end, &events, &sched.ode, |step, t_valid| {
+                while (k_out as f64) * sched.output_dt <= t_valid {
+                    let to = k_out as f64 * sched.output_dt;
+                    grid.push((to, step.dense(to)));
+                    k_out += 1;
+                }
+            })?;
+            for (to, yo) in &grid {
+                emit(None, *to, yo);
+            }
+            (out, tags)
+        };
         (t, y) = (out.t, out.y);
         if let Some(idx) = out.terminated_by {
             match tags[idx] {
@@ -465,14 +554,33 @@ pub(crate) fn run_phases<const N: usize>(
                 Tag::Altitude(i) => {
                     ph.fired[i] = Some(t);
                     emit(Some(EventKind::Trigger(i)), t, &y);
+                    if sched.stop_on_trigger {
+                        reason = EndReason::Trigger(i);
+                        break;
+                    }
                 }
                 Tag::Impact => {
                     emit(Some(EventKind::Impact), t, &y);
+                    reason = EndReason::Impact;
+                    break;
+                }
+                Tag::Limit(i) => {
+                    emit(Some(EventKind::Limit(i)), t, &y);
+                    reason = EndReason::Limit(i);
                     break;
                 }
             }
         }
     }
     emit(None, t, &y);
-    Ok(())
+    Ok((
+        SequenceState {
+            t,
+            burning: ph.burning,
+            fired: ph.fired,
+            apogee: apogee_t,
+            reason,
+        },
+        y,
+    ))
 }

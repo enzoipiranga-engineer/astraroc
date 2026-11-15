@@ -115,6 +115,7 @@ pub fn flight3_constant(p: &[f64]) -> Result<FlightOutput, String> {
             h_max: 1.0,
             ..Options::default()
         },
+        start: None,
     };
     let res = simulate3(&cfg).map_err(|e| e.to_string())?;
     let samples = res
@@ -191,6 +192,7 @@ pub fn water_rocket_flight(p: &[f64]) -> Result<WaterFlight, String> {
             h_max: 0.5,
             ..Options::default()
         },
+        start: None,
     };
     let res = simulate6(&cfg).map_err(|e| e.to_string())?;
     let samples = res
@@ -259,7 +261,51 @@ fn event_code(k: EventKind) -> f64 {
         EventKind::Apogee => 2.0,
         EventKind::Impact => 3.0,
         EventKind::Trigger(i) => 10.0 + i as f64,
+        EventKind::Limit(i) => 100.0 + i as f64,
     }
+}
+
+/// Projetos de exemplo: JSON `[{"id": ..., "design": {...}}]`.
+#[wasm_bindgen(js_name = designTemplates)]
+#[must_use]
+pub fn design_templates() -> String {
+    let list: Vec<serde_json::Value> = astra_design::templates::all()
+        .into_iter()
+        .map(|(id, d)| serde_json::json!({ "id": id, "design": d }))
+        .collect();
+    serde_json::Value::Array(list).to_string()
+}
+
+/// Banco de materiais embutido, no formato de `data/materials.json`.
+#[wasm_bindgen(js_name = materialsJson)]
+#[must_use]
+pub fn materials_json() -> String {
+    let db = astra_design::MaterialDb::builtin();
+    serde_json::json!({ "materials": db.materials }).to_string()
+}
+
+/// Verifica um projeto (JSON). Com `with_flight`, inclui as cargas do voo nominal.
+/// Devolve o JSON de `astra_design::Validation`.
+///
+/// # Errors
+/// Mensagem se o JSON do projeto for inválido.
+#[wasm_bindgen(js_name = validateDesign)]
+pub fn validate_design(json: &str, with_flight: bool) -> Result<String, String> {
+    let d = astra_design::Design::from_json(json)?;
+    let v = astra_design::validate(&d, &d.material_db(), with_flight);
+    serde_json::to_string(&v).map_err(|e| e.to_string())
+}
+
+/// Simula um projeto (JSON) com falhas físicas. Devolve o JSON de
+/// `astra_design::SimOutput`.
+///
+/// # Errors
+/// Mensagem se o JSON do projeto for inválido.
+#[wasm_bindgen(js_name = simulateDesign)]
+pub fn simulate_design(json: &str) -> Result<String, String> {
+    let d = astra_design::Design::from_json(json)?;
+    let o = astra_design::simulate(&d, &d.material_db());
+    serde_json::to_string(&o).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

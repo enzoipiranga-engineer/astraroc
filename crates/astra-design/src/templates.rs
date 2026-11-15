@@ -1,0 +1,433 @@
+//! Projetos de exemplo, prontos para editar.
+
+use crate::model::*;
+
+fn part(id: &str, name: &str, material: &str, position: f64, kind: PartKind) -> Part {
+    Part {
+        id: id.into(),
+        name: name.into(),
+        material: material.into(),
+        position,
+        mass_override: None,
+        cost: None,
+        kind,
+    }
+}
+
+fn glue(id: &str, a: &str, b: &str, adhesive: &str) -> Joint {
+    Joint {
+        id: id.into(),
+        a: a.into(),
+        b: b.into(),
+        kind: JointKind::Adhesive {
+            adhesive: adhesive.into(),
+            area: None,
+            fillet: None,
+            through_wall: false,
+        },
+    }
+}
+
+fn cord(id: &str, a: &str, b: &str, strength: f64) -> Joint {
+    Joint {
+        id: id.into(),
+        a: a.into(),
+        b: b.into(),
+        kind: JointKind::Cord { strength },
+    }
+}
+
+/// Curva de empuxo de exemplo para um motor de 29 mm classe F. **Não é um motor
+/// comercial**: é uma curva inventada, de forma típica, para o modelo de exemplo. Troque
+/// pelo arquivo .eng do motor que você vai usar.
+pub const EXAMPLE_G_MOTOR: &str = "\
+; Curva de EXEMPLO criada para o ASTRA. Não corresponde a nenhum motor comercial.
+EXEMPLO-F 29 124 0 0.047 0.120 ASTRA
+0.02 117
+0.10 109
+0.60 90
+0.90 74
+1.00 31
+1.06 0
+;
+";
+
+/// Garrafa PET de 2 L com coifa impressa, lastro e quatro aletas.
+#[must_use]
+pub fn pet_bottle() -> Design {
+    Design {
+        version: FORMAT_VERSION,
+        name: "Foguete de garrafa PET (2 L)".into(),
+        parts: vec![
+            part(
+                "coifa",
+                "Coifa",
+                "pla",
+                0.0,
+                PartKind::NoseCone {
+                    shape: NoseShapeSpec::TangentOgive,
+                    length: 0.15,
+                    diameter: 0.10,
+                    wall: 0.0012,
+                    shoulder_length: 0.02,
+                },
+            ),
+            part(
+                "lastro",
+                "Lastro da coifa",
+                "aco-1020",
+                0.08,
+                PartKind::Mass {
+                    mass: 0.15,
+                    length: 0.04,
+                    diameter: 0.045,
+                    needs_static_port: false,
+                },
+            ),
+            part(
+                "garrafa",
+                "Garrafa PET",
+                "pet-garrafa",
+                0.15,
+                PartKind::BodyTube {
+                    length: 0.30,
+                    outer_diameter: 0.10,
+                    wall: 0.0004,
+                    vent_holes: 0,
+                },
+            ),
+            part(
+                "gargalo",
+                "Gargalo da garrafa",
+                "pet-garrafa",
+                0.45,
+                PartKind::Transition {
+                    length: 0.07,
+                    d_fore: 0.10,
+                    d_aft: 0.03,
+                    wall: 0.0006,
+                },
+            ),
+            part(
+                "aletas",
+                "Aletas",
+                "balsa",
+                0.38,
+                PartKind::FinSet {
+                    count: 4,
+                    root_chord: 0.16,
+                    tip_chord: 0.08,
+                    sweep: 0.10,
+                    span: 0.16,
+                    thickness: 0.004,
+                    profile: FinProfileSpec::Square,
+                },
+            ),
+        ],
+        joints: vec![
+            glue("j-coifa", "coifa", "garrafa", "epoxi-5min"),
+            glue("j-lastro", "lastro", "coifa", "epoxi-5min"),
+            Joint {
+                id: "j-garrafa".into(),
+                a: "garrafa".into(),
+                b: "gargalo".into(),
+                // Mesma peça soprada: representada como colagem de grande área.
+                kind: JointKind::Adhesive {
+                    adhesive: "epoxi-estrutural".into(),
+                    area: Some(0.01),
+                    fillet: None,
+                    through_wall: false,
+                },
+            },
+            Joint {
+                id: "j-aletas".into(),
+                a: "aletas".into(),
+                b: "garrafa".into(),
+                kind: JointKind::Adhesive {
+                    adhesive: "epoxi-5min".into(),
+                    area: None,
+                    fillet: Some(0.004),
+                    through_wall: false,
+                },
+            },
+        ],
+        motor: MotorSpec::Water {
+            bottle_volume: 2.0e-3,
+            water_volume: 0.66e-3,
+            gauge_pressure: 4.0e5,
+            nozzle_diameter: 0.0215,
+            max_safe_pressure: 7.0e5,
+            aft_station: 0.52,
+        },
+        launch: LaunchSpec {
+            lat_deg: -23.55,
+            lon_deg: -46.63,
+            altitude: 760.0,
+            rail_length: 0.5,
+            rail_elevation_deg: 88.0,
+            rail_azimuth_deg: 0.0,
+            delta_t: 0.0,
+        },
+        roughness: 5e-6,
+        safety_factor: 1.5,
+        drag_table: None,
+        materials: Vec::new(),
+    }
+}
+
+/// Foguete de competição universitária para a faixa de 500 m: coifa com pinos de
+/// cisalhamento, baia de paraquedas, baia de aviônica com altímetro, motor de 29 mm.
+#[must_use]
+#[allow(clippy::too_many_lines)]
+pub fn competition_500m() -> Design {
+    Design {
+        version: FORMAT_VERSION,
+        name: "Competição 500 m (exemplo)".into(),
+        parts: vec![
+            part(
+                "coifa",
+                "Coifa",
+                "petg",
+                0.0,
+                PartKind::NoseCone {
+                    shape: NoseShapeSpec::TangentOgive,
+                    length: 0.20,
+                    diameter: 0.056,
+                    wall: 0.0015,
+                    shoulder_length: 0.06,
+                },
+            ),
+            part(
+                "tubo-sup",
+                "Tubo superior",
+                "papel-fenolico",
+                0.20,
+                PartKind::BodyTube {
+                    length: 0.35,
+                    outer_diameter: 0.056,
+                    wall: 0.0015,
+                    vent_holes: 1,
+                },
+            ),
+            part(
+                "paraquedas",
+                "Paraquedas",
+                "ripstop-1.1",
+                0.30,
+                PartKind::Parachute {
+                    diameter: 0.7,
+                    cd: 0.8,
+                    packed_length: 0.09,
+                    packed_diameter: 0.045,
+                    deploy: DeploySpec::Apogee { delay: 1.0 },
+                    separation_joint: Some("j-coifa".into()),
+                    ejection_charge: 0.0008,
+                },
+            ),
+            part(
+                "cordao",
+                "Cordão de choque",
+                "kevlar-tecido",
+                0.40,
+                PartKind::ShockCord {
+                    length: 2.0,
+                    linear_density: 0.012,
+                    strength: 2000.0,
+                },
+            ),
+            part(
+                "luva",
+                "Luva da aviônica",
+                "papel-fenolico",
+                0.48,
+                PartKind::Coupler {
+                    length: 0.15,
+                    outer_diameter: 0.053,
+                    wall: 0.0015,
+                },
+            ),
+            part(
+                "antep-sup",
+                "Anteparo superior",
+                "compensado-betula",
+                0.48,
+                PartKind::Bulkhead {
+                    diameter: 0.050,
+                    thickness: 0.006,
+                },
+            ),
+            part(
+                "antep-inf",
+                "Anteparo inferior",
+                "compensado-betula",
+                0.624,
+                PartKind::Bulkhead {
+                    diameter: 0.050,
+                    thickness: 0.006,
+                },
+            ),
+            part(
+                "altimetro",
+                "Altímetro",
+                "g10-fr4",
+                0.49,
+                PartKind::Mass {
+                    mass: 0.030,
+                    length: 0.06,
+                    diameter: 0.040,
+                    needs_static_port: true,
+                },
+            ),
+            part(
+                "bateria",
+                "Bateria 9 V",
+                "aco-1020",
+                0.565,
+                PartKind::Mass {
+                    mass: 0.045,
+                    length: 0.05,
+                    diameter: 0.030,
+                    needs_static_port: false,
+                },
+            ),
+            part(
+                "tubo-inf",
+                "Tubo inferior",
+                "papel-fenolico",
+                0.55,
+                PartKind::BodyTube {
+                    length: 0.45,
+                    outer_diameter: 0.056,
+                    wall: 0.0015,
+                    vent_holes: 3,
+                },
+            ),
+            part(
+                "tubo-motor",
+                "Tubo do motor",
+                "papel-fenolico",
+                0.80,
+                PartKind::MotorMount {
+                    length: 0.20,
+                    outer_diameter: 0.031,
+                    wall: 0.001,
+                },
+            ),
+            part(
+                "anel-1",
+                "Anel de centragem dianteiro",
+                "compensado-betula",
+                0.81,
+                PartKind::CenteringRing {
+                    outer_diameter: 0.053,
+                    inner_diameter: 0.031,
+                    thickness: 0.003,
+                },
+            ),
+            part(
+                "anel-2",
+                "Anel de centragem traseiro",
+                "compensado-betula",
+                0.987,
+                PartKind::CenteringRing {
+                    outer_diameter: 0.053,
+                    inner_diameter: 0.031,
+                    thickness: 0.003,
+                },
+            ),
+            part(
+                "aletas",
+                "Aletas",
+                "g10-fr4",
+                0.89,
+                PartKind::FinSet {
+                    count: 3,
+                    root_chord: 0.10,
+                    tip_chord: 0.045,
+                    sweep: 0.06,
+                    span: 0.065,
+                    thickness: 0.002,
+                    profile: FinProfileSpec::Rounded,
+                },
+            ),
+        ],
+        joints: vec![
+            Joint {
+                id: "j-coifa".into(),
+                a: "coifa".into(),
+                b: "tubo-sup".into(),
+                kind: JointKind::ShearPins {
+                    count: 2,
+                    diameter: 0.0016,
+                    material: "nylon-66".into(),
+                },
+            },
+            cord("j-cordao-coifa", "cordao", "coifa", 1500.0),
+            cord("j-cordao-antep", "cordao", "antep-sup", 1500.0),
+            cord("j-paraquedas", "paraquedas", "cordao", 1000.0),
+            glue("j-luva-sup", "luva", "tubo-sup", "epoxi-estrutural"),
+            glue("j-luva-inf", "luva", "tubo-inf", "epoxi-estrutural"),
+            glue("j-antep-sup", "antep-sup", "luva", "epoxi-estrutural"),
+            glue("j-antep-inf", "antep-inf", "luva", "epoxi-estrutural"),
+            Joint {
+                id: "j-altimetro".into(),
+                a: "altimetro".into(),
+                b: "antep-sup".into(),
+                kind: JointKind::Screws {
+                    count: 2,
+                    diameter: 0.003,
+                    material: "aco-parafuso-8.8".into(),
+                },
+            },
+            Joint {
+                id: "j-bateria".into(),
+                a: "bateria".into(),
+                b: "antep-inf".into(),
+                kind: JointKind::Latch {
+                    holding_force: 40.0,
+                },
+            },
+            glue("j-anel-1-motor", "anel-1", "tubo-motor", "epoxi-estrutural"),
+            glue("j-anel-2-motor", "anel-2", "tubo-motor", "epoxi-estrutural"),
+            glue("j-anel-1-tubo", "anel-1", "tubo-inf", "epoxi-estrutural"),
+            glue("j-anel-2-tubo", "anel-2", "tubo-inf", "epoxi-estrutural"),
+            Joint {
+                id: "j-aletas".into(),
+                a: "aletas".into(),
+                b: "tubo-inf".into(),
+                kind: JointKind::Adhesive {
+                    adhesive: "epoxi-estrutural".into(),
+                    area: None,
+                    fillet: Some(0.005),
+                    through_wall: false,
+                },
+            },
+        ],
+        motor: MotorSpec::Eng {
+            text: EXAMPLE_G_MOTOR.into(),
+            aft_station: 1.0,
+        },
+        launch: LaunchSpec {
+            lat_deg: -22.18,
+            lon_deg: -49.38,
+            altitude: 470.0,
+            rail_length: 2.0,
+            rail_elevation_deg: 85.0,
+            rail_azimuth_deg: 0.0,
+            delta_t: 0.0,
+        },
+        roughness: 3e-5,
+        safety_factor: 1.5,
+        drag_table: None,
+        materials: Vec::new(),
+    }
+}
+
+/// Todos os exemplos, com identificador.
+#[must_use]
+pub fn all() -> Vec<(&'static str, Design)> {
+    vec![
+        ("pet", pet_bottle()),
+        ("competicao-500m", competition_500m()),
+    ]
+}

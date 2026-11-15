@@ -25,6 +25,15 @@ pub struct DragBreakdown {
     pub fins: f64,
 }
 
+/// Coeficiente de arrasto de cada peça externa (mesma referência do total).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PartDrag {
+    /// Um valor por trecho do corpo, na ordem de [`Geometry::parts`].
+    pub body: Vec<f64>,
+    /// Um valor por conjunto de aletas, na ordem de [`Geometry::fins`].
+    pub fins: Vec<f64>,
+}
+
 impl DragBreakdown {
     /// Soma das parcelas.
     #[must_use]
@@ -162,17 +171,33 @@ impl Geometry {
     }
 
     pub(crate) fn drag_with(&self, ints: &[PartIntegrals], flow: &FlowState) -> DragBreakdown {
+        self.drag_split(ints, flow).0
+    }
+
+    /// Arrasto por parcela e, ao mesmo tempo, por peça: coeficiente de cada trecho do
+    /// corpo e de cada conjunto de aletas (somam o total). O atrito do corpo é repartido
+    /// pela área molhada; pressão, base e boattail ficam no trecho que os gera.
+    pub(crate) fn drag_split(
+        &self,
+        ints: &[PartIntegrals],
+        flow: &FlowState,
+    ) -> (DragBreakdown, PartDrag) {
         let (a_ref, d_ref, len) = (self.ref_area(), self.ref_diameter(), self.length());
         let m = flow.mach;
         let cf = skin_friction(flow.reynolds_per_m * len, self.roughness / len, m);
+        let body_form = 1.0 + d_ref / (2.0 * len);
 
         let mut out = DragBreakdown::default();
-        let mut wet_body = 0.0;
-        for (p, int) in self.parts.iter().zip(ints) {
-            wet_body += int.wetted;
+        let mut parts = PartDrag {
+            body: vec![0.0; self.parts.len()],
+            fins: vec![0.0; self.fins.len()],
+        };
+        for (i, (p, int)) in self.parts.iter().zip(ints).enumerate() {
             let (d0, d1) = p.diameters();
             let (r0, r1, l) = (0.5 * d0, 0.5 * d1, p.length());
             let da = PI * (r1 * r1 - r0 * r0);
+            let friction = cf * body_form * int.wetted / a_ref;
+            let (mut fore, mut base) = (0.0, 0.0);
             match *p {
                 BodyPart::Nose { shape, .. } => {
                     let sin_cone = r1 / r1.hypot(l);
@@ -181,43 +206,57 @@ impl Geometry {
                     } else {
                         0.0
                     };
-                    out.forebody +=
+                    fore +=
                         forebody_cd(sin_joint, sin_cone, nose_wave_factor(shape), m) * da / a_ref;
                 }
                 BodyPart::Transition { .. } if da > 0.0 => {
                     let s = (r1 - r0) / (r1 - r0).hypot(l);
-                    out.forebody += forebody_cd(s, s, 1.0, m) * da / a_ref;
+                    fore += forebody_cd(s, s, 1.0, m) * da / a_ref;
                 }
                 BodyPart::Transition { .. } if da < 0.0 => {
                     let ratio = l / (d0 - d1);
                     let gamma = ((3.0 - ratio) / 2.0).clamp(0.0, 1.0);
-                    out.base += base_cd(m) * gamma * (-da) / a_ref;
+                    base += base_cd(m) * gamma * (-da) / a_ref;
                 }
                 _ => {}
             }
+            // Frente rombuda (corpo sem nariz, por exemplo depois de perder a coifa):
+            // face plana com Cd = 0,85·q_estagnação/q sobre a área frontal, a mesma forma
+            // usada para bordo de ataque reto. Fonte: Hoerner, "Fluid-Dynamic Drag", cap. 3.
+            if i == 0 && d0 > 0.0 {
+                fore += fin_leading_edge_cd(FinProfile::Square, m) * 0.25 * PI * d0 * d0 / a_ref;
+            }
+            out.friction += friction;
+            out.forebody += fore;
+            out.base += base;
+            parts.body[i] += friction + fore + base;
         }
-        let mut fin_term = 0.0;
-        for f in &self.fins {
+        for (k, f) in self.fins.iter().enumerate() {
             let n = f64::from(f.count);
             let (mac, _) = f.mac();
-            fin_term += (1.0 + 2.0 * f.thickness / mac) * 2.0 * n * f.area();
+            let friction = cf * (1.0 + 2.0 * f.thickness / mac) * 2.0 * n * f.area() / a_ref;
             let frontal = n * f.thickness * f.span / a_ref;
             let te = match f.profile {
                 FinProfile::Square => base_cd(m),
                 FinProfile::Rounded => 0.5 * base_cd(m),
                 FinProfile::Airfoil => 0.0,
             };
-            out.fins +=
+            let pressure =
                 frontal * (fin_leading_edge_cd(f.profile, m) * f.cos_le_sweep().powi(2) + te);
+            out.friction += friction;
+            out.fins += pressure;
+            parts.fins[k] = friction + pressure;
         }
-        out.friction = cf * ((1.0 + d_ref / (2.0 * len)) * wet_body + fin_term) / a_ref;
-
         let d_base = self.parts.last().map_or(0.0, |p| p.diameters().1);
         let mut a_base = 0.25 * PI * d_base * d_base;
         if flow.burning {
             a_base = (a_base - 0.25 * PI * self.nozzle_exit_diameter.powi(2)).max(0.0);
         }
-        out.base += base_cd(m) * a_base / a_ref;
-        out
+        let base = base_cd(m) * a_base / a_ref;
+        out.base += base;
+        if let Some(last) = parts.body.last_mut() {
+            *last += base;
+        }
+        (out, parts)
     }
 }

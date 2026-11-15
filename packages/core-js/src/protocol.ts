@@ -2,6 +2,8 @@
  * Protocolo de mensagens entre a thread da UI e o Web Worker do núcleo.
  * Cada pedido carrega um `id`; a resposta devolve o mesmo `id`.
  */
+import type { Design, Material, SimOutput, TemplateEntry, Validation } from "./types";
+
 export interface CoreInfo {
   /** Versão do núcleo Rust (semver). */
   version: string;
@@ -9,8 +11,23 @@ export interface CoreInfo {
   selfCheckError: number;
 }
 
-export type CoreRequest = { id: number; kind: "info" };
+export type CoreRequest =
+  | { id: number; kind: "info" }
+  | { id: number; kind: "templates" }
+  | { id: number; kind: "materials" }
+  | { id: number; kind: "validate"; design: Design; withFlight: boolean }
+  | { id: number; kind: "simulate"; design: Design };
+
+export type CoreResult =
+  | { kind: "info"; info: CoreInfo }
+  | { kind: "templates"; templates: TemplateEntry[] }
+  | { kind: "materials"; materials: Material[] }
+  | { kind: "validate"; validation: Validation }
+  | { kind: "simulate"; output: SimOutput };
 
 export type CoreResponse =
-  | { id: number; ok: true; kind: "info"; info: CoreInfo }
+  | ({ id: number; ok: true } & CoreResult)
   | { id: number; ok: false; error: string };
+
+/** Distribui `Omit` sobre a união (o `Omit` comum colapsa uniões). */
+export type RequestBody = CoreRequest extends infer R ? (R extends { id: number } ? Omit<R, "id"> : never) : never;

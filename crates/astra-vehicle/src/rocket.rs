@@ -1,5 +1,5 @@
 use crate::recovery::Parachute;
-use astra_aero::{Aero, FlowState, Geometry};
+use astra_aero::{Aero, FlowState, Geometry, PartDrag};
 use astra_dynamics::flight::{
     FlightCtx, Loads, MassProps, PointVehicle, RigidVehicle, Sequencer, Trigger,
 };
@@ -89,6 +89,32 @@ impl Rocket {
     #[must_use]
     pub fn geometry(&self) -> &Geometry {
         self.aero.geometry()
+    }
+
+    /// Modelo aerodinâmico.
+    #[must_use]
+    pub fn aero(&self) -> &Aero {
+        &self.aero
+    }
+
+    /// Coeficiente de arrasto de cada peça externa em α = 0. Com tabela de Cd, as
+    /// parcelas analíticas são escaladas para somar o valor da tabela.
+    #[must_use]
+    pub fn part_cd(&self, mach: f64, reynolds_per_m: f64, burning: bool) -> PartDrag {
+        let (total, mut parts) = self.aero.drag_parts(&FlowState {
+            mach,
+            reynolds_per_m,
+            burning,
+        });
+        if let DragModel::Table { .. } = self.drag {
+            let k = self.cd(mach, reynolds_per_m, burning) / total.total().max(1e-12);
+            parts
+                .body
+                .iter_mut()
+                .chain(parts.fins.iter_mut())
+                .for_each(|c| *c *= k);
+        }
+        parts
     }
 
     /// Massa total no instante `t`, kg.

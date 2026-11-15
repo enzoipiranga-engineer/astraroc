@@ -7,8 +7,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 0 | Arquitetura, monorepo, CI, base matemática, ponte WASM, casca do app | Testes Rust e JS passam; app carrega o núcleo num worker | **Feita** |
 | 1 | Referenciais (ECI/ECEF/ENU/corpo), WGS84, gravidade com J2, atmosfera USSA 1976 até 86 km, RK4 e Dormand-Prince com eventos, 3-DOF e 6-DOF, trilho | Balística no vácuo, Tsiolkovsky, tabela ISA, período orbital e conservação de energia dentro da tolerância | **Feita** |
 | 2 | Barrowman estendido, Cd(Mach, α, Re), motor sólido (.eng/.rse e grão BATES), foguete de água, paraquedas | Casos de CP da literatura; curva de motor comercial reproduzida; voo de garrafa PET contra dado medido | **Feita, com uma pendência:** falta voo medido de garrafa PET |
-| 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | Próxima |
-| 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | |
+| 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | **Feita** |
+| 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | Próxima |
 | 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | |
 | 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | |
 | 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | |
@@ -47,3 +47,14 @@ Ficam registrados aqui para não virarem promessa falsa:
   do usuário; offline só com dados em cache.
 - **±5% de apogeu** é meta para voos pequenos com Cd e motor bem conhecidos. Para voos
   orbitais, a validação compara eventos (MECO, separação, inserção) com dados públicos.
+
+## Fase 3: o que ficou para depois
+
+- Editor por arrastar e soltar no desenho: hoje as peças são posicionadas por número
+  (posição em mm) e selecionadas clicando no desenho ou na lista.
+- Gráficos de aceleração, carga em cada junta ao longo do tempo e exportação CSV: os
+  dados existem no núcleo; a tela mostra altura, velocidade e ângulo de ataque.
+- Idioma inglês, unidades imperiais, link compartilhável e tutorial inicial (fase 12).
+- Aletas de forma livre e elípticas no editor (o núcleo aerodinâmico já tem a elíptica).
+- Banco com "milhares" de materiais: hoje são 50, cada um com fonte e confiabilidade.
+- Teste de navegador fora da CI (precisa de Chromium no executor).

@@ -8,7 +8,7 @@ mod drag;
 mod geometry;
 mod stability;
 
-pub use drag::{DragBreakdown, FlowState};
+pub use drag::{DragBreakdown, FlowState, PartDrag};
 pub use geometry::{BodyPart, FinPlanform, FinProfile, FinSet, Geometry, NoseShape};
 pub use stability::NormalForce;
 
@@ -43,6 +43,12 @@ impl Aero {
     #[must_use]
     pub fn drag(&self, flow: &FlowState) -> DragBreakdown {
         self.geometry.drag_with(&self.ints, flow)
+    }
+
+    /// Arrasto total e repartido por peça.
+    #[must_use]
+    pub fn drag_parts(&self, flow: &FlowState) -> (DragBreakdown, PartDrag) {
+        self.geometry.drag_split(&self.ints, flow)
     }
 
     /// Ver [`Geometry::pitch_damping_sum`].

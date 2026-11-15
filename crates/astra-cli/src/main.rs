@@ -30,6 +30,7 @@ fn fly(rocket: &Rocket, launch: Launch, t_max: f64) -> Result<FlightSummary, Str
             h_max: 0.5,
             ..Options::default()
         },
+        start: None,
     };
     let res = simulate6(&cfg).map_err(|e| e.to_string())?;
     let samples: Vec<_> = res.samples.iter().map(|s| (s.t, s.nav)).collect();
@@ -41,6 +42,7 @@ fn fly(rocket: &Rocket, launch: Launch, t_max: f64) -> Result<FlightSummary, Str
             EventKind::Apogee => "apogeu".to_owned(),
             EventKind::Impact => "impacto".to_owned(),
             EventKind::Trigger(i) => format!("abre {}", rocket.parachutes[*i].name),
+            EventKind::Limit(i) => format!("limite {i} excedido"),
         };
         println!(
             "  {t:8.2} s  {name:<16} alt {:8.1} m  v {:6.1} m/s",
@@ -205,6 +207,7 @@ fn main() -> ExitCode {
                             h_max: 0.5,
                             ..Options::default()
                         },
+                        start: None,
                     };
                     simulate3(&cfg)
                         .ok()
@@ -270,6 +273,7 @@ fn main() -> ExitCode {
                 h_max: 1.0,
                 ..Options::default()
             },
+            start: None,
         };
         let res = simulate3(&cfg).map_err(|e| e.to_string())?;
         println!("t_s,alt_m,speed_m_s,vertical_speed_m_s,mach,q_dyn_Pa,lat_deg,lon_deg,mass_kg");

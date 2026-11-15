@@ -51,6 +51,19 @@
 | Foguete instável capota e perde mais de 40% do apogeu | Consequência física | — | Passa |
 | Dual deploy: velocidades de descida | √(2mg/(ρ·CdS)) | 3% | Passa |
 | Volume ótimo de água | Regra prática de ~1/3 | Entre 20% e 45% (resultado: 29%) | Passa |
+| Massa e CG de tubo e de casca cônica | Fórmulas fechadas (centroide da superfície lateral a 2L/3) | 1e-6 | Passa |
+| Capacidade de pinos de cisalhamento e força de ejeção | Cálculo à mão | 1e-9 | Passa |
+| Exemplo de competição: sem erros nem avisos, apogeu 450 a 620 m, ejeção 1 s após o apogeu, pouso de 4 a 7 m/s | Projeto de referência | — | Passa (535 m, 5,8 m/s) |
+| Coifa sem fixação (garrafa PET com lastro): aviso, separação perto do fim do empuxo, duas trajetórias, mesma velocidade na separação | Consequência física | 0,05 s; 1 m/s | Passa |
+| Pinos fortes demais para a carga: aviso, baia não abre, impacto balístico | Consequência física | — | Passa |
+| Baia fechada e coifa no atrito: paraquedas abre antes do apogeu; cordão fraco rompe | Consequência física | — | Passa |
+| Aletas finas de balsa: flutter acusado e aleta perdida em voo | Consequência física | — | Passa |
+| Peça que não cabe, sobreposição, anteparo bloqueando o paraquedas, peça solta | Verificação estática | — | Passa |
+| Mudar uma peça muda massa, CG, margem e apogeu juntos | Propagação | — | Passa |
+| Limite físico interrompe o voo e retomar do estado final reproduz o voo contínuo | Continuidade | 1e-6 s; 1e-3 m | Passa |
+| Arrasto por peça soma o total; frente rombuda | Conservação | 1e-12 | Passa |
+| Mesmo fluxo pelo worker com o WASM real (exemplos, verificação, voo, coifa solta) | Vitest | — | Passa |
+| Interface no navegador: remover a junta da coifa, ver o aviso, lançar e ver a separação; celular sem rolagem lateral | `apps/web/e2e/smoke.cjs` (Playwright, manual) | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 

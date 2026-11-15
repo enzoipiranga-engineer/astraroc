@@ -1,4 +1,6 @@
-use super::{run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, Sequencer, World};
+use super::{
+    run_phases, v3, EventKind, FlightCtx, Launch, Nav, Phase, Schedule, Sequencer, Start, World,
+};
 use crate::ode::{OdeError, Options};
 use astra_env::{AtmosphereModel, Planet};
 use astra_math::Vec3;
@@ -10,6 +12,11 @@ pub trait PointVehicle: Sequencer {
     fn thrust(&self, ctx: &FlightCtx<'_>) -> (f64, f64);
     /// Área de arrasto Cd·A (m²).
     fn drag_area(&self, ctx: &FlightCtx<'_>) -> f64;
+    /// Margem `index` de limite físico, como em [`super::RigidVehicle::margin`].
+    fn margin(&self, ctx: &FlightCtx<'_>, index: usize) -> f64 {
+        let _ = (ctx, index);
+        1.0
+    }
 }
 
 /// Motor de empuxo de vácuo e vazão constantes, com arrasto de Cd·A constante.
@@ -70,6 +77,27 @@ pub struct Config3<'a> {
     pub output_dt: f64,
     /// Opções do integrador.
     pub ode: Options,
+    /// Começar de um estado dado em vez do lançador (`launch` continua definindo o solo).
+    pub start: Option<Start3>,
+}
+
+/// Estado inicial de um trecho 3-DOF que não começa no lançador.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Start3 {
+    /// Instante, s.
+    pub t: f64,
+    /// Posição ECI, m.
+    pub r: Vec3,
+    /// Velocidade ECI, m/s.
+    pub v: Vec3,
+    /// Massa, kg.
+    pub mass: f64,
+    /// Motor ainda aceso.
+    pub burning: bool,
+    /// Instante de disparo de cada gatilho.
+    pub fired: Vec<Option<f64>>,
+    /// Instante do apogeu, se já ocorreu.
+    pub apogee: Option<f64>,
 }
 
 /// Amostra de telemetria 3-DOF.
@@ -94,6 +122,8 @@ pub struct Result3 {
     pub samples: Vec<Sample3>,
     /// Eventos em ordem de ocorrência.
     pub events: Vec<(EventKind, Sample3)>,
+    /// Estado da sequência no fim.
+    pub end: Option<super::SequenceState>,
 }
 
 impl Result3 {
@@ -146,13 +176,36 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
         [v.x, v.y, v.z, a.x, a.y, a.z, -mdot]
     };
     let (r0, v0) = world.initial_rv();
-    let y0 = [r0.x, r0.y, r0.z, v0.x, v0.y, v0.z, cfg.m0];
+    let margin = |ph: &Phase, t: f64, y: &[f64; 7], i: usize| -> f64 {
+        let air = world.air(v3(y, 0), v3(y, 3));
+        cfg.vehicle.margin(&world.ctx(&air, t, y[6], ph), i)
+    };
+    let n_margins = cfg.vehicle.margin_count();
+    let start = match &cfg.start {
+        None => Start {
+            t: 0.0,
+            y: [r0.x, r0.y, r0.z, v0.x, v0.y, v0.z, cfg.m0],
+            on_rail: cfg.launch.rail.length > 0.0,
+            burning: cfg.vehicle.burnout_time() > 0.0,
+            fired: Vec::new(),
+            apogee: None,
+        },
+        Some(s) => Start {
+            t: s.t,
+            y: [s.r.x, s.r.y, s.r.z, s.v.x, s.v.y, s.v.z, s.mass],
+            on_rail: false,
+            burning: s.burning && s.t < cfg.vehicle.burnout_time(),
+            fired: s.fired.clone(),
+            apogee: s.apogee,
+        },
+    };
     let mut res = Result3::default();
-    run_phases(
+    let (end, _) = run_phases(
         &world,
         &rhs,
-        y0,
+        start,
         &Schedule::new(cfg.vehicle, cfg.t_max, cfg.output_dt, cfg.ode),
+        (n_margins > 0).then_some((&margin as &super::Margins<'_, 7>, n_margins)),
         &mut |kind, t, y| {
             let (r, v) = (v3(y, 0), v3(y, 3));
             let s = Sample3 {
@@ -168,5 +221,6 @@ pub fn simulate3(cfg: &Config3<'_>) -> Result<Result3, OdeError> {
             }
         },
     )?;
+    res.end = Some(end);
     Ok(res)
 }

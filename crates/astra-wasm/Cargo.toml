@@ -1,0 +1,16 @@
+[package]
+name = "astra-wasm"
+description = "ASTRA: fronteira WebAssembly do núcleo de física (sem lógica de física própria)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+astra-math = { path = "../astra-math" }
+wasm-bindgen = "=0.2.130"
+
+[lints]
+workspace = true

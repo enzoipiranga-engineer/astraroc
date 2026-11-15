@@ -1,0 +1,15 @@
+{
+  "name": "astra",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "dev": "pnpm build:wasm && pnpm --filter @astra/web dev",
+    "build": "pnpm build:wasm && pnpm --filter @astra/web build",
+    "typecheck": "pnpm -r typecheck",
+    "test:core": "cargo test --workspace",
+    "test:js": "pnpm build:wasm && pnpm -r test",
+    "test": "pnpm test:core && pnpm test:js"
+  }
+}

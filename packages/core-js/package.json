@@ -1,0 +1,19 @@
+{
+  "name": "@astra/core-js",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./worker-entry": "./src/worker-entry.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}

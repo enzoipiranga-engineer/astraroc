@@ -1,0 +1,9 @@
+[package]
+name = "astra-math"
+description = "ASTRA: álgebra vetorial, quaternions e constantes físicas (SI, f64, determinístico)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true

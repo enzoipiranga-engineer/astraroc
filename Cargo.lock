@@ -3,6 +3,29 @@
 version = 3
 
 [[package]]
+name = "astra-cli"
+version = "0.0.1"
+dependencies = [
+ "astra-dynamics",
+ "astra-env",
+]
+
+[[package]]
+name = "astra-dynamics"
+version = "0.0.1"
+dependencies = [
+ "astra-env",
+ "astra-math",
+]
+
+[[package]]
+name = "astra-env"
+version = "0.0.1"
+dependencies = [
+ "astra-math",
+]
+
+[[package]]
 name = "astra-math"
 version = "0.0.1"
 
@@ -10,6 +33,8 @@ version = "0.0.1"
 name = "astra-wasm"
 version = "0.0.1"
 dependencies = [
+ "astra-dynamics",
+ "astra-env",
  "astra-math",
  "wasm-bindgen",
 ]

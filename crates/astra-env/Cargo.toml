@@ -1,0 +1,12 @@
+[package]
+name = "astra-env"
+description = "ASTRA: planeta, referenciais, gravidade e atmosfera."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-math = { path = "../astra-math" }
+
+[lints]
+workspace = true

@@ -5,8 +5,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | Fase | Entrega | Critério de saída | Estado |
 | --- | --- | --- | --- |
 | 0 | Arquitetura, monorepo, CI, base matemática, ponte WASM, casca do app | Testes Rust e JS passam; app carrega o núcleo num worker | **Feita** |
-| 1 | Referenciais (ECI/ECEF/ENU/corpo), WGS84, gravidade com J2, atmosfera USSA 1976 até 86 km, RK4 e Dormand-Prince com eventos, 3-DOF e 6-DOF, trilho | Balística no vácuo, Tsiolkovsky, tabela ISA, período orbital e conservação de energia dentro da tolerância | Próxima |
-| 2 | Barrowman estendido, Cd(Mach, α, Re), motor sólido (.eng/.rse e grão BATES), foguete de água, paraquedas | Casos de CP da literatura; curva de motor comercial reproduzida; voo de garrafa PET contra dado medido | |
+| 1 | Referenciais (ECI/ECEF/ENU/corpo), WGS84, gravidade com J2, atmosfera USSA 1976 até 86 km, RK4 e Dormand-Prince com eventos, 3-DOF e 6-DOF, trilho | Balística no vácuo, Tsiolkovsky, tabela ISA, período orbital e conservação de energia dentro da tolerância | **Feita** |
+| 2 | Barrowman estendido, Cd(Mach, α, Re), motor sólido (.eng/.rse e grão BATES), foguete de água, paraquedas | Casos de CP da literatura; curva de motor comercial reproduzida; voo de garrafa PET contra dado medido | Próxima |
 | 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | |
 | 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | |
 | 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | |
@@ -18,7 +18,7 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | |
 | 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | |
 
-## Fase 1 em detalhe
+## Fase 1 em detalhe (concluída)
 
 1. `astra-env`: conversões geodésica ↔ ECEF ↔ ECI ↔ ENU; gravidade pontual e com J2;
    USSA 1976 (camadas 0 a 86 km) com desvio de temperatura e pressão local.

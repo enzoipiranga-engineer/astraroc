@@ -1,4 +1,4 @@
-use crate::Vec3;
+use crate::{Mat3, Vec3};
 use core::ops::Mul;
 
 /// Quaternion unitário de atitude, convenção de Hamilton, parte escalar `w` primeiro.
@@ -76,6 +76,59 @@ impl Quat {
         v + self.w * t + u.cross(t)
     }
 
+    /// Matriz de rotação equivalente (colunas = eixos do corpo vistos na referência).
+    #[must_use]
+    pub fn to_mat3(self) -> Mat3 {
+        Mat3::from_cols(
+            self.rotate(Vec3::X),
+            self.rotate(Vec3::Y),
+            self.rotate(Vec3::Z),
+        )
+    }
+
+    /// Quaternion a partir de uma matriz de rotação própria, pelo método de Shepperd
+    /// (escolhe o maior pivô para evitar cancelamento).
+    /// Fonte: Shepperd, "Quaternion from Rotation Matrix", J. Guidance and Control 1(3), 1978.
+    #[must_use]
+    pub fn from_mat3(r: Mat3) -> Self {
+        let m = r.m;
+        let tr = m[0][0] + m[1][1] + m[2][2];
+        let q = if tr > 0.0 {
+            let s = 2.0 * (1.0 + tr).sqrt();
+            Self::new(
+                0.25 * s,
+                (m[2][1] - m[1][2]) / s,
+                (m[0][2] - m[2][0]) / s,
+                (m[1][0] - m[0][1]) / s,
+            )
+        } else if m[0][0] > m[1][1] && m[0][0] > m[2][2] {
+            let s = 2.0 * (1.0 + m[0][0] - m[1][1] - m[2][2]).sqrt();
+            Self::new(
+                (m[2][1] - m[1][2]) / s,
+                0.25 * s,
+                (m[0][1] + m[1][0]) / s,
+                (m[0][2] + m[2][0]) / s,
+            )
+        } else if m[1][1] > m[2][2] {
+            let s = 2.0 * (1.0 + m[1][1] - m[0][0] - m[2][2]).sqrt();
+            Self::new(
+                (m[0][2] - m[2][0]) / s,
+                (m[0][1] + m[1][0]) / s,
+                0.25 * s,
+                (m[1][2] + m[2][1]) / s,
+            )
+        } else {
+            let s = 2.0 * (1.0 + m[2][2] - m[0][0] - m[1][1]).sqrt();
+            Self::new(
+                (m[1][0] - m[0][1]) / s,
+                (m[0][2] + m[2][0]) / s,
+                (m[1][2] + m[2][1]) / s,
+                0.25 * s,
+            )
+        };
+        q.normalized()
+    }
+
     /// Cinemática de atitude: q̇ = ½ · q ⊗ [0, ω], com ω a velocidade angular
     /// expressa no referencial do corpo, rad/s (Stevens & Lewis, eq. 1.8-15).
     /// O resultado é uma derivada, não um quaternion unitário.
@@ -129,6 +182,21 @@ mod tests {
         let b = Quat::from_axis_angle(Vec3::new(0.0, 1.0, 1.0), -1.1);
         let v = Vec3::new(1.0, 2.0, 3.0);
         assert!(close((a * b).rotate(v), a.rotate(b.rotate(v)), 1e-14));
+    }
+
+    #[test]
+    fn matrix_round_trip_covers_all_pivots() {
+        for (axis, ang) in [
+            (Vec3::new(1.0, 2.0, -0.5), 0.4),
+            (Vec3::X, 3.0),
+            (Vec3::Y, 3.1),
+            (Vec3::Z, -3.05),
+        ] {
+            let q = Quat::from_axis_angle(axis, ang);
+            let q2 = Quat::from_mat3(q.to_mat3());
+            let v = Vec3::new(0.3, -1.0, 2.0);
+            assert!(close(q.rotate(v), q2.rotate(v), 1e-13));
+        }
     }
 
     /// Integra q̇ = ½ q⊗ω com RK4 para ω constante e compara com a solução

@@ -41,8 +41,8 @@ astra/
 ├─ crates/
 │  ├─ astra-math/        Fase 0   Vec3, Quat, constantes (feito)
 │  ├─ astra-wasm/        Fase 0   fronteira WASM (feito; cresce a cada fase)
-│  ├─ astra-env/         Fase 1   atmosfera, gravidade, referenciais, vento, efemérides
-│  ├─ astra-dynamics/    Fase 1   integradores, eventos, 3-DOF, 6-DOF
+│  ├─ astra-env/         Fase 1   planeta, referenciais, gravidade, atmosfera (feito); vento e efemérides depois
+│  ├─ astra-dynamics/    Fase 1   integradores, eventos, 3-DOF, 6-DOF, trilho (feito)
 │  ├─ astra-aero/        Fase 2   Barrowman, Cd(Mach, α, Re), aquecimento, recuperação
 │  ├─ astra-propulsion/  Fase 2   sólido, água; Fase 5: líquido, híbrido e demais
 │  ├─ astra-vehicle/     Fase 3   peças, materiais, juntas, grafo, validação, falha
@@ -51,7 +51,7 @@ astra/
 │  ├─ astra-mission/     Fase 5   estágios, guiagem, GNC, sequência de voo
 │  ├─ astra-orbit/       Fase 10  2 corpos + J2, Lambert, N-corpos
 │  ├─ astra-analysis/    Fase 11  Monte Carlo, otimizador, calibração
-│  └─ astra-cli/         Fase 1   execução sem UI para benchmarks e validação
+│  └─ astra-cli/         Fase 1   execução sem UI para benchmarks e validação (feito)
 ├─ packages/
 │  ├─ core-js/           Fase 0   cliente tipado do worker (feito)
 │  ├─ schema/            Fase 3   formato do projeto (.astra, JSON versionado)

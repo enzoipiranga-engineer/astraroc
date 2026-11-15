@@ -1,0 +1,13 @@
+[package]
+name = "astra-dynamics"
+description = "ASTRA: integradores com detecção de eventos e dinâmica de voo 3-DOF e 6-DOF."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-math = { path = "../astra-math" }
+astra-env = { path = "../astra-env" }
+
+[lints]
+workspace = true

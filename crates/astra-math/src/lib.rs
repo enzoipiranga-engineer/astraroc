@@ -7,8 +7,10 @@
 //! - toda equação cita a fonte no comentário.
 
 pub mod constants;
+mod mat3;
 mod quat;
 mod vec3;
 
+pub use mat3::Mat3;
 pub use quat::Quat;
 pub use vec3::Vec3;

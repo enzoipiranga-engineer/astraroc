@@ -1,0 +1,13 @@
+[package]
+name = "astra-cli"
+description = "ASTRA: execução do núcleo sem interface, para validação e benchmarks."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-env = { path = "../astra-env" }
+astra-dynamics = { path = "../astra-dynamics" }
+
+[lints]
+workspace = true

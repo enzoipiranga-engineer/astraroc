@@ -5,11 +5,11 @@ inventado: enquanto o dado não chegar, o recurso correspondente não é impleme
 
 | Item | Fase | Situação (15/11/2026) |
 | --- | --- | --- |
-| Payload do foguete Zyrion | 8 | Busca na web não achou nenhuma menção pública. Precisa vir da equipe: massa, dimensões, CG, requisitos de g/vibração/temperatura. |
+| Payload do foguete Zyrion | 8 | Busca na web não achou nenhuma menção pública. O editor de carga útil está pronto (fase 8); falta a equipe informar massa, dimensões, CG e requisitos de g, vibração e temperatura para virar preset. |
 | Regras da LASC (categorias, payload, pontuação) | 8 | Recebido o LASC General Rules (LGR), ed. 1, rev. 1, vigente desde 17/03/2026. Ele trata de organização de equipe, inscrição e prêmios, e diz que pontuação e critérios técnicos ficam nos manuais de cada desafio. **Falta o Rocket Challenge Standard Manual (RCSM)** (e o Launch Operations Manual, LOM, para regras de segurança de voo). |
 | Regras da Spaceport America Cup / IREC | 8 | Recebido o Rules & Requirements Document **2024, v1.4** (vigente desde 04/03/2024). Pode haver versão mais nova; confirmar antes da competição. Falta o DTEG (Design, Test & Evaluation Guide), que traz os requisitos técnicos. |
 | Chave do Cesium ion | 4 | O usuário aceitou criar; será pedida na Fase 4. |
-| Repositório GitHub | já | Conta GitHub não conectada à sessão; o código está só em commit local. |
+| Repositório GitHub | já | Resolvido: código em enzoipiranga-engineer/astraroc. |
 | Voo medido de garrafa PET (altímetro) | 2 | Nenhum dado medido disponível na sessão; a validação do foguete de água é só analítica. |
 | Conferir tabela da atmosfera acima de 86 km (Vallado, Tabela 8-4) e dados do KNSB (Nakka) | 1 e 2 | Transcritos de memória; fontes não acessíveis nesta sessão. |
 | Curvas de motores pequenos (Estes etc.) | 2 | thrustcurve.org fora da rede permitida; só o Cesaroni M1670 está embutido. |

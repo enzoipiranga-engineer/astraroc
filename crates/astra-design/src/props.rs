@@ -364,6 +364,7 @@ mod tests {
                 outer_diameter: 0.1,
                 wall: 0.002,
                 vent_holes: 0,
+                vent_diameter: 0.003,
             }),
             &db,
         );

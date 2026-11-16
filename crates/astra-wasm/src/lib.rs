@@ -388,3 +388,17 @@ pub fn example_firmware() -> String {
     })
     .to_string()
 }
+
+/// Modelos de carga útil.
+#[wasm_bindgen(js_name = payloadPresets)]
+#[must_use]
+pub fn payload_presets() -> String {
+    serde_json::to_string(&astra_design::payload::presets()).unwrap_or_else(|_| "[]".to_owned())
+}
+
+/// Presets de regras de competição: `[[id, regras], ...]`.
+#[wasm_bindgen(js_name = rulePresets)]
+#[must_use]
+pub fn rule_presets() -> String {
+    serde_json::to_string(&astra_design::rules::presets()).unwrap_or_else(|_| "[]".to_owned())
+}

@@ -2,7 +2,7 @@
  * Protocolo de mensagens entre a thread da UI e o Web Worker do núcleo.
  * Cada pedido carrega um `id`; a resposta devolve o mesmo `id`.
  */
-import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation, ElecComponent } from "./types";
+import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation, ElecComponent, PayloadPreset, RuleSet } from "./types";
 import type { FlyResult } from "./avr/fly";
 
 export interface CoreInfo {
@@ -23,6 +23,7 @@ export type CoreRequest =
   | { id: number; kind: "plugins" }
   | { id: number; kind: "checkPlugin"; spec: PluginSpec }
   | { id: number; kind: "electronics" }
+  | { id: number; kind: "presets" }
   | { id: number; kind: "fly"; design: Design; seed?: number };
 
 export type CoreResult =
@@ -36,6 +37,7 @@ export type CoreResult =
   | { kind: "plugins"; plugins: PluginSpec[] }
   | { kind: "checkPlugin"; check: PluginCheck }
   | { kind: "electronics"; library: ElecComponent[]; firmware: ExampleFirmware }
+  | { kind: "presets"; payloads: PayloadPreset[]; rules: [string, RuleSet][] }
   | { kind: "fly"; result: FlyResult };
 
 /** Firmware de exemplo que acompanha o ASTRA. */

@@ -9,6 +9,8 @@ import {
   designTemplates,
   electronicsLibrary,
   exampleFirmware,
+  payloadPresets,
+  rulePresets,
   engineLibrary,
   simulateMission,
   materialsJson,
@@ -18,7 +20,7 @@ import {
 } from "../wasm/astra_wasm.js";
 import type { CoreRequest, CoreResponse, ExampleFirmware } from "./protocol";
 import { fly } from "./avr/fly";
-import type { Design, ElecComponent, EngineInfo, Material, MissionOutput, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, ElecComponent, PayloadPreset, RuleSet, EngineInfo, Material, MissionOutput, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 export function handle(req: CoreRequest): CoreResponse {
   try {
@@ -62,6 +64,8 @@ export function handle(req: CoreRequest): CoreResponse {
           library: JSON.parse(electronicsLibrary()) as ElecComponent[],
           firmware: JSON.parse(exampleFirmware()) as ExampleFirmware,
         };
+      case "presets":
+        return { id: req.id, ok: true, kind: "presets", payloads: JSON.parse(payloadPresets()) as PayloadPreset[], rules: JSON.parse(rulePresets()) as [string, RuleSet][] };
       case "fly": {
         const validation = JSON.parse(validateDesign(JSON.stringify(req.design), false)) as Validation;
         const library = JSON.parse(electronicsLibrary()) as ElecComponent[];

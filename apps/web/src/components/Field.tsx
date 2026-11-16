@@ -7,11 +7,12 @@ interface NumProps {
   unit: Unit;
   help?: string;
   optional?: boolean;
+  placeholder?: string;
   onChange: (si: number | null) => void;
 }
 
 /** Campo numérico em unidade de exibição; aceita vírgula decimal e só grava ao sair. */
-export function NumberField({ label, value, unit, help, optional, onChange }: NumProps) {
+export function NumberField({ label, value, unit, help, optional, placeholder, onChange }: NumProps) {
   const shown = value === null || value === undefined ? "" : String(+toDisplay(value, unit).toPrecision(6));
   const [text, setText] = useState(shown);
   useEffect(() => setText(shown), [shown]);
@@ -31,7 +32,7 @@ export function NumberField({ label, value, unit, help, optional, onChange }: Nu
       <input
         inputMode="decimal"
         value={text}
-        placeholder={optional ? "calculado" : ""}
+        placeholder={placeholder ?? (optional ? "calculado" : "")}
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}

@@ -177,7 +177,7 @@ export function ElectronicsPanel({ design, validation, core, library, example, r
             {e.wires.map((w, i) => (
               <li key={`${w.a}-${w.b}-${i}`}>
                 <span className="mono">{w.a} — {w.b}</span>
-                <NumberField label="Solta acima de" unit="count" optional value={w.looseG ?? null} help="Fio mal crimpado: solta quando a aceleração passa deste valor (g)." onChange={(v) => setWire(i, { ...w, looseG: v })} />
+                <NumberField label="Solta acima de" unit="count" optional placeholder="firme" value={w.looseG ?? null} help="Fio mal crimpado: solta quando a aceleração passa deste valor (g)." onChange={(v) => setWire(i, { ...w, looseG: v })} />
                 <button className="link danger" onClick={() => setE({ wires: e.wires.filter((_, k) => k !== i) })}>×</button>
               </li>
             ))}

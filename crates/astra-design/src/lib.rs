@@ -14,7 +14,9 @@ pub mod elec;
 mod limits;
 mod material;
 mod model;
+pub mod payload;
 mod props;
+pub mod rules;
 mod sim;
 pub mod templates;
 

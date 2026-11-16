@@ -26,7 +26,7 @@ describe("projeto pelo worker", () => {
 
   it("lista exemplos e materiais", async () => {
     const t = await client.templates();
-    expect(t.map((x) => x.id)).toEqual(["pet", "competicao-500m", "competicao-avionica"]);
+    expect(t.map((x) => x.id)).toEqual(["pet", "competicao-500m", "competicao-avionica", "competicao-carga"]);
     const m = await client.materials();
     expect(m.length).toBeGreaterThan(45);
     expect(m.every((x) => x.source.length > 0)).toBe(true);
@@ -91,5 +91,21 @@ describe("lançadores pelo worker", () => {
     d.launcher = [{ type: "air", altitude: 3000, speed: 120, flightPathDeg: 20, headingDeg: 0, dropTime: 1, aircraftMass: 2000 }];
     const o = await client.simulate(d);
     expect(o.launcher!.apogeeWith).toBeGreaterThan(o.launcher!.apogeeWithout + 2000);
+  });
+});
+
+describe("carga útil e regras pelo worker", () => {
+  const client = new CoreClient(fakeWorker());
+  it("avalia a carga e pontua com o preset IREC", async () => {
+    const pr = await client.presets();
+    expect(pr.payloads.some((p) => p.id === "irec-cube-1")).toBe(true);
+    const irec = pr.rules.find(([id]) => id === "irec-10k")![1];
+    expect(irec.targetApogee).toBeCloseTo(3048, 0);
+    const d = (await client.templates()).find((t) => t.id === "competicao-carga")!.design;
+    d.competition = { ...irec, targetApogee: 500 };
+    const out = await client.simulate(d);
+    expect(out.payloads?.[0]?.checks.length).toBeGreaterThan(8);
+    const c = out.competition!;
+    expect(c.apogeePoints).toBeCloseTo(350 - (350 / 150) * Math.abs(500 - c.apogee), 6);
   });
 });

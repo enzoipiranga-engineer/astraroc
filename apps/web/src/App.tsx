@@ -1,6 +1,8 @@
-import { CoreClient, type Design, type ElecComponent, type ExampleFirmware, type Material, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
+import { CoreClient, type Design, type ElecComponent, type ExampleFirmware, type Material, type PayloadPreset, type RuleSet, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ElectronicsPanel } from "./components/ElectronicsPanel";
+import { MissionReport } from "./components/MissionReport";
+import { PayloadPanel } from "./components/PayloadPanel";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
 import { LauncherPanel } from "./components/LauncherPanel";
@@ -55,13 +57,17 @@ export function App() {
   const [mode, setMode] = useState<"rocket" | "orbital">("rocket");
   const [elecLib, setElecLib] = useState<ElecComponent[]>([]);
   const [example, setExample] = useState<ExampleFirmware | null>(null);
+  const [payloadPresets, setPayloadPresets] = useState<PayloadPreset[]>([]);
+  const [rulePresets, setRulePresets] = useState<[string, RuleSet][]>([]);
   const onTime = useCallback((t: number) => setSimTime(t), []);
   const pickAt = useCallback((t: number) => setSeek((s) => ({ t, n: (s?.n ?? 0) + 1 })), []);
   const seq = useRef(0);
 
   useEffect(() => {
-    Promise.all([core.templates(), core.materials(), core.info(), core.electronics()]).then(
-      ([t, m, info, el]) => {
+    Promise.all([core.templates(), core.materials(), core.info(), core.electronics(), core.presets()]).then(
+      ([t, m, info, el, pr]) => {
+        setPayloadPresets(pr.payloads);
+        setRulePresets(pr.rules);
         setElecLib(el.library);
         setExample(el.firmware);
         setTemplates(t);
@@ -69,7 +75,7 @@ export function App() {
         setVersion(info.version);
         const saved = loadSaved();
         // Projetos salvos por versões anteriores podem não ter os campos novos.
-        setHist(historyOf(saved ? { ...t[0]!.design, ...saved, zones: saved.zones ?? [], launcher: saved.launcher ?? [], electronics: saved.electronics ?? t[0]!.design.electronics, launch: { ...t[0]!.design.launch, ...saved.launch, wind: saved.launch?.wind ?? { layers: [] } } } : t[0]!.design));
+        setHist(historyOf(saved ? { ...t[0]!.design, ...saved, zones: saved.zones ?? [], launcher: saved.launcher ?? [], electronics: saved.electronics ?? t[0]!.design.electronics, payloads: saved.payloads ?? [], launch: { ...t[0]!.design.launch, ...saved.launch, wind: saved.launch?.wind ?? { layers: [] } } } : t[0]!.design));
         setBoot({ status: "ready" });
       },
       (e: Error) => setBoot({ status: "error", message: e.message }),
@@ -237,6 +243,7 @@ export function App() {
         </div>
       </div>
 
+      <PayloadPanel design={design} presets={payloadPresets} rulePresets={rulePresets} onChange={change} />
       <ElectronicsPanel design={design} validation={validation} core={core} library={elecLib} example={example} result={result} onChange={change} onFlight={setResult} />
 
       {(result || picking) && (
@@ -278,6 +285,7 @@ export function App() {
         />
       )}
 
+      {result && <MissionReport payloads={result.payloads ?? []} competition={result.competition} />}
         </>
       )}
 

@@ -94,6 +94,7 @@ pub fn pet_bottle() -> Design {
                     outer_diameter: 0.10,
                     wall: 0.0004,
                     vent_holes: 0,
+                    vent_diameter: 0.003,
                 },
             ),
             part(
@@ -177,6 +178,8 @@ pub fn pet_bottle() -> Design {
         zones: Vec::new(),
         launcher: Vec::new(),
         electronics: crate::elec::Electronics::default(),
+        payloads: Vec::new(),
+        competition: None,
     }
 }
 
@@ -212,6 +215,7 @@ pub fn competition_500m() -> Design {
                     outer_diameter: 0.056,
                     wall: 0.0015,
                     vent_holes: 1,
+                    vent_diameter: 0.003,
                 },
             ),
             part(
@@ -305,6 +309,7 @@ pub fn competition_500m() -> Design {
                     outer_diameter: 0.056,
                     wall: 0.0015,
                     vent_holes: 3,
+                    vent_diameter: 0.003,
                 },
             ),
             part(
@@ -430,6 +435,8 @@ pub fn competition_500m() -> Design {
         zones: Vec::new(),
         launcher: Vec::new(),
         electronics: crate::elec::Electronics::default(),
+        payloads: Vec::new(),
+        competition: None,
     }
 }
 
@@ -440,7 +447,61 @@ pub fn all() -> Vec<(&'static str, Design)> {
         ("pet", pet_bottle()),
         ("competicao-500m", competition_500m()),
         ("competicao-avionica", competition_avionics()),
+        ("competicao-carga", competition_payload()),
     ]
+}
+
+/// O foguete de competição levando um pacote de sensores como carga útil, avaliado pelas
+/// regras da categoria de 0,5 km da LASC (só o que o LGR define).
+#[must_use]
+pub fn competition_payload() -> Design {
+    use crate::payload::{Payload, PayloadKind, Requirements};
+    let mut d = competition_500m();
+    d.name = "Competição 500 m com carga útil (exemplo)".into();
+    d.parts.push(part(
+        "carga",
+        "Carga útil (pacote de sensores)",
+        "g10-fr4",
+        0.50,
+        PartKind::Mass {
+            mass: 0.15,
+            length: 0.04,
+            diameter: 0.045,
+            needs_static_port: false,
+        },
+    ));
+    d.joints.push(Joint {
+        id: "j-carga".into(),
+        a: "carga".into(),
+        b: "antep-sup".into(),
+        kind: JointKind::Screws {
+            count: 2,
+            diameter: 0.003,
+            material: "aco-parafuso-8.8".into(),
+        },
+    });
+    d.payloads.push(Payload {
+        id: "sensores".into(),
+        name: "Pacote de sensores".into(),
+        kind: PayloadKind::Sensors,
+        part: "carga".into(),
+        functional: true,
+        requirements: Requirements {
+            max_axial_g: Some(30.0),
+            max_lateral_g: Some(10.0),
+            max_shock_g: Some(50.0),
+            min_temp_c: Some(-10.0),
+            max_temp_c: Some(60.0),
+            max_bay_dp: Some(1000.0),
+            max_landing_speed: Some(8.0),
+            ..Requirements::default()
+        },
+    });
+    d.competition = crate::rules::presets()
+        .into_iter()
+        .find(|(id, _)| id == "lasc-500m")
+        .map(|(_, r)| r);
+    d
 }
 
 /// Firmware de exemplo (`data/firmware/apogeu.c`) compilado para ATmega328P.

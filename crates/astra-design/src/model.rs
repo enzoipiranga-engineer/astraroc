@@ -45,6 +45,16 @@ pub struct Design {
     /// Eletrônica embarcada.
     #[serde(default)]
     pub electronics: crate::elec::Electronics,
+    /// Cargas úteis e seus requisitos.
+    #[serde(default)]
+    pub payloads: Vec<crate::payload::Payload>,
+    /// Regras de competição usadas na avaliação do voo.
+    #[serde(default)]
+    pub competition: Option<crate::rules::RuleSet>,
+}
+
+fn default_vent_diameter() -> f64 {
+    0.003
 }
 
 /// Tabela de Cd por Mach.
@@ -173,6 +183,9 @@ pub enum PartKind {
         /// Número de furos de respiro (pressão estática e alívio).
         #[serde(default)]
         vent_holes: u32,
+        /// Diâmetro de cada furo de respiro, m.
+        #[serde(default = "default_vent_diameter")]
+        vent_diameter: f64,
     },
     /// Transição cônica externa (ombro ou boattail).
     #[serde(rename_all = "camelCase")]

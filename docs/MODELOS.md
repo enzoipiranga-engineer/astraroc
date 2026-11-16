@@ -211,3 +211,25 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 - **Fórmula de altitude do firmware de exemplo** (hipsométrica de atmosfera padrão) supõe
   15 °C na pressão de referência; num campo a 470 m o erro é de ≈ 1 % da altura. É um erro
   real dos altímetros barométricos simples e aparece na simulação.
+
+## Carga útil e ambiente de voo (fase 8)
+
+- **Verdade na carga:** a mesma da placa (fase 7), no CG do corpo que a leva; a aceleração
+  de rotação no ponto da carga (ω × (ω × r) e α × r) não entra.
+- **Aceleração axial e lateral:** componentes da força específica no corpo, a 100 Hz.
+- **Choque de abertura:** pico nos 2 s depois de cada ejeção/abertura. Inflação do
+  paraquedas pelo modelo da fase 2 (área crescendo com t²); sem elasticidade do cordão, o
+  pico real pode ser maior.
+- **Choque no pouso:** v²/(2·s) com s = 5 cm de parada (hipótese de solo de terra).
+- **Temperatura:** ar da atmosfera padrão (com o desvio do local) e temperatura de
+  recuperação da pele T_r = T·(1 + r·(γ−1)/2·M²), r = 0,89 (camada turbulenta; White,
+  Viscous Fluid Flow). Sem condução para dentro da baia nem aquecimento solar.
+- **Pressão na baia:** baia isotérmica, dp_b/dt = R·T·ṁ/V, com ṁ = C_d·A·√(2ρ|Δp|) pelos
+  furos de respiro (C_d = 0,61, orifício de parede fina, Idelchik). Volume = interior do tubo
+  que envolve a carga. Furo necessário para um ΔP admissível pelo equilíbrio quase-estático
+  V·|dp/dt|/(R·T) = C_d·A·√(2ρ·ΔP).
+- **Ruído:** só a camada-limite turbulenta colada, p_rms ≈ 0,006·q (NASA SP-8072); ruído
+  do motor na decolagem, separação e choques não entram — o nível real é maior.
+- **Pontuação IREC:** 350 − 350/(0,3·alvo)·|alvo − apogeu|, zero fora de ±30 % (§2.7.1.4);
+  recuperação (150) passa se nenhuma junta, aleta, tubo ou cordão falhou e todos os corpos
+  pousaram — aproximação do critério "sem dano que impeça novo voo seguro".

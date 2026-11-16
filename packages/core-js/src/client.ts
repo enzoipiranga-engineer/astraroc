@@ -1,6 +1,6 @@
 import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, ExampleFirmware, RequestBody } from "./protocol";
 import type { FlyResult } from "./avr/fly";
-import type { Design, ElecComponent, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, ElecComponent, PayloadPreset, RuleSet, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 /** O mínimo de `Worker` que o cliente usa (permite testar sem navegador). */
 export interface WorkerLike {
@@ -82,6 +82,12 @@ export class CoreClient {
   async electronics(): Promise<{ library: ElecComponent[]; firmware: ExampleFirmware }> {
     const r = await this.call({ kind: "electronics" });
     return { library: r.library, firmware: r.firmware };
+  }
+
+  /** Modelos de carga útil e presets de regras de competição. */
+  async presets(): Promise<{ payloads: PayloadPreset[]; rules: [string, RuleSet][] }> {
+    const r = await this.call({ kind: "presets" });
+    return { payloads: r.payloads, rules: r.rules };
   }
 
   /** Voo com o firmware da placa emulado no laço. */

@@ -676,3 +676,112 @@ mod electronics {
         );
     }
 }
+
+mod payload_and_rules {
+    use astra_design::rules::{presets, Metric, Op, Rule};
+    use astra_design::{simulate, templates, MaterialDb};
+
+    #[test]
+    fn environment_profile_is_physical() {
+        let db = MaterialDb::builtin();
+        let d = templates::competition_payload();
+        let out = simulate(&d, &db);
+        let rep = &out.payloads[0];
+        assert!(rep.rows.len() > 100);
+        let get = |n: &str| rep.checks.iter().find(|c| c.name.starts_with(n)).unwrap();
+        // Empuxo do motor de exemplo / massa: alguns g na queima.
+        let ax = get("Aceleração axial").value;
+        assert!(ax > 3.0 && ax < 30.0, "{ax}");
+        // Temperatura do ar cai ~6,5 °C/km: em ~550 m, cerca de 3,5 °C abaixo do solo.
+        let (tmin, tmax) = (
+            get("Temperatura mínima").value,
+            get("Temperatura máxima").value,
+        );
+        assert!((tmax - tmin - 0.0065 * 550.0).abs() < 1.0, "{tmin} {tmax}");
+        // Tubo com 1 furo de 3 mm: a baia acompanha o exterior com diferença pequena.
+        let dp = get("Diferença de pressão").value;
+        assert!(dp > 0.0 && dp < 300.0, "{dp}");
+        // Furo necessário para 1 kPa: fração de milímetro a poucos milímetros.
+        assert!(
+            rep.vent.diameter_for_3 > 1e-4 && rep.vent.diameter_for_3 < 5e-3,
+            "{:?}",
+            rep.vent
+        );
+        // Choque de abertura existe e o pouso é com paraquedas.
+        assert!(get("Choque de abertura").value > 1.0);
+        assert!(get("Velocidade de pouso").value < 8.0);
+        assert!(
+            rep.pass,
+            "{:?}",
+            rep.checks
+                .iter()
+                .filter(|c| c.pass == Some(false))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn sealed_bay_holds_ground_pressure() {
+        let db = MaterialDb::builtin();
+        let mut d = templates::competition_payload();
+        for p in &mut d.parts {
+            if let astra_design::PartKind::BodyTube { vent_holes, .. } = &mut p.kind {
+                *vent_holes = 0;
+            }
+        }
+        let out = simulate(&d, &db);
+        let rep = &out.payloads[0];
+        let dp = rep
+            .checks
+            .iter()
+            .find(|c| c.name.starts_with("Diferença de pressão"))
+            .unwrap();
+        // ~450 m de subida: ≈ 5 kPa de diferença, acima de 1 kPa.
+        assert!(dp.value > 3500.0 && dp.value < 7500.0, "{}", dp.value);
+        assert_eq!(dp.pass, Some(false));
+        assert!(!rep.pass);
+    }
+
+    #[test]
+    fn irec_formula_and_payload_penalties() {
+        let db = MaterialDb::builtin();
+        let mut d = templates::competition_payload();
+        let mut set = presets()
+            .into_iter()
+            .find(|(id, _)| id == "irec-10k")
+            .unwrap()
+            .1;
+        // Alvo trocado para 500 m para exercitar a fórmula com este foguete pequeno.
+        set.target_apogee = Some(500.0);
+        set.rules.push(Rule {
+            id: "pouso".into(),
+            text: "pouso".into(),
+            metric: Metric::LandingSpeed,
+            op: Op::AtMost,
+            min: None,
+            max: Some(9.0),
+            penalty: 0.0,
+            blocking: false,
+            declared: false,
+            source: "teste".into(),
+        });
+        d.competition = Some(set);
+        let out = simulate(&d, &db);
+        let c = out.competition.unwrap();
+        let expected = 350.0 - 350.0 / (0.3 * 500.0) * (c.apogee - 500.0).abs();
+        assert!((c.apogee_points.unwrap() - expected).abs() < 1e-9);
+        assert!(c.apogee > 350.0 && c.apogee < 650.0);
+        // Payload de 0,15 kg (< 8,4 lb): −100; funcional, então o formato está liberado;
+        // três declarações não marcadas: −300.
+        assert!((c.penalties - 400.0).abs() < 1e-9, "{:?}", c.results);
+        assert_eq!(c.recovery_points, Some(150.0));
+        assert_eq!(c.podium_eligible, Some(true));
+        assert!((c.flight_score - (expected + 150.0 - 400.0)).abs() < 1e-9);
+        // Fora de ±30 %: zero pontos de apogeu.
+        let mut d2 = d.clone();
+        d2.competition.as_mut().unwrap().target_apogee = Some(3048.0);
+        let c2 = simulate(&d2, &db).competition.unwrap();
+        assert_eq!(c2.apogee_points, Some(0.0));
+        assert_eq!(c2.podium_eligible, Some(false));
+    }
+}

@@ -266,10 +266,33 @@ tr.bad td { color: var(--bad); }
 .mono { font-family: var(--mono); font-size: 12px; }
 .link { background: none; border: none; padding: 0 4px; cursor: pointer; font-size: 12px; text-decoration: underline; }
 .elec-report { margin-top: 12px; font-size: 13px; }
-input.tiny { width: 4.5em; }
+input.tiny { width: 5.5em; }
 .launch.small { font-size: 13px; padding: 8px 14px; margin: 8px 0; }
 .fw-results { margin-top: 12px; }
 .fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
 .console { background: #05080d; color: #b8f5c4; font-family: var(--mono); font-size: 11px; max-height: 320px; overflow: auto; padding: 8px; border-radius: 6px; margin: 0; white-space: pre; }
 .console.small { max-height: 140px; }
 @media (max-width: 600px) { .elec-list.wires li { grid-template-columns: 1fr; } }
+
+/* Carga útil e regras */
+.payload { margin: 0 16px 16px; }
+.payload-item { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 6px 0; }
+.payload-item summary { cursor: pointer; }
+table.rules, table.checks, table.score { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+table.rules td, table.checks td, table.checks th, table.score td { padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; text-align: left; }
+table.rules small { color: var(--muted); }
+table.rules select { width: auto; }
+.pcheck-inline { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; margin-left: 6px; }
+table.checks tr.bad td, table.score tr.bad td { color: var(--bad); }
+table.checks tr.ok td:first-child::before { content: "✓ "; color: var(--good); }
+table.checks tr.bad td:first-child::before { content: "✗ "; }
+table.score tr.total td { font-weight: bold; border-top: 1px solid var(--orange); }
+table.score tr.muted td { color: var(--muted); }
+.mission-report { margin: 0 16px 16px; }
+.verdict.ok { color: var(--good); }
+.verdict.bad { color: var(--bad); font-weight: bold; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+.badge.ok { background: rgba(126, 231, 135, 0.15); color: var(--good); }
+.badge.bad { background: rgba(255, 107, 107, 0.15); color: var(--bad); }
+.env .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; }
+.rules-col { overflow-x: auto; }

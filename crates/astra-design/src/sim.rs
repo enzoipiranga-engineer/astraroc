@@ -76,6 +76,15 @@ pub struct SimOutput {
     /// sensores virtuais. Colunas em [`SensorRow`].
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub sensors: Vec<SensorRow>,
+    /// Verdade a 100 Hz de cada peça rastreada (índice da peça).
+    #[serde(skip)]
+    pub truth: Vec<(usize, Vec<SensorRow>)>,
+    /// Ambiente de voo de cada carga útil.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub payloads: Vec<crate::payload::PayloadReport>,
+    /// Avaliação contra as regras de competição escolhidas.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub competition: Option<crate::rules::CompetitionReport>,
 }
 
 /// Verdade na placa: t (s), pressão estática (Pa), temperatura (K), velocidade do ar (m/s),
@@ -358,6 +367,40 @@ pub fn simulate(design: &Design, db: &MaterialDb) -> SimOutput {
     };
     let asm = Assembly::new(design, db);
     let mut out = run(&asm, false).0;
+    out.payloads = crate::payload::environment(&asm, &out);
+    if let Some(set) = &design.competition {
+        let mut summary = crate::checks::validate(design, db, false).summary;
+        summary.apogee = out
+            .bodies
+            .first()
+            .map_or(0.0, |b| b.samples.iter().map(|r| r[1]).fold(0.0, f64::max));
+        summary.rail_exit_speed = out
+            .events
+            .iter()
+            .find(|e| e.kind == "railExit")
+            .map_or(0.0, |e| e.speed);
+        summary.max_mach = out
+            .bodies
+            .first()
+            .map_or(0.0, |b| b.samples.iter().map(|r| r[4]).fold(0.0, f64::max));
+        let pm: Vec<(f64, f64, f64)> = design
+            .payloads
+            .iter()
+            .map(|p| {
+                design
+                    .parts
+                    .iter()
+                    .position(|q| q.id == p.part)
+                    .map_or((0.0, 0.0, 0.0), |i| match design.parts[i].kind {
+                        PartKind::Mass {
+                            length, diameter, ..
+                        } => (asm.props[i].mass, length, diameter),
+                        _ => (asm.props[i].mass, 0.0, 0.0),
+                    })
+            })
+            .collect();
+        out.competition = Some(crate::rules::evaluate(set, design, &out, &summary, &pm));
+    }
     if out.launcher.is_some() {
         let mut plain = design.clone();
         plain.launcher.clear();
@@ -573,6 +616,9 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                 warnings: o.warnings.clone(),
                 launcher: None,
                 sensors: Vec::new(),
+                truth: Vec::new(),
+                payloads: Vec::new(),
+                competition: None,
             };
             out.warnings.push(format!(
                 "O sistema de lançamento ({name}) não liberou o foguete."
@@ -601,6 +647,9 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         warnings: Vec::new(),
         launcher: None,
         sensors: Vec::new(),
+        truth: Vec::new(),
+        payloads: Vec::new(),
+        competition: None,
     };
     if let Some(e) = &asm.motor_error {
         out.warnings.push(format!("Motor: {e}"));
@@ -617,6 +666,15 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         .map(|f| f.board.as_str())
         .and_then(|b| elec.components.iter().find(|c| c.id == b))
         .and_then(|c| asm.design.parts.iter().position(|p| p.id == c.part));
+    // Peças rastreadas a 100 Hz: a placa e as cargas úteis.
+    let mut tracked: Vec<usize> = board_part.into_iter().collect();
+    for pl in &asm.design.payloads {
+        if let Some(i) = asm.design.parts.iter().position(|p| p.id == pl.part) {
+            if !tracked.contains(&i) {
+                tracked.push(i);
+            }
+        }
+    }
 
     // Começa pelo sistema que contém a peça raiz; o que não estiver amarrado a ele
     // nem rigidamente preso já cai como peça solta no lançador (fora do escopo do voo).
@@ -732,7 +790,12 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         let push_samples =
             |out: &mut SimOutput, rows: Vec<Row>| out.bodies[track].samples.extend(rows);
         // Este trecho leva a placa da eletrônica: grava a verdade dos sensores.
-        let carries_board = board_part.is_some_and(|b| members.contains(&b));
+        let here: Vec<usize> = tracked
+            .iter()
+            .copied()
+            .filter(|b| members.contains(b))
+            .collect();
+        let carries_board = !here.is_empty();
         let end_state: State;
         let reason: EndReason;
         let final_nav: Option<Nav>;
@@ -800,7 +863,16 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                                 nav: x.nav,
                             })
                             .collect();
-                        out.sensors.extend(sensor_rows(&planet, &atmosphere, &pts));
+                        let rows = sensor_rows(&planet, &atmosphere, &pts);
+                        for &k in &here {
+                            if Some(k) == board_part {
+                                out.sensors.extend(rows.iter().copied());
+                            }
+                            match out.truth.iter_mut().find(|(p, _)| *p == k) {
+                                Some((_, v)) => v.extend(rows.iter().copied()),
+                                None => out.truth.push((k, rows.clone())),
+                            }
+                        }
                     }
                     let kept = if carries_board {
                         decimate(&res.samples, 5)
@@ -984,7 +1056,16 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                                 nav: x.nav,
                             })
                             .collect();
-                        out.sensors.extend(sensor_rows(&planet, &atmosphere, &pts));
+                        let rows = sensor_rows(&planet, &atmosphere, &pts);
+                        for &k in &here {
+                            if Some(k) == board_part {
+                                out.sensors.extend(rows.iter().copied());
+                            }
+                            match out.truth.iter_mut().find(|(p, _)| *p == k) {
+                                Some((_, v)) => v.extend(rows.iter().copied()),
+                                None => out.truth.push((k, rows.clone())),
+                            }
+                        }
                     }
                     let kept = if carries_board {
                         decimate(&res.samples, 10)

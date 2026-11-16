@@ -14,7 +14,7 @@ export type DeploySpec =
 
 export type PartKind =
   | { type: "noseCone"; shape: NoseShape; length: number; diameter: number; wall: number; shoulderLength: number }
-  | { type: "bodyTube"; length: number; outerDiameter: number; wall: number; ventHoles: number }
+  | { type: "bodyTube"; length: number; outerDiameter: number; wall: number; ventHoles: number; ventDiameter?: number }
   | { type: "transition"; length: number; dFore: number; dAft: number; wall: number }
   | { type: "coupler"; length: number; outerDiameter: number; wall: number }
   | { type: "motorMount"; length: number; outerDiameter: number; wall: number }
@@ -155,6 +155,133 @@ export interface Design {
   zones: Zone[];
   launcher: Launcher[];
   electronics: Electronics;
+  payloads: Payload[];
+  competition?: RuleSet | null;
+}
+
+export type PayloadKind =
+  | { type: "cubeSat"; units: number }
+  | { type: "cubeUnit"; units: number }
+  | { type: "experiment" }
+  | { type: "camera" }
+  | { type: "sensors" }
+  | { type: "capsule" }
+  | { type: "custom" };
+
+/** Requisitos da carga útil (ausente = sem limite). */
+export interface Requirements {
+  maxAxialG?: number | null;
+  maxLateralG?: number | null;
+  maxShockG?: number | null;
+  minTempC?: number | null;
+  maxTempC?: number | null;
+  maxDpDt?: number | null;
+  maxBayDp?: number | null;
+  maxLandingSpeed?: number | null;
+  maxSplDb?: number | null;
+  qualifiedGrms?: number | null;
+}
+
+export interface Payload {
+  id: string;
+  name: string;
+  kind: PayloadKind;
+  part: string;
+  functional: boolean;
+  requirements: Requirements;
+}
+
+export interface PayloadPreset {
+  id: string;
+  name: string;
+  kind: PayloadKind;
+  mass: number;
+  length: number;
+  width: number;
+  requirements: Requirements;
+  source: string;
+}
+
+export interface EnvCheck {
+  name: string;
+  value: number | null;
+  limit: number | null;
+  unit: string;
+  margin: number | null;
+  pass: boolean | null;
+  note: string;
+}
+
+/** Linha do ambiente: t, g axial, g lateral, T ar (°C), T recuperação (°C), p, dp/dt, ΔP baia, dB. */
+export type EnvRow = [number, number, number, number, number, number, number, number, number];
+
+export interface PayloadReport {
+  id: string;
+  name: string;
+  rows: EnvRow[];
+  checks: EnvCheck[];
+  vent: { volume: number; dpLimit: number; areaRequired: number; diameterFor3: number; areaNow: number };
+  pass: boolean;
+}
+
+export type Metric =
+  | "apogeeAgl"
+  | "apogeeErrorPct"
+  | "railExitSpeed"
+  | "staticMargin"
+  | "thrustToWeight"
+  | "maxMach"
+  | "liftoffMass"
+  | "landingSpeed"
+  | "landingEnergy"
+  | "drift"
+  | "payloadMass"
+  | "payloadCubeForm"
+  | "structureIntact"
+  | "declared";
+
+export interface Rule {
+  id: string;
+  text: string;
+  metric: Metric;
+  op: "atLeast" | "atMost" | "between";
+  min?: number | null;
+  max?: number | null;
+  penalty: number;
+  blocking: boolean;
+  declared: boolean;
+  source: string;
+}
+
+export interface RuleSet {
+  name: string;
+  document: string;
+  targetApogee?: number | null;
+  apogeeScoring?: { points: number; window: number } | null;
+  recoveryPoints?: number | null;
+  podiumFraction?: number | null;
+  rules: Rule[];
+  bonuses: { text: string; points: number; metric?: Metric | null; declared: boolean; source: string }[];
+  judged: [string, number][];
+  pending: string[];
+}
+
+export interface CompetitionReport {
+  name: string;
+  document: string;
+  results: { id: string; text: string; value: number | null; pass: boolean; penalty: number; blocking: boolean; source: string }[];
+  apogee: number;
+  target: number | null;
+  apogeePoints: number | null;
+  recoveryPoints: number | null;
+  bonuses: [string, number][];
+  penalties: number;
+  flightScore: number;
+  flightMax: number;
+  judged: [string, number][];
+  podiumEligible: boolean | null;
+  launchAllowed: boolean;
+  pending: string[];
 }
 
 /** Pino de um componente eletrônico. */
@@ -336,6 +463,8 @@ export interface SimOutput {
   launcher?: LauncherReport | null;
   /** Verdade na placa a 100 Hz (ver `SENSOR`). */
   sensors?: number[][];
+  payloads?: PayloadReport[];
+  competition?: CompetitionReport | null;
 }
 
 /** Colunas de `SimOutput.sensors`. */

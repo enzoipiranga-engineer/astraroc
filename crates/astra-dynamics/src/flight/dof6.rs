@@ -171,7 +171,8 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
         let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y), v3(y, 10), y[13]);
         let qn = q.normalized();
         let air = world.air(t, r, v);
-        let ctx = world.ctx(&air, t, m, ph);
+        let mut ctx = world.ctx(&air, t, m, ph);
+        ctx.attitude = Some(qn);
         let loads = cfg.vehicle.loads(&ctx, qn.conj().rotate(air.v_rel), w);
         let a_free = world.planet.gravity(r) + qn.rotate(loads.force_body) / m;
         let (a, wdot) = if ph.on_rail {
@@ -211,7 +212,8 @@ pub fn simulate6(cfg: &Config6<'_>) -> Result<Result6, OdeError> {
     let margin = |ph: &Phase, t: f64, y: &[f64; 14], i: usize| -> f64 {
         let (r, v, q, w, m) = (v3(y, 0), v3(y, 3), quat(y).normalized(), v3(y, 10), y[13]);
         let air = world.air(t, r, v);
-        let ctx = world.ctx(&air, t, m, ph);
+        let mut ctx = world.ctx(&air, t, m, ph);
+        ctx.attitude = Some(q);
         cfg.vehicle.margin(&ctx, q.conj().rotate(air.v_rel), w, i)
     };
     let n_margins = cfg.vehicle.margin_count();

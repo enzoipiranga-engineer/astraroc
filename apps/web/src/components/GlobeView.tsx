@@ -265,11 +265,12 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
         const dist = Math.hypot(b.landing[2], b.landing[3]);
         const brg = ((Math.atan2(b.landing[3], b.landing[2]) * 180) / Math.PI + 360) % 360;
         const names = ["norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste"];
+        const dtxt = dist >= 10_000 ? `${fmt(dist / 1000, 0)} km` : `${fmt(dist, 0)} m`;
         viewer.entities.add({
           position: pos(last[SAMPLE.lat]!, last[SAMPLE.lon]!, 0.5),
           point: { pixelSize: 10, color, outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
-          label: { text: `${b.name}: ${fmt(dist, 0)} m a ${names[Math.round(brg / 45) % 8]}`, font: "12px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, 20), showBackground: true },
-          description: `${b.name} cai a ${fmt(dist, 0)} m a ${names[Math.round(brg / 45) % 8]} (${fmt(brg, 0)}°), a ${fmt(b.landing[1], 1)} m/s. ${b.fate}`,
+          label: { text: `${b.name}: ${dtxt} a ${names[Math.round(brg / 45) % 8]}`, font: "12px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, 20), showBackground: true },
+          description: `${b.name} cai a ${dtxt} a ${names[Math.round(brg / 45) % 8]} (${fmt(brg, 0)}°), a ${fmt(b.landing[1], 1)} m/s. ${b.fate}`,
         });
       }
     });

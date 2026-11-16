@@ -135,6 +135,10 @@ pub struct FlightCtx<'a> {
     /// Instante em que cada gatilho disparou (`None` enquanto não disparou), na ordem
     /// de [`Sequencer::triggers`].
     pub fired: &'a [Option<f64>],
+    /// Vertical local (geodésica) em coordenadas inerciais.
+    pub up: Vec3,
+    /// Atitude (corpo → inercial), disponível no 6-DOF.
+    pub attitude: Option<astra_math::Quat>,
 }
 
 /// Linha do tempo do veículo: instantes e condições em que as forças mudam de regime.
@@ -262,6 +266,8 @@ impl World {
             on_rail: ph.on_rail,
             burning: ph.burning,
             fired: &ph.fired,
+            up: air.up,
+            attitude: None,
         }
     }
 

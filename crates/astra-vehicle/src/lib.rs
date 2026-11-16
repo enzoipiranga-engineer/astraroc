@@ -5,7 +5,9 @@ mod recovery;
 mod rocket;
 mod summary;
 pub mod templates;
+mod tvc;
 
 pub use recovery::{Parachute, Reef};
 pub use rocket::{DragModel, Rocket};
 pub use summary::{optimal_water_volume, FlightSummary};
+pub use tvc::{Gyro, Tvc, TvcRocket};

@@ -2,11 +2,17 @@
 //! propelente no tempo, que o voo consome. Os modelos (curva de arquivo, balística
 //! interna de grão BATES, foguete de água) só diferem em como geram essa tabela.
 
+mod hybrid;
+mod liquid;
 mod motor;
 mod nozzle;
 mod solid;
 mod water;
 
+pub use hybrid::{HybridBurn, HybridMotor};
+pub use liquid::{
+    engine_library, ideal_performance, IdealPerformance, LiquidEngine, PROPELLANT_TABLE,
+};
 pub use motor::{parse_eng, parse_rse, Motor, MotorPoint};
 pub use nozzle::{exit_pressure_ratio, thrust_coefficient};
 pub use solid::{BatesMotor, BurnRateRange, Propellant, SolidBurn};

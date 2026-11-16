@@ -72,6 +72,16 @@
 | Projeto com vento, rajadas e data: deriva para o lado certo, latitude/longitude/eixo nas amostras, zona proibida acusada, voo determinístico | Consistência | — | Passa |
 | Conversão da resposta da Open-Meteo (hora certa, níveis abaixo do solo descartados), CSV de vento, GPX/KML/CSV de GPS | Vitest | — | Passa |
 | Globo 3D no navegador: HUD, reprodução, sete câmeras, clique no gráfico leva o tempo, mapa de recuperação | Playwright (manual, SwiftShader) | — | Passa |
+| Motor de catálogo: empuxo ao nível do mar e Isp voltam ao dado | Catálogo | 1e-6 N | Passa |
+| c* ideal à mão (γ = 1,2, Tc = 3000 K, M = 20) | Fórmula | 0,5 m/s | Passa |
+| Híbrido: crescimento do canal com n = 0,5 (solução fechada), conservação de massa, O/F | Solução fechada | 1e-9 m | Passa |
+| Elementos orbitais (exemplo 2-5 do Vallado) e órbita circular | Vallado | 1e-4 relativo | Passa |
+| Δv ideal de Tsiolkovsky por estágio (Falcon 9) | Cálculo à mão | 1e-6 m/s | Passa |
+| Orçamento de Δv fecha; inclinação ≈ latitude no lançamento para leste | Identidade | 1% | Passa |
+| Falha de 1 motor aos 30 s: Falcon 9 ainda chega à órbita, com queima mais longa | Física esperada | — | Passa |
+| Boosters separam antes do núcleo e caem; max-Q dentro do limite | Física esperada | 15% | Passa |
+| Starship com 100 t chega a 200 km (hot staging) | Ordem de grandeza pública | — | Passa |
+| TVC estabiliza foguete sem aletas (α < 5° na queima; sem TVC, > 20°) | Física esperada | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 
@@ -80,4 +90,5 @@
 | Calisto com motor M1670, Spaceport America, trilho de 5,2 m a 85°, Cd de tabela | RocketPy: apogeu da ordem de 3,3 km acima do solo | 3306 m | ~0% | Comparação entre simuladores, não com voo medido. O valor do RocketPy é o lembrado da documentação (não conferido nesta sessão) e usa atmosfera de previsão; aqui, atmosfera padrão sem vento. |
 | Mesmo voo com o Cd analítico do ASTRA no lugar da tabela | Tabela de Cd do Calisto | 3192 m | −3,4% | Mede o erro do modelo de arrasto neste foguete subsônico. |
 | Garrafa PET de 2 L, 0,66 L de água, 4 bar, 150 g vazia | Sem dado medido disponível | 47,5 m | — | **Pendente:** o critério "contra dado medido" não foi cumprido. Faltam voos com altímetro. |
-| OpenRocket, RASAero II, V-2, Falcon 9, Saturn V | — | — | — | Pendentes (Fases 5 e 12). |
+| Falcon 9 descartável: carga máxima a 200 km a partir do Cabo Canaveral | 22,8 t (SpaceX, LEO descartável) | 24,1 t | +5,7% | Massas de estágio aproximadas; a referência da SpaceX usa outra órbita. |
+| OpenRocket, RASAero II, V-2, Saturn V | — | — | — | Pendentes (fase 12). |

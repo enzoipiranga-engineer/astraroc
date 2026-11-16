@@ -1,5 +1,5 @@
 import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, RequestBody } from "./protocol";
-import type { Design, Material, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, SimOutput, TemplateEntry, Validation } from "./types";
 
 /** O mínimo de `Worker` que o cliente usa (permite testar sem navegador). */
 export interface WorkerLike {
@@ -60,6 +60,16 @@ export class CoreClient {
   /** Verifica o projeto; com `withFlight`, inclui as cargas do voo sem falhas. */
   async validate(design: Design, withFlight: boolean): Promise<Validation> {
     return (await this.call({ kind: "validate", design, withFlight })).validation;
+  }
+
+  /** Simula uma missão orbital. */
+  async mission(request: MissionRequest): Promise<MissionOutput> {
+    return (await this.call({ kind: "mission", request })).mission;
+  }
+
+  /** Biblioteca de motores líquidos. */
+  async engines(): Promise<EngineInfo[]> {
+    return (await this.call({ kind: "engines" })).engines;
   }
 
   /** Simula o voo com falhas físicas. */

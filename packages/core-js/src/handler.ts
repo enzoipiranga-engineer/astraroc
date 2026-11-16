@@ -5,13 +5,15 @@
 import {
   coreVersion,
   designTemplates,
+  engineLibrary,
+  simulateMission,
   materialsJson,
   selfCheck,
   simulateDesign,
   validateDesign,
 } from "../wasm/astra_wasm.js";
 import type { CoreRequest, CoreResponse } from "./protocol";
-import type { Material, SimOutput, TemplateEntry, Validation } from "./types";
+import type { EngineInfo, Material, MissionOutput, SimOutput, TemplateEntry, Validation } from "./types";
 
 export function handle(req: CoreRequest): CoreResponse {
   try {
@@ -41,6 +43,10 @@ export function handle(req: CoreRequest): CoreResponse {
           kind: "simulate",
           output: JSON.parse(simulateDesign(JSON.stringify(req.design))) as SimOutput,
         };
+      case "mission":
+        return { id: req.id, ok: true, kind: "mission", mission: JSON.parse(simulateMission(JSON.stringify(req.request))) as MissionOutput };
+      case "engines":
+        return { id: req.id, ok: true, kind: "engines", engines: JSON.parse(engineLibrary()) as EngineInfo[] };
     }
   } catch (e) {
     return { id: req.id, ok: false, error: e instanceof Error ? e.message : String(e) };

@@ -310,6 +310,36 @@ pub fn simulate_design(json: &str) -> Result<String, String> {
     serde_json::to_string(&o).map_err(|e| e.to_string())
 }
 
+/// Simula uma missão orbital (JSON de `astra_mission::MissionRequest`) e devolve o JSON
+/// de `astra_mission::MissionOutput`.
+///
+/// # Errors
+/// Mensagem se o pedido for inválido.
+#[wasm_bindgen(js_name = simulateMission)]
+pub fn simulate_mission(json: &str) -> Result<String, String> {
+    let req: astra_mission::MissionRequest =
+        serde_json::from_str(json).map_err(|e| format!("pedido inválido: {e}"))?;
+    let out = astra_mission::simulate(&req.to_mission()?);
+    serde_json::to_string(&out).map_err(|e| e.to_string())
+}
+
+/// Biblioteca de motores líquidos (JSON).
+#[wasm_bindgen(js_name = engineLibrary)]
+#[must_use]
+pub fn engine_library_json() -> String {
+    let list: Vec<serde_json::Value> = astra_propulsion::engine_library()
+        .iter()
+        .map(|e| {
+            serde_json::json!({
+                "name": e.name, "propellants": e.propellants, "thrustVacKn": e.thrust_vac / 1e3,
+                "thrustSlKn": e.thrust(1.0, 101_325.0) / 1e3, "ispVac": e.isp_vac, "ispSl": e.isp(101_325.0),
+                "massKg": e.mass, "source": e.source, "reliability": e.reliability
+            })
+        })
+        .collect();
+    serde_json::Value::Array(list).to_string()
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

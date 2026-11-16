@@ -9,8 +9,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 2 | Barrowman estendido, Cd(Mach, α, Re), motor sólido (.eng/.rse e grão BATES), foguete de água, paraquedas | Casos de CP da literatura; curva de motor comercial reproduzida; voo de garrafa PET contra dado medido | **Feita, com uma pendência:** falta voo medido de garrafa PET |
 | 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | **Feita** |
 | 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | **Feita** |
-| 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | Próxima |
-| 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | |
+| 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | **Feita** |
+| 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | Próxima |
 | 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | |
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | |
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | |
@@ -71,3 +71,13 @@ Ficam registrados aqui para não virarem promessa falsa:
 - A API de previsão da Open-Meteo não pôde ser chamada desta sessão (limite diário do IP
   compartilhado); a conversão foi testada com uma resposta no formato documentado. A busca
   de locais foi testada de verdade.
+
+## Fase 5: o que ficou para depois
+
+- Equilíbrio químico (NASA CEA) para Isp e razão de mistura ótima: hoje, tabela aproximada.
+- Grãos estrela e finocyl, injetor, bomba e projeto completo de motor no app.
+- Gás frio, RCS, elétrico, nuclear térmico, ramjet/scramjet.
+- PEG completa, reignição e órbitas elípticas alvo (fase 10, com a fase orbital).
+- Editor de estágios na tela (hoje: Falcon 9 e Starship com parâmetros da missão; o núcleo
+  aceita qualquer número de estágios, boosters e grupos de motores).
+- TVC só no núcleo (teste); a tela de TVC entra com a eletrônica (fase 7).

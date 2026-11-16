@@ -56,3 +56,25 @@ describe("projeto pelo worker", () => {
     await expect(client.validate({ version: 1 } as unknown as Design, false)).rejects.toThrow(/projeto inválido/);
   });
 });
+
+describe("missão orbital pelo worker", () => {
+  const client = new CoreClient(fakeWorker());
+  it("Falcon 9 com 10 t chega a 200 km; motores listados", async () => {
+    const o = await client.mission({
+      vehicle: "falcon9",
+      payload: 10_000,
+      targetAltitude: 200_000,
+      azimuthDeg: 90,
+      latDeg: 28.5618,
+      lonDeg: -80.5772,
+      altitude: 3,
+      utc: "2026-09-03T14:00:00Z",
+      recoveryReserve: 0,
+    });
+    expect(o.reachedOrbit).toBe(true);
+    expect(Math.abs(o.orbit!.perigeeAlt - 200_000)).toBeLessThan(15_000);
+    expect(o.bodies.map((b) => b.name)).toContain("1º estágio");
+    const e = await client.engines();
+    expect(e.find((x) => x.name === "Merlin 1D")!.thrustSlKn).toBeCloseTo(845, 0);
+  });
+});

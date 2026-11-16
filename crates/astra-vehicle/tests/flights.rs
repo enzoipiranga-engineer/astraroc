@@ -448,3 +448,78 @@ fn weathercocking_and_parachute_drift() {
     let horizontal = (before.nav.ground_speed.powi(2) - before.nav.vertical_speed.powi(2)).sqrt();
     assert!((horizontal - 6.0).abs() < 0.3, "horizontal {horizontal}");
 }
+
+/// TVC: sem aletas o foguete é instável e capota logo após o trilho; com o motor
+/// vetorado e o controle PD, voa reto enquanto há empuxo, mesmo com giroscópio ruidoso
+/// e com viés.
+#[test]
+fn tvc_stabilizes_a_finless_rocket() {
+    use astra_vehicle::{Gyro, Tvc, TvcRocket};
+    let mut bare = sport_rocket();
+    let mut g = bare.geometry().clone();
+    g.fins.clear();
+    bare = Rocket::new(g, 2.6, 0.72, (0.003, 0.42), bare.motor.clone());
+    assert!(bare.static_margin(0.0, 0.2) < 0.0, "sem aletas é instável");
+    let l = launch(-22.0, -49.0, 470.0, 1.0, 88.0);
+    let burn = bare.motor.burn_time();
+    let alpha_during_burn = |res: &Result6| {
+        res.samples
+            .iter()
+            .filter(|s| s.t > 0.2 && s.t < burn)
+            .map(|s| s.alpha)
+            .fold(0.0, f64::max)
+    };
+    let free = fly6_wind(&bare, l, astra_env::Wind::calm());
+    assert!(
+        alpha_during_burn(&free) > 20.0_f64.to_radians(),
+        "sem controle capota: {:.1}°",
+        alpha_during_burn(&free).to_degrees()
+    );
+    let tvc = TvcRocket {
+        rocket: bare.clone(),
+        tvc: Tvc {
+            max_gimbal: 8.0_f64.to_radians(),
+            omega_n: 8.0,
+            zeta: 0.8,
+            tilt: 0.0,
+            azimuth: 0.0,
+            gyro: Gyro {
+                bias: (0.002, -0.002),
+                noise: 0.01,
+                seed: 3,
+            },
+        },
+    };
+    let cfg = Config6 {
+        planet: Planet::EARTH,
+        atmosphere: ATM,
+        vehicle: &tvc,
+        launch: l,
+        m0: bare.mass(0.0),
+        initial_omega_body: Vec3::ZERO,
+        t_max: 60.0,
+        output_dt: 0.01,
+        ode: Options {
+            rtol: 1e-8,
+            atol: 1e-8,
+            h_max: 0.02,
+            ..Options::default()
+        },
+        wind: astra_env::Wind::calm(),
+        start: None,
+    };
+    let res = simulate6(&cfg).unwrap();
+    let a = alpha_during_burn(&res);
+    println!("TVC: α máximo na queima {:.2}°", a.to_degrees());
+    assert!(
+        a < 5.0_f64.to_radians(),
+        "com TVC voa reto: α {:.2}°",
+        a.to_degrees()
+    );
+    let b = res.samples.iter().find(|s| s.t >= burn - 0.05).unwrap();
+    let up = Planet::enu_basis(l.site.lat, l.site.lon + Planet::EARTH.omega * b.t).2;
+    assert!(
+        b.q.rotate(Vec3::X).dot(up) > 20.0_f64.to_radians().cos(),
+        "eixo perto da vertical no fim da queima"
+    );
+}

@@ -233,3 +233,9 @@ details summary { cursor: pointer; color: var(--muted); margin: 6px 0; }
 .results-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
 .results-head h2 { margin: 0; }
 .gps-import { margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.modes { display: flex; gap: 4px; }
+.modes button { padding: 6px 12px; }
+.orbital { display: flex; flex-direction: column; gap: 12px; }
+.orbital-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 12px; }
+.flight-view.single { grid-template-columns: 1fr; margin-top: 0; }
+td.num { text-align: right; font-family: var(--mono); }

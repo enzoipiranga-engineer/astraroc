@@ -113,7 +113,7 @@ export function RecoveryMap({ design, out, t }: { design: Design; out: SimOutput
           const br = bearingName(n, e);
           return (
             <li key={b.id}>
-              <b>{b.name}</b> cairá a {fmt(Math.hypot(n, e), 0)} m a {br.name} ({fmt(br.deg, 0)}°), a {fmt(v, 1)} m/s.
+              <b>{b.name}</b> cairá a {Math.hypot(n, e) >= 10_000 ? `${fmt(Math.hypot(n, e) / 1000, 0)} km` : `${fmt(Math.hypot(n, e), 0)} m`} a {br.name} ({fmt(br.deg, 0)}°), a {fmt(v, 1)} m/s.
             </li>
           );
         })}

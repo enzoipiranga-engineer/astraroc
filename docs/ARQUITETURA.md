@@ -49,7 +49,7 @@ astra/
 │  ├─ astra-design/      Fase 3   gêmeo digital: peças, materiais, juntas, verificação, falha simulada (feito)
 │  ├─ astra-launch/      Fase 6   contrato LaunchSystem e modos nativos
 │  ├─ astra-avionics/    Fase 7   sensores, circuito, barramentos
-│  ├─ astra-mission/     Fase 5   estágios, guiagem, GNC, sequência de voo
+│  ├─ astra-mission/     Fase 5   lançadores multiestágio, guiagem, órbita, Δv (feito)
 │  ├─ astra-orbit/       Fase 10  2 corpos + J2, Lambert, N-corpos
 │  ├─ astra-analysis/    Fase 11  Monte Carlo, otimizador, calibração
 │  └─ astra-cli/         Fase 1   execução sem UI para benchmarks e validação (feito)

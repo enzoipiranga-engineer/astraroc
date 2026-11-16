@@ -2,6 +2,7 @@ import { CoreClient, type Design, type Material, type SimOutput, type TemplateEn
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
+import { OrbitalView } from "./components/OrbitalView";
 import { PartPanel } from "./components/PartPanel";
 import { Results } from "./components/Results";
 import { RocketView } from "./components/RocketView";
@@ -49,6 +50,7 @@ export function App() {
   const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
   const [picking, setPicking] = useState(false);
   const [gps, setGps] = useState<TrackPoint[]>([]);
+  const [mode, setMode] = useState<"rocket" | "orbital">("rocket");
   const onTime = useCallback((t: number) => setSimTime(t), []);
   const pickAt = useCallback((t: number) => setSeek((s) => ({ t, n: (s?.n ?? 0) + 1 })), []);
   const seq = useRef(0);
@@ -167,6 +169,12 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>ASTRA</h1>
+        <div className="modes" role="tablist">
+          <button role="tab" aria-selected={mode === "rocket"} className={mode === "rocket" ? "on" : ""} onClick={() => setMode("rocket")}>Foguete</button>
+          <button role="tab" aria-selected={mode === "orbital"} className={mode === "orbital" ? "on" : ""} onClick={() => setMode("orbital")}>Lançador orbital</button>
+        </div>
+        {mode === "rocket" && (
+          <>
         <label className="tpl">
           <span>Exemplo</span>
           <select value="" onChange={(e) => { const t = templates.find((x) => x.id === e.target.value); if (t) { change(structuredClone(t.design)); setSelected(null); } }}>
@@ -184,8 +192,14 @@ export function App() {
         <button className="launch" onClick={() => void launch()} disabled={flying}>
           {flying ? "Simulando…" : nErr ? `LANÇAR (${nErr} ${nErr === 1 ? "erro" : "erros"})` : "LANÇAR"}
         </button>
+          </>
+        )}
       </header>
 
+      {mode === "orbital" ? (
+        <OrbitalView core={core} ionToken={ionToken} />
+      ) : (
+        <>
       {s && (
         <div className="stats">
           <span>Massa <b>{fmt(s.liftoffMass * 1000, 0)} g</b></span>
@@ -251,6 +265,9 @@ export function App() {
               : download(`${design.name.replace(/[^\w-]+/g, "_")}.csv`, toCsv(result), "text/csv")
           }
         />
+      )}
+
+        </>
       )}
 
       <footer className="note">

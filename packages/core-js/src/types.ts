@@ -239,3 +239,64 @@ export interface TemplateEntry {
   id: string;
   design: Design;
 }
+
+export interface MissionRequest {
+  vehicle: "falcon9" | "starship";
+  payload: number;
+  targetAltitude: number;
+  azimuthDeg: number;
+  latDeg: number;
+  lonDeg: number;
+  altitude: number;
+  utc?: string | null;
+  engineOut?: { stage: number; after: number; engines: number } | null;
+  kickDeg?: number | null;
+  recoveryReserve: number;
+}
+
+export interface OrbitElements {
+  a: number;
+  e: number;
+  incDeg: number;
+  raanDeg: number;
+  argpDeg: number;
+  nuDeg: number;
+  perigeeAlt: number;
+  apogeeAlt: number;
+  period: number;
+}
+
+export interface DvBudget {
+  ideal: number;
+  delivered: number;
+  pressureLoss: number;
+  gravityLoss: number;
+  dragLoss: number;
+  steeringLoss: number;
+  achieved: number;
+  earthRotation: number;
+}
+
+export interface MissionOutput extends SimOutput {
+  orbit: OrbitElements | null;
+  reachedOrbit: boolean;
+  dv: DvBudget;
+  guidance: [number, number, boolean] | null;
+  liftoffMass: number;
+  maxQ: [number, number];
+  maxAccelG: number;
+  propellantMargin: number;
+  kickDeg: number;
+}
+
+export interface EngineInfo {
+  name: string;
+  propellants: string;
+  thrustVacKn: number;
+  thrustSlKn: number;
+  ispVac: number;
+  ispSl: number;
+  massKg: number;
+  source: string;
+  reliability: string;
+}

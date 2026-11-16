@@ -55,6 +55,17 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 | Turbulência de Dryden por representação espectral (campo congelado fixo à Terra) | `astra-env::Turbulence` | MIL-HDBK-1797; Shinozuka & Deodatis (1991) | Isotrópica, σ e L constantes | Estatística correta em média; forma transversal de Dryden não modelada |
 | Hora sideral média de Greenwich | `astra-env::time::gmst` | Vallado eq. 3-47 (IAU-82) | 1950 a 2100 | < 1e-5° (teste do exemplo 3-5) |
 | Perfil de vento previsto/histórico | `apps/web/src/geo.ts` | Open-Meteo (GFS, ICON, ECMWF) | Grade dos modelos (~10 a 25 km), horário | Típico de previsão: 1 a 3 m/s |
+| Motor líquido por catálogo: F = acel·F_vác − p_a·A_e, A_e de (F_vác − F_nm)/p_nm | `astra-propulsion::LiquidEngine` | Sutton & Biblarz cap. 2 | Escoamento não separado | Igual ao dado de catálogo |
+| Biblioteca de 12 motores reais | `engine_library` | Dados públicos (fabricantes, NASA) | — | Estimado: transcrito de memória, não conferido |
+| Desempenho ideal (c*, C_F, Isp) a partir de Tc, M, γ | `ideal_performance` | Sutton & Biblarz cap. 3 | Escoamento congelado; sem equilíbrio químico | 5 a 10% acima do real |
+| Motor híbrido de canal único, ṙ = a·G^n | `astra-propulsion::HybridMotor` | Marxman et al. (1964); Sutton cap. 16 | c* constante; sem transitórios | ±20%; coeficientes do exemplo estimados |
+| Lançador multiestágio 3-DOF com boosters, carenagem, falha de motor | `astra-mission` | Composição dos modelos acima | Corpo rígido sem atitude | Depende dos dados do veículo |
+| Cd genérico de lançador por Mach | `templates::generic_cd` | Forma de curvas publicadas (Saturn V, Atlas) | Lançador esbelto | ±30% (efeito pequeno no Δv) |
+| Guiagem: vertical, manobra inicial (escolha automática), gravity turn, tangente linear com tiro (Newton) | `astra-mission::simulate` | Bryson & Ho, "Applied Optimal Control" (tangente linear) | Órbita circular alvo | Perda por direção maior que a de uma guiagem ótima |
+| Limites suaves de max-Q e de aceleração | idem | — | — | — |
+| Orçamento de Δv (gravidade, arrasto, direção, contrapressão) | idem | d|v|/dt = (T/m)cosθ + D·v̂/m + g·v̂ | Referencial inercial | Fecha em 1% (trapézios) |
+| Elementos orbitais RV2COE | `astra-mission::elements` | Vallado alg. 9 | Elíptica ou hiperbólica | Arredondamento |
+| TVC: gimbal com controle PD por alocação de polos; giroscópio com viés e ruído de banda limitada | `astra-vehicle::TvcRocket` | Ogata cap. 5; Wie cap. 6 | Ângulos pequenos; atuador ideal | — |
 ## Simplificações em vigor
 
 - **ECI simplificado.** O referencial inercial coincide com o ECEF girado de θ0 + ω·t em z,
@@ -128,3 +139,11 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
   é desenhada pela altura acima do solo. Com terreno, a altura do terreno no local é somada.
 - **Mapa de recuperação no plano tangente** (aproximação equirretangular), com erro
   desprezível a poucos quilômetros do lançador.
+- **Lançadores em 3-DOF:** sem atitude nem flexão; o empuxo segue a guiagem diretamente.
+  Hot staging = ignição do superior no instante da separação, sem sobreposição de empuxo.
+- **Estágios descartados** caem capotando, sem aquecimento de reentrada nem queima de
+  retorno (fase 10).
+- **TVC sem integrador nem dinâmica de atuador** (controle PD; o gimbal responde
+  instantaneamente). A malha só age durante a queima e fora do trilho.
+- **Sem equilíbrio químico (NASA CEA):** Isp de motores customizados vem de Tc, M e γ
+  informados ou da tabela aproximada.

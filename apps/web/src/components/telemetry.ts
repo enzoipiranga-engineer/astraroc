@@ -14,7 +14,8 @@ export function sampleAt(b: BodyTrack, t: number): number[] | null {
   const a = s[lo]!;
   const c = s[hi]!;
   const w = c[0]! > a[0]! ? (t - a[0]!) / (c[0]! - a[0]!) : 0;
-  return a.map((v, i) => v + (c[i]! - v) * w);
+  // Colunas sem valor chegam do JSON como null (NaN no núcleo): continuam NaN.
+  return a.map((v, i) => (v == null || c[i] == null ? NaN : v + (c[i]! - v) * w));
 }
 
 /** Aceleração específica aproximada (g), pela derivada da velocidade em relação ao ar. */

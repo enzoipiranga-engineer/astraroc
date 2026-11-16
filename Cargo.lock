@@ -51,6 +51,18 @@ name = "astra-math"
 version = "0.0.1"
 
 [[package]]
+name = "astra-mission"
+version = "0.0.1"
+dependencies = [
+ "astra-dynamics",
+ "astra-env",
+ "astra-math",
+ "astra-propulsion",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "astra-propulsion"
 version = "0.0.1"
 
@@ -73,6 +85,7 @@ dependencies = [
  "astra-dynamics",
  "astra-env",
  "astra-math",
+ "astra-mission",
  "astra-propulsion",
  "astra-vehicle",
  "serde_json",

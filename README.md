@@ -29,6 +29,10 @@ offline, como aplicativo instalável) e como programa de computador (Tauri).
   Lagrange, reentrada com aquecimento, pouso propulsivo na Lua, Marte e Terra.
 - **Análises:** Monte Carlo em paralelo com elipse de dispersão, sensibilidade, otimizador,
   calibração com telemetria, importação do OpenRocket (.ork).
+- **Modelos prontos:** garrafa PET, kit 18 mm, níveis 1–3, competição (com aviônica e carga
+  útil), Falcon 9, Starship e Saturn V; regras da LASC (RCSM ed. 7) e da SA Cup/IREC.
+- **Exportação:** KML/KMZ, CSV, Tacview, vídeo MP4/WebM/GIF, .eng, planilha e PDF.
+- **Português e inglês**, unidades SI e americanas.
 
 O estado de cada fase e o que ficou para depois estão em [docs/PLANO.md](docs/PLANO.md);
 as simplificações de cada modelo, em [docs/MODELOS.md](docs/MODELOS.md).

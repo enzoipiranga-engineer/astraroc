@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CoreClient, type Design, type Dispersion, type McRun, type McSummary, type SimOutput, type Validation } from "@astra/core-js";
 import { Chart } from "./Chart";
 import { parseTacview } from "../tacview";
+import { locale, translateDocument } from "../i18n";
 
 interface Props {
   design: Design;
@@ -21,7 +22,7 @@ const DISP_FIELDS: { key: keyof Dispersion; label: string; pct: boolean }[] = [
   { key: "elevationDeg", label: "Elevação do trilho (σ, °)", pct: false },
   { key: "azimuthDeg", label: "Azimute do trilho (σ, °)", pct: false },
 ];
-const f = (v: number | null | undefined, d = 0) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }));
+const f = (v: number | null | undefined, d = 0) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : v.toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d }));
 
 export function AnalysisPanel({ design, core, onChange, spawn }: Props) {
   return (
@@ -294,13 +295,15 @@ export function flightReport(design: Design, v: Validation | null, out: SimOutpu
   const charts = [...document.querySelectorAll<HTMLCanvasElement>(".results canvas")].slice(0, 4).map((c) => c.toDataURL("image/png"));
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${e(design.name)} — relatório de voo</title>
 <style>body{font:13px/1.5 system-ui,sans-serif;margin:32px;color:#111}h2{border-bottom:2px solid #f0862e;margin-top:22px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:3px 6px;text-align:left}img{max-width:48%;margin:1%;background:#0b1018}.muted{color:#666}</style></head><body>
-<h1>${e(design.name)}</h1><p class="muted">Relatório de voo simulado — ASTRA, ${new Date().toLocaleString("pt-BR")}. Local ${design.launch.latDeg.toFixed(5)}, ${design.launch.lonDeg.toFixed(5)}.</p>
+<h1>${e(design.name)}</h1><p class="muted">Relatório de voo simulado — ASTRA, ${new Date().toLocaleString(locale())}. Local ${design.launch.latDeg.toFixed(5)}, ${design.launch.lonDeg.toFixed(5)}.</p>
 ${s ? `<h2>Projeto</h2><table><tr><td>Massa na decolagem</td><td>${(s.liftoffMass * 1000).toFixed(0)} g</td></tr><tr><td>Comprimento × diâmetro</td><td>${(s.length * 100).toFixed(1)} × ${(s.diameter * 1000).toFixed(0)} mm</td></tr><tr><td>Margem estática</td><td>${s.staticMargin.toFixed(2)} cal</td></tr><tr><td>Empuxo/peso</td><td>${s.thrustToWeight.toFixed(1)}</td></tr></table>` : ""}
 <h2>Voo</h2><table><tr><th>Corpo</th><th>Modelo</th><th>Destino</th></tr>${out.bodies.map((b) => `<tr><td>${e(b.name)}</td><td>${e(b.models.join(" → "))}</td><td>${e(b.fate)}</td></tr>`).join("")}</table>
 <h2>Acontecimentos</h2><table>${out.events.map((ev) => `<tr><td>${ev.t.toFixed(2)} s</td><td>${e(ev.message)}</td></tr>`).join("")}</table>
 ${charts.length ? `<h2>Gráficos</h2>${charts.map((c) => `<img src="${c}">`).join("")}` : ""}
 ${v?.issues.length ? `<h2>Avisos</h2><ul>${v.issues.map((i) => `<li>${e(i.message)}</li>`).join("")}</ul>` : ""}
 ${out.warnings.length ? `<ul>${out.warnings.map((x) => `<li>${e(x)}</li>`).join("")}</ul>` : ""}
-<script>setTimeout(()=>print(),400)</script></body></html>`);
+</body></html>`);
   w.document.close();
+  translateDocument(w.document);
+  setTimeout(() => w.print(), 400);
 }

@@ -5,8 +5,8 @@ inventado: enquanto o dado não chegar, o recurso correspondente não é impleme
 
 | Item | Fase | Situação (15/11/2026) |
 | --- | --- | --- |
-| Payload do foguete Zyrion | 8 | Busca na web não achou nenhuma menção pública. O editor de carga útil está pronto (fase 8); falta a equipe informar massa, dimensões, CG e requisitos de g, vibração e temperatura para virar preset. |
-| Regras da LASC (categorias, payload, pontuação) | 8 | Recebido o LASC General Rules (LGR), ed. 1, rev. 1, vigente desde 17/03/2026. Ele trata de organização de equipe, inscrição e prêmios, e diz que pontuação e critérios técnicos ficam nos manuais de cada desafio. **Falta o Rocket Challenge Standard Manual (RCSM)** (e o Launch Operations Manual, LOM, para regras de segurança de voo). |
+| Payload do foguete Zyrion | 8 | Busca na web não achou nenhuma menção pública, e o Zyrion não está no Mission Acceptance Announcement da LASC ed. 7. O editor de carga útil está pronto (fase 8); falta a equipe informar massa, dimensões, CG e requisitos de g, vibração e temperatura para virar preset. |
+| Regras da LASC (categorias, payload, pontuação) | 8 | Recebido o LASC General Rules (LGR), ed. 1, rev. 1, vigente desde 17/03/2026. Ele trata de organização de equipe, inscrição e prêmios, e diz que pontuação e critérios técnicos ficam nos manuais de cada desafio. Recebidos depois: Rocket Challenge Standards Manual ed. 7 rev. 1, Satellite e Lander Challenge Standards Manuals, Mission Acceptance Announcement e o mapa do Sugarcane Launch Range; usados nos presets (fase 8). O LOM não é mais citado: as regras de voo estão no RCSM. |
 | Regras da Spaceport America Cup / IREC | 8 | Recebido o Rules & Requirements Document **2024, v1.4** (vigente desde 04/03/2024). Pode haver versão mais nova; confirmar antes da competição. Falta o DTEG (Design, Test & Evaluation Guide), que traz os requisitos técnicos. |
 | Chave do Cesium ion | 4 | O usuário aceitou criar; será pedida na Fase 4. |
 | Repositório GitHub | já | Resolvido: código em enzoipiranga-engineer/astraroc. |

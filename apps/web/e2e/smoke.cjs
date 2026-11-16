@@ -6,7 +6,7 @@ const dir = process.argv[3] || '.';
 (async () => {
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
-  await p.addInitScript(() => localStorage.setItem('astra.tour', '1'));
+  await p.addInitScript(() => { localStorage.setItem('astra.tour', '1'); localStorage.setItem('astra.lang', 'pt'); });
   const errs = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message));
   p.on('console', m => m.type() === 'error' && errs.push('console ' + m.text()));

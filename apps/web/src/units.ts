@@ -3,6 +3,7 @@
  * O projeto guarda tudo em SI; aqui fica só a conversão para exibição.
  */
 import type { JointType, PartType } from "@astra/core-js";
+import { locale } from "./i18n";
 
 export type Unit = "mm" | "m" | "g" | "kg" | "N" | "count" | "ratio" | "bar" | "L" | "s" | "deg" | "kgm" | "brl";
 
@@ -186,4 +187,4 @@ export const jointTypeLabel: Record<JointType, string> = {
 };
 
 export const fmt = (v: number, digits = 1) =>
-  Number.isFinite(v) ? v.toLocaleString("pt-BR", { maximumFractionDigits: digits, minimumFractionDigits: 0 }) : "—";
+  Number.isFinite(v) ? v.toLocaleString(locale(), { maximumFractionDigits: digits, minimumFractionDigits: 0 }) : "—";

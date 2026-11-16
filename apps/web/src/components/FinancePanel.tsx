@@ -22,6 +22,7 @@ import {
 } from "@astra/core-js";
 import { download, fileStem } from "../export";
 import { csvBr, xlsx, type Cell } from "../xlsx";
+import { locale, translateDocument } from "../i18n";
 
 interface Props {
   design: Design;
@@ -32,7 +33,7 @@ interface Props {
   onChange: (d: Design) => void;
 }
 
-const money = (v: number | null | undefined) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+const money = (v: number | null | undefined) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : `R$ ${v.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 const numIn = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
 const KINDS: { id: RevenueKind; label: string }[] = [
   { id: "patrocinio", label: "Patrocínio" },
@@ -246,14 +247,16 @@ function sponsorReport(d: Design, v: Validation | null, lines: BomLine[], b: Ret
   const sponsors = revenues.filter((r) => r.kind === "patrocinio" || r.kind === "parceria");
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${e(d.name)} — relatório financeiro</title>
 <style>body{font:13px/1.5 system-ui,sans-serif;margin:32px;color:#111}h1{margin:0 0 4px}h2{margin-top:24px;border-bottom:2px solid #f0862e}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}td.n{text-align:right}.muted{color:#666}</style></head><body>
-<h1>${e(d.name)}</h1><p class="muted">Relatório gerado pelo ASTRA em ${new Date().toLocaleDateString("pt-BR")}</p>
+<h1>${e(d.name)}</h1><p class="muted">Relatório gerado pelo ASTRA em ${new Date().toLocaleDateString(locale())}</p>
 ${s ? `<h2>O foguete</h2><p>Massa na decolagem ${(s.liftoffMass * 1000).toFixed(0)} g · comprimento ${(s.length * 100).toFixed(0)} cm · apogeu previsto ${s.apogee.toFixed(0)} m · margem estática ${s.staticMargin.toFixed(2)} calibres.</p>` : ""}
 <h2>Orçamento</h2><table><tr><th>Subsistema</th><th class="n">Previsto</th><th class="n">Gasto</th></tr>${b.subsystems.map((x) => `<tr><td>${x.label}</td><td class="n">${money(x.planned)}</td><td class="n">${money(x.actual)}</td></tr>`).join("")}<tr><th>Total</th><th class="n">${money(b.planned)}</th><th class="n">${money(b.actual)}</th></tr></table>
 <h2>Receitas</h2><p>Recebido ${money(b.revenueReceived)} · prometido ${money(b.revenuePromised)} · saldo ${money(b.balance)} · projetado ${money(b.projected)}</p>
 ${sponsors.length ? `<h2>Patrocinadores e parceiros</h2><ul>${sponsors.map((r) => `<li>${e(r.source)}</li>`).join("")}</ul>` : ""}
 <h2>Principais itens</h2><table><tr><th>Item</th><th class="n">Total</th></tr>${[...lines].sort((a, b2) => b2.totalBrl - a.totalBrl).slice(0, 12).map((l) => `<tr><td>${e(l.name)}</td><td class="n">${money(l.totalBrl)}</td></tr>`).join("")}</table>
-<script>setTimeout(()=>print(),300)</script></body></html>`);
+</body></html>`);
   w.document.close();
+  translateDocument(w.document);
+  setTimeout(() => w.print(), 300);
 }
 
 interface Knob {

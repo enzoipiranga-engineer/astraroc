@@ -36,7 +36,10 @@
 - **Exportar / Importar:** projeto em JSON. **OpenRocket:** importa .ork (com avisos do que
   falta). **Link:** copia um endereço com o projeto dentro (nada vai para servidor).
 - Depois do voo: KML (Google Earth), CSV de telemetria, relatório de voo (PDF), motor (.eng).
-- **SI/US** alterna as unidades dos campos.
+- **SI/US** alterna as unidades dos campos; **EN/PT** alterna o idioma (inglês ou português).
+- Depois do voo: **● Gravar vídeo** grava o voo 3D em MP4, WebM ou GIF com o painel de
+  telemetria; **Tacview** exporta um CSV por corpo no formato do Tacview, e CSVs do Tacview
+  (voos reais) podem ser sobrepostos como GPS ou usados na calibração.
 
 ## Offline e computador
 

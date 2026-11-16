@@ -122,6 +122,10 @@
 | Monte Carlo de 120 rodadas no navegador (7 workers) | — | — | 1,5 s |
 | PWA: recarregar sem servidor abre o app e o núcleo verifica o projeto | Playwright | — | Passa |
 | App de computador (Tauri) abre e roda o núcleo | Xvfb, Linux | — | Passa |
+| Pontuação LASC: 350 − 350/(k·alvo)·|alvo − apogeu|, k = 0,71/0,50/0,29, só em ±50 %, negativo vira zero | RCSM ed. 7, apêndice B | 1e-9 | Passa |
+| Modelos de kit 18 mm, nível 1, 2 e 3: sem avisos, apogeu na faixa esperada, pouso < 9 m/s | Consistência | — | Passa |
+| Vídeo MP4, WebM e GIF gravados quadro a quadro com HUD; KMZ; CSV do Tacview lido de volta | Playwright; ffprobe | — | Passa |
+| Interface em inglês: varredura de todos os modos sem texto português restante (fora nomes digitados) | Playwright | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 
@@ -130,5 +134,6 @@
 | Calisto com motor M1670, Spaceport America, trilho de 5,2 m a 85°, Cd de tabela | RocketPy: apogeu da ordem de 3,3 km acima do solo | 3306 m | ~0% | Comparação entre simuladores, não com voo medido. O valor do RocketPy é o lembrado da documentação (não conferido nesta sessão) e usa atmosfera de previsão; aqui, atmosfera padrão sem vento. |
 | Mesmo voo com o Cd analítico do ASTRA no lugar da tabela | Tabela de Cd do Calisto | 3192 m | −3,4% | Mede o erro do modelo de arrasto neste foguete subsônico. |
 | Garrafa PET de 2 L, 0,66 L de água, 4 bar, 150 g vazia | Sem dado medido disponível | 47,5 m | — | **Pendente:** o critério "contra dado medido" não foi cumprido. Faltam voos com altímetro. |
+| Saturn V: massa em órbita de 185 km (carga máxima + S-IVB seco) | ≈ 140 t (NASA, contando o S-IVB e o propelente da injeção lunar) | 112 t | −20 % | Massas de estágio lembradas, não conferidas; guiagem simplificada. |
 | Falcon 9 descartável: carga máxima a 200 km a partir do Cabo Canaveral | 22,8 t (SpaceX, LEO descartável) | 24,1 t | +5,7% | Massas de estágio aproximadas; a referência da SpaceX usa outra órbita. |
 | OpenRocket, RASAero II, V-2, Saturn V | — | — | — | **Pendentes:** sem arquivos do OpenRocket/RASAero nem dados de voo nesta sessão (rede restrita). O critério "±5 % em voos pequenos de referência" depende de voos medidos com altímetro; a calibração da fase 11 permite fazer essa comparação assim que houver dados. |

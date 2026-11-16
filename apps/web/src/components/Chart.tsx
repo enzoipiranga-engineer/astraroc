@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { tr } from "../i18n";
 
 export interface Series {
   label: string;
@@ -34,7 +35,8 @@ export function Chart({ title, unit, series, cursorSync, onPick }: { title: stri
       scales: { x: { time: false } },
       axes: [
         { stroke: "#8296ad", grid: { stroke: "rgba(130,150,173,0.12)" }, label: "t (s)" },
-        { stroke: "#8296ad", grid: { stroke: "rgba(130,150,173,0.12)" }, label: unit, size: 60 },
+        // O rótulo do eixo é desenhado no canvas, fora do alcance da tradução da página.
+        { stroke: "#8296ad", grid: { stroke: "rgba(130,150,173,0.12)" }, label: tr(unit), size: 60 },
       ],
       series: [{ label: "t (s)" }, ...series.map((s) => ({ label: s.label, stroke: s.color, width: 1.6, spanGaps: true }))],
     };

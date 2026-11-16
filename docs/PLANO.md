@@ -172,8 +172,10 @@ Ficam registrados aqui para não virarem promessa falsa:
 
 - **Voos medidos:** nenhum registro de altímetro disponível; o critério de ±5 % não pôde ser
   verificado. Com um CSV de voo, a calibração (fase 11) mostra o erro antes e depois.
-- **Idioma inglês:** a interface está só em português.
-- **Exportação de vídeo (MP4/GIF)** do voo 3D e **KMZ** não implementadas (há KML).
+- **Idioma inglês:** feito depois (botão EN/PT), por tradução da tela com dicionário de ~1400
+  frases e moldes; nomes digitados pelo usuário ficam como estão.
+- **Vídeo (MP4/WebM/GIF), KMZ e CSV do Tacview:** feitos depois.
 - **App de computador:** testado só no Linux; instaladores não gerados.
-- **Templates** de kit Estes, níveis 1/2/3, sondagem, CubeSat launcher e Saturn V: faltam
-  dados de motores e veículos que não puderam ser obtidos (rede restrita).
+- **Templates:** feitos depois o foguete de kit 18 mm, os níveis 1, 2 e 3 e o Saturn V.
+  Os motores C, H e J são curvas de exemplo (não comerciais); o nível 3 usa o Cesaroni
+  M1670 real. Sondagem e lançador de CubeSat seguem pendentes (faltam dados de veículos).

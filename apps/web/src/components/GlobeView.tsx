@@ -4,6 +4,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import { SAMPLE, type Design, type SimOutput, type Validation } from "@astra/core-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { recordFlight, videoFormats, type VideoFormat } from "../video";
+import { tr } from "../i18n";
 import type { TrackPoint } from "../geo";
 import { fmt } from "../units";
 import { accelAt, colorValue, ramp, sampleAt, type ColorBy } from "./telemetry";
@@ -149,7 +150,7 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
     viewer.clock.multiplier = speed;
 
     const pad = pos(l.latDeg, l.lonDeg, 0);
-    viewer.entities.add({ position: pad, point: { pixelSize: 9, color: Cesium.Color.WHITE }, label: { text: "Lançamento", font: "13px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, -18), fillColor: Cesium.Color.WHITE, showBackground: true } });
+    viewer.entities.add({ position: pad, point: { pixelSize: 9, color: Cesium.Color.WHITE }, label: { text: tr("Lançamento"), font: "13px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, -18), fillColor: Cesium.Color.WHITE, showBackground: true } });
     // Trilho.
     const el = Cesium.Math.toRadians(l.railElevationDeg);
     const az = Cesium.Math.toRadians(l.railAzimuthDeg);
@@ -239,7 +240,7 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
         orientation: so,
         cylinder: { length: len, topRadius: rad * 0.4, bottomRadius: rad, material: color },
         point: { pixelSize: 7, color, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(len * 60, Number.MAX_VALUE) },
-        label: { text: b.name, font: "12px Inter, sans-serif", fillColor: color, pixelOffset: new Cesium.Cartesian2(10, -10), horizontalOrigin: Cesium.HorizontalOrigin.LEFT, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(len * 60, Number.MAX_VALUE) },
+        label: { text: tr(b.name), font: "12px Inter, sans-serif", fillColor: color, pixelOffset: new Cesium.Cartesian2(10, -10), horizontalOrigin: Cesium.HorizontalOrigin.LEFT, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(len * 60, Number.MAX_VALUE) },
         description: `${b.name}: ${b.fate}`,
       });
       // Pluma enquanto queima (só o corpo com motor).
@@ -272,7 +273,7 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
         viewer.entities.add({
           position: pos(last[SAMPLE.lat]!, last[SAMPLE.lon]!, 0.5),
           point: { pixelSize: 10, color, outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
-          label: { text: `${b.name}: ${dtxt} a ${names[Math.round(brg / 45) % 8]}`, font: "12px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, 20), showBackground: true },
+          label: { text: `${tr(b.name)}: ${dtxt} ${tr("a")} ${tr(names[Math.round(brg / 45) % 8]!)}`, font: "12px Inter, sans-serif", pixelOffset: new Cesium.Cartesian2(0, 20), showBackground: true },
           description: `${b.name} cai a ${dtxt} a ${names[Math.round(brg / 45) % 8]} (${fmt(brg, 0)}°), a ${fmt(b.landing[1], 1)} m/s. ${b.fate}`,
         });
       }

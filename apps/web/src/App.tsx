@@ -24,6 +24,7 @@ import { parseTrack, type TrackPoint } from "./geo";
 import { commit, historyOf, loadSaved, redo, save, undo, type History } from "./state";
 import { fmt, setUnitSystem, unitSystem, type UnitSystem } from "./units";
 import { designFromHash, encodeDesign } from "./share";
+import { currentLang, setLang, type Lang } from "./i18n";
 
 const GlobeView = lazy(() => import("./components/GlobeView").then((m) => ({ default: m.GlobeView })));
 
@@ -74,6 +75,7 @@ export function App() {
   const [elecLib, setElecLib] = useState<ElecComponent[]>([]);
   const [example, setExample] = useState<ExampleFirmware | null>(null);
   const [units, setUnits] = useState<UnitSystem>(unitSystem());
+  const [lang, setLangState] = useState<Lang>(currentLang());
   const [tour, setTour] = useState<number | null>(() => {
     try {
       return localStorage.getItem("astra.tour") ? null : 0;
@@ -265,6 +267,18 @@ export function App() {
           <button role="tab" aria-selected={mode === "orbital"} className={mode === "orbital" ? "on" : ""} onClick={() => setMode("orbital")}>Lançador orbital</button>
           <button role="tab" aria-selected={mode === "space"} className={mode === "space" ? "on" : ""} onClick={() => setMode("space")}>Espaço</button>
         </div>
+          <button
+            className="lang"
+            data-no-translate
+            title={lang === "pt" ? "Switch to English" : "Mudar para português"}
+            onClick={() => {
+              const next: Lang = lang === "pt" ? "en" : "pt";
+              setLang(next);
+              setLangState(next);
+            }}
+          >
+            {lang === "pt" ? "EN" : "PT"}
+          </button>
         {mode === "rocket" && (
           <>
         <label className="tpl">
@@ -282,6 +296,7 @@ export function App() {
           <label className="button">Importar<input type="file" accept=".json" hidden onChange={(e) => void importJson(e.target.files?.[0])} /></label>
           <button onClick={() => void shareLink()} title="Copia um link com o projeto">Link</button>
           <button onClick={toggleUnits} title="Unidades dos campos">{units === "si" ? "SI" : "US"}</button>
+
           <label className="button" title="Projeto do OpenRocket">OpenRocket<input type="file" accept=".ork,.xml" hidden onChange={(e) => void importOrk(e.target.files?.[0])} /></label>
         </div>
         <button className="launch" onClick={() => void launch()} disabled={flying}>

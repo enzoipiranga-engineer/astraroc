@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CoreClient } from "@astra/core-js";
 import { Chart } from "./Chart";
+import { locale } from "../i18n";
 
 type Tool = "maneuver" | "interplanetary" | "lambert" | "lagrange" | "entry" | "landing";
 const TOOLS: { id: Tool; label: string }[] = [
@@ -19,9 +20,9 @@ interface BodyInfo {
   soi: number | null;
 }
 
-const f = (v: number, d = 0) => (Number.isFinite(v) ? v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—");
+const f = (v: number, d = 0) => (Number.isFinite(v) ? v.toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d }) : "—");
 const J2000 = Date.UTC(2000, 0, 1, 12);
-const toDate = (s: number) => new Date(J2000 + s * 1000).toLocaleDateString("pt-BR", { year: "numeric", month: "short", day: "numeric" });
+const toDate = (s: number) => new Date(J2000 + s * 1000).toLocaleDateString(locale(), { year: "numeric", month: "short", day: "numeric" });
 
 /** Campo numérico simples (valor na unidade mostrada). */
 function N({ label, value, onChange, step }: { label: string; value: number; onChange: (v: number) => void; step?: number }) {

@@ -72,7 +72,6 @@ dependencies = [
  "astra-math",
  "astra-propulsion",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -86,7 +85,6 @@ dependencies = [
  "astra-env",
  "astra-math",
  "serde",
- "serde_json",
 ]
 
 [[package]]

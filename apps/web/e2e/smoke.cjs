@@ -6,6 +6,7 @@ const dir = process.argv[3] || '.';
 (async () => {
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  await p.addInitScript(() => localStorage.setItem('astra.tour', '1'));
   const errs = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message));
   p.on('console', m => m.type() === 'error' && errs.push('console ' + m.text()));
@@ -21,14 +22,14 @@ const dir = process.argv[3] || '.';
   await p.waitForTimeout(300);
   await p.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 15000 });
   console.log('issues sem junta:', (await p.locator('.issues').innerText()).slice(0, 600));
-  await p.locator('button.launch').click();
+  await p.locator('header button.launch').click();
   await p.waitForSelector('.results', { timeout: 20000 });
   console.log('resultado:', (await p.locator('.results').innerText()).slice(0, 1200));
   await p.screenshot({ path: dir + '/2-coifa-solta.png', fullPage: true });
   // Exemplo de competição.
   await p.selectOption('.tpl select', 'competicao-500m');
   await p.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 15000 });
-  await p.locator('button.launch').click();
+  await p.locator('header button.launch').click();
   await p.waitForSelector('.results', { timeout: 20000 });
   console.log('competição:', (await p.locator('.results .cards').innerText()).replace(/\n/g, ' | '));
   await p.screenshot({ path: dir + '/3-competicao.png', fullPage: true });

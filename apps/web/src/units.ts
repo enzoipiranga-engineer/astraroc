@@ -38,8 +38,40 @@ export const unitLabel: Record<Unit, string> = {
   brl: "R$",
 };
 
-export const toDisplay = (si: number, u: Unit) => si * factor[u];
-export const fromDisplay = (v: number, u: Unit) => v / factor[u];
+/** Sistema de unidades da exibição (o projeto guarda sempre SI). */
+export type UnitSystem = "si" | "imperial";
+const SYSTEM_KEY = "astra.units";
+let system: UnitSystem = (() => {
+  try {
+    return localStorage.getItem(SYSTEM_KEY) === "imperial" ? "imperial" : "si";
+  } catch {
+    return "si";
+  }
+})();
+export const unitSystem = () => system;
+export function setUnitSystem(s: UnitSystem) {
+  system = s;
+  try {
+    localStorage.setItem(SYSTEM_KEY, s);
+  } catch {
+    /* sem armazenamento: vale só nesta sessão */
+  }
+}
+
+/** Fatores imperiais a partir do SI (NIST SP 811, apêndice B). */
+const imperial: Partial<Record<Unit, [number, string]>> = {
+  mm: [1 / 0.0254, "in"],
+  m: [1 / 0.3048, "ft"],
+  g: [1 / 0.028_349_523_125, "oz"],
+  kg: [1 / 0.453_592_37, "lb"],
+  N: [1 / 4.448_221_615_260_5, "lbf"],
+  bar: [1 / 6_894.757_293_168, "psi"],
+  kgm: [0.3048 / 0.453_592_37, "lb/ft"],
+};
+
+export const toDisplay = (si: number, u: Unit) => si * (system === "imperial" && imperial[u] ? imperial[u]![0] : factor[u]);
+export const fromDisplay = (v: number, u: Unit) => v / (system === "imperial" && imperial[u] ? imperial[u]![0] : factor[u]);
+export const labelOf = (u: Unit) => (system === "imperial" && imperial[u] ? imperial[u]![1] : unitLabel[u]);
 
 export interface FieldSpec {
   key: string;

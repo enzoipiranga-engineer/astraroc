@@ -16,7 +16,7 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | **Feita** |
 | 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | **Feita** |
 | 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | **Feita, com uma pendência:** importação testada com arquivo escrito à mão no formato do OpenRocket; falta conferir com .ork exportado pelo programa |
-| 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | Próxima |
+| 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | **Feita, com pendência:** PWA offline, app de computador, desempenho, link compartilhável, unidades imperiais, tutorial e documentação prontos; a comparação com voos medidos espera dados |
 
 ## Fase 1 em detalhe (concluída)
 
@@ -167,3 +167,13 @@ Ficam registrados aqui para não virarem promessa falsa:
   estágios fica para depois.
 - **Calibração:** ajusta Cd (e impulso) pela altura; não usa acelerômetro nem GPS.
 - **Relatório PDF:** página pronta para imprimir (o navegador gera o PDF).
+
+## Fase 12: o que ficou para depois
+
+- **Voos medidos:** nenhum registro de altímetro disponível; o critério de ±5 % não pôde ser
+  verificado. Com um CSV de voo, a calibração (fase 11) mostra o erro antes e depois.
+- **Idioma inglês:** a interface está só em português.
+- **Exportação de vídeo (MP4/GIF)** do voo 3D e **KMZ** não implementadas (há KML).
+- **App de computador:** testado só no Linux; instaladores não gerados.
+- **Templates** de kit Estes, níveis 1/2/3, sondagem, CubeSat launcher e Saturn V: faltam
+  dados de motores e veículos que não puderam ser obtidos (rede restrita).

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fromDisplay, toDisplay, unitLabel, type Unit } from "../units";
+import { fromDisplay, labelOf, toDisplay, type Unit } from "../units";
 
 interface NumProps {
   label: string;
@@ -27,7 +27,7 @@ export function NumberField({ label, value, unit, help, optional, placeholder, o
     <label className="field" title={help}>
       <span>
         {label}
-        {unitLabel[unit] && <em> ({unitLabel[unit]})</em>}
+        {labelOf(unit) && <em> ({labelOf(unit)})</em>}
       </span>
       <input
         inputMode="decimal"

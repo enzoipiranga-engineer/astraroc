@@ -95,6 +95,33 @@
 | Lançamento aéreo do foguete de competição: parte do estado do avião, ignição após a queda livre, apogeu muito maior | Integração | — | Passa |
 | Plataforma giratória forte demais: alerta estrutural e foguete sai girando (capota) | Consequência física | — | Passa |
 | Carrinho em rampa na interface: 535 → 902 m, 74 g (limite 91 g), balanço 3e-13 | Playwright | — | Passa |
+| Elétrica: e-match direto no pino, brownout com bateria 9 V, BMP280 de 3,6 V no 5 V, endereço I2C repetido, GND solto, bateria descarregada | Regras elétricas; I = V/(R_em + R_int + R_ds) à mão (4,39 A) | 0,02 A | Passa |
+| Verdade dos sensores a 100 Hz: força específica na ignição > 1 g, arrasto no voo livre, pressão cai | Física esperada | — | Passa |
+| BMP280 virtual: exemplo do datasheet (adc_T 519888 → 25,08 °C; adc_P 415148 → 100653 Pa) e inversão | Bosch BST-BMP280-DS001 §8 | 0,5 Pa | Passa |
+| MPU-6050: escala e saturação; NMEA GGA com soma; HEX com soma de verificação | Datasheets; NMEA 0183 | Exato | Passa |
+| Firmware de exemplo (avr-gcc) no ATmega328P emulado: detecta decolagem e apogeu, aciona D3, paraquedas abre; altitude registrada = fórmula hipsométrica da pressão verdadeira | Física + datasheet | 1,5 m | Passa (dispara 0,9 s após o apogeu) |
+| Bateria 9 V: o disparo reinicia a placa; baia sem respiro: o firmware não vê a subida | Consequência física | — | Passa |
+| Ambiente da carga útil: g axial, queda de temperatura 6,5 °C/km, ΔP na baia com furo de 3 mm, furo necessário, choque de abertura, pouso | Física esperada | 1 °C | Passa |
+| Baia selada guarda a pressão do solo (≈ 5 kPa a 450 m) | Atmosfera padrão | — | Passa |
+| Pontuação IREC: 350 − 350/(0,3·alvo)·|alvo − apogeu|, zero fora de ±30 %, penalidades do payload | SA Cup IREC 2024 v1.4 §2.7.1 | 1e-9 | Passa |
+| BOM: conversão de moeda, frete, impostos, estimativa pelo material; orçamento, teto, saldo, custo por voo; Pareto | Cálculo à mão | 1e-9 | Passa |
+| Planilha .xlsx lida pelo openpyxl (3 abas) | Leitor independente | — | Passa |
+| Kepler: elementos ida e volta; órbita fecha em um período; energia na hipérbole | Curtis | 1e-3 m; 1e-9 | Passa |
+| Hohmann LEO 300 km → GEO | 3,89 km/s, 5,27 h (Curtis) | 10 m/s; 0,05 h | Passa |
+| Bi-elíptica vence Hohmann para r2/r1 = 20 e perde para 2 | Curtis §6.3 | — | Passa |
+| Lambert | Exemplo 5.2 do Curtis | 1 m/s | Passa |
+| Terra → Marte: v∞ 2,94/2,65 km/s, 259 dias, fase 44°, sinódico 780 dias; janelas 2020, 2022, 2024 e 2026 | Curtis ex. 8.4; janelas reais | 40 m/s; 75 dias | Passa |
+| Lagrange Terra-Lua: L1 a 326 400 km, L2 a 448 900 km, L4 equilátero | Valores conhecidos | 1500 km | Passa |
+| Entrada balística em Marte | Allen-Eggers | 8 % | Passa |
+| Retorno lunar com rolamento de 45°: 7,7 g, tranco do paraquedas, v terminal 15 m/s; entrada rasa ricocheteia | Física esperada; √(2mg/(ρCdS)) | 1,5 m/s | Passa |
+| Pouso vertical na Lua: altitude de ignição ≈ v²/(2(T/m − g)); descida da órbita lunar (Δv 1,86 km/s); Marte com arrasto | Fórmula; Apollo ≈ 2 km/s | 2 %–20 % | Passa |
+| Monte Carlo: pedaços em paralelo = rodada única; média perto do nominal; > 85 % dos pousos dentro da elipse de 95 % | Determinismo; estatística | 5 % | Passa |
+| Calibração recupera Cd × 1,25 de telemetria sintética; otimizador acerta 480 m | Ida e volta | 3 %; 0,5 % | Passa |
+| Importação .ork (arquivo escrito à mão no formato do OpenRocket): geometria, raios "auto", posições, materiais, avisos | Cálculo à mão | 1e-12 m | Passa |
+| Desempenho: voo completo dos exemplos pequenos | Meta do projeto: < 1 s | — | Passa (≈ 0,1 s cada) |
+| Monte Carlo de 120 rodadas no navegador (7 workers) | — | — | 1,5 s |
+| PWA: recarregar sem servidor abre o app e o núcleo verifica o projeto | Playwright | — | Passa |
+| App de computador (Tauri) abre e roda o núcleo | Xvfb, Linux | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 
@@ -104,4 +131,4 @@
 | Mesmo voo com o Cd analítico do ASTRA no lugar da tabela | Tabela de Cd do Calisto | 3192 m | −3,4% | Mede o erro do modelo de arrasto neste foguete subsônico. |
 | Garrafa PET de 2 L, 0,66 L de água, 4 bar, 150 g vazia | Sem dado medido disponível | 47,5 m | — | **Pendente:** o critério "contra dado medido" não foi cumprido. Faltam voos com altímetro. |
 | Falcon 9 descartável: carga máxima a 200 km a partir do Cabo Canaveral | 22,8 t (SpaceX, LEO descartável) | 24,1 t | +5,7% | Massas de estágio aproximadas; a referência da SpaceX usa outra órbita. |
-| OpenRocket, RASAero II, V-2, Saturn V | — | — | — | Pendentes (fase 12). |
+| OpenRocket, RASAero II, V-2, Saturn V | — | — | — | **Pendentes:** sem arquivos do OpenRocket/RASAero nem dados de voo nesta sessão (rede restrita). O critério "±5 % em voos pequenos de referência" depende de voos medidos com altímetro; a calibração da fase 11 permite fazer essa comparação assim que houver dados. |

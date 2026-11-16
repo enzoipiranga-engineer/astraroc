@@ -1,0 +1,9 @@
+{
+  "name": "@astra/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ASTRA como aplicativo de computador (Tauri 2).",
+  "scripts": {
+    "build:check": "cargo build --manifest-path src-tauri/Cargo.toml --release"
+  }
+}

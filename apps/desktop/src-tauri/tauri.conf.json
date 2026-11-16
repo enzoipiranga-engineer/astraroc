@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ASTRA",
+  "version": "0.1.0",
+  "identifier": "io.github.astraroc.astra",
+  "build": {
+    "frontendDist": "../../web/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm --filter @astra/web dev",
+    "beforeBuildCommand": "pnpm --filter @astra/web build"
+  },
+  "app": {
+    "windows": [{ "title": "ASTRA — simulador de foguetes", "width": 1440, "height": 920, "minWidth": 900, "minHeight": 600 }],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "msi", "dmg"],
+    "icon": ["icons/icon.png"],
+    "category": "Education",
+    "shortDescription": "Simulador de foguetes, da garrafa PET à órbita",
+    "longDescription": "ASTRA simula foguetes com física real: projeto peça por peça, falhas estruturais, eletrônica emulada, Monte Carlo, órbitas e reentrada."
+  }
+}

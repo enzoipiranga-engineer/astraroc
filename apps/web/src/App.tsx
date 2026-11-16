@@ -21,7 +21,8 @@ import { WindPanel } from "./components/WindPanel";
 import { download, fileStem, toCsv, toKml } from "./export";
 import { parseTrack, type TrackPoint } from "./geo";
 import { commit, historyOf, loadSaved, redo, save, undo, type History } from "./state";
-import { fmt } from "./units";
+import { fmt, setUnitSystem, unitSystem, type UnitSystem } from "./units";
+import { designFromHash, encodeDesign } from "./share";
 
 const GlobeView = lazy(() => import("./components/GlobeView").then((m) => ({ default: m.GlobeView })));
 
@@ -71,6 +72,14 @@ export function App() {
   const [mode, setMode] = useState<"rocket" | "orbital" | "space">("rocket");
   const [elecLib, setElecLib] = useState<ElecComponent[]>([]);
   const [example, setExample] = useState<ExampleFirmware | null>(null);
+  const [units, setUnits] = useState<UnitSystem>(unitSystem());
+  const [tour, setTour] = useState<number | null>(() => {
+    try {
+      return localStorage.getItem("astra.tour") ? null : 0;
+    } catch {
+      return null;
+    }
+  });
   const [payloadPresets, setPayloadPresets] = useState<PayloadPreset[]>([]);
   const [rulePresets, setRulePresets] = useState<[string, RuleSet][]>([]);
   const onTime = useCallback((t: number) => setSimTime(t), []);
@@ -91,7 +100,9 @@ export function App() {
         setTemplates(t);
         setMaterials(m);
         setVersion(info.version);
-        const saved = loadSaved();
+        const shared = designFromHash(location.hash);
+        if (shared) history.replaceState(null, "", location.pathname + location.search);
+        const saved = shared ?? loadSaved();
         // Projetos salvos por versões anteriores podem não ter os campos novos.
         setHist(historyOf(saved ? { ...t[0]!.design, ...saved, zones: saved.zones ?? [], launcher: saved.launcher ?? [], electronics: saved.electronics ?? t[0]!.design.electronics, payloads: saved.payloads ?? [], launch: { ...t[0]!.design.launch, ...saved.launch, wind: saved.launch?.wind ?? { layers: [] } } } : t[0]!.design));
         setBoot({ status: "ready" });
@@ -185,6 +196,22 @@ export function App() {
     a.click();
     URL.revokeObjectURL(url);
   };
+  const shareLink = async () => {
+    if (!design) return;
+    const url = `${location.origin}${location.pathname}#p=${encodeDesign(design)}`;
+    if (url.length > 60_000) alert(`O link ficou com ${Math.round(url.length / 1000)} mil caracteres (firmware ou muitas peças); alguns aplicativos cortam links longos. Prefira Exportar.`);
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link copiado. Quem abrir verá este projeto (ele vai no próprio endereço, sem servidor).");
+    } catch {
+      prompt("Copie o link:", url);
+    }
+  };
+  const toggleUnits = () => {
+    const next: UnitSystem = units === "si" ? "imperial" : "si";
+    setUnitSystem(next);
+    setUnits(next);
+  };
   const importOrk = async (f: File | undefined) => {
     if (!f) return;
     try {
@@ -252,6 +279,8 @@ export function App() {
           <button onClick={() => setHist(redo(hist))} disabled={!hist.future.length} title="Ctrl+Y">Refazer</button>
           <button onClick={exportJson}>Exportar</button>
           <label className="button">Importar<input type="file" accept=".json" hidden onChange={(e) => void importJson(e.target.files?.[0])} /></label>
+          <button onClick={() => void shareLink()} title="Copia um link com o projeto">Link</button>
+          <button onClick={toggleUnits} title="Unidades dos campos">{units === "si" ? "SI" : "US"}</button>
           <label className="button" title="Projeto do OpenRocket">OpenRocket<input type="file" accept=".ork,.xml" hidden onChange={(e) => void importOrk(e.target.files?.[0])} /></label>
         </div>
         <button className="launch" onClick={() => void launch()} disabled={flying}>
@@ -346,9 +375,44 @@ export function App() {
         </>
       )}
 
+      {tour !== null && <Tour step={tour} onStep={setTour} />}
       <footer className="note">
         ASTRA {version} · ferramenta de estudo e projeto. Não substitui análise de segurança, autorização de espaço aéreo nem as normas de lançamento locais.
       </footer>
+    </div>
+  );
+}
+
+const TOUR = [
+  { title: "Bem-vindo ao ASTRA", text: "Um simulador de foguetes com física real: cada peça tem material, massa e resistência, e as falhas são simuladas, não só avisadas." },
+  { title: "1. Escolha um exemplo", text: "No topo, \"abrir exemplo\" carrega um foguete pronto: garrafa PET, competição de 500 m, com aviônica ou com carga útil." },
+  { title: "2. Ajuste o projeto", text: "Clique numa peça no desenho ou na lista para mudar medidas e material. A verificação física à direita atualiza na hora, com sugestões de correção." },
+  { title: "3. Lance", text: "LANÇAR simula o voo e abre o globo 3D, os gráficos e o mapa de recuperação. Os modos Lançador orbital e Espaço cobrem foguetes grandes, órbitas e pousos." },
+  { title: "4. Vá além", text: "Mais abaixo: Monte Carlo, otimizador, finanças, carga útil e regras de competição, e eletrônica com Arduino emulado." },
+];
+
+function Tour({ step, onStep }: { step: number; onStep: (s: number | null) => void }) {
+  const done = () => {
+    try {
+      localStorage.setItem("astra.tour", "1");
+    } catch {
+      /* sem armazenamento */
+    }
+    onStep(null);
+  };
+  const s = TOUR[step]!;
+  return (
+    <div className="tour" role="dialog" aria-label="Tutorial">
+      <div className="tour-card">
+        <h3>{s.title}</h3>
+        <p>{s.text}</p>
+        <div className="row-buttons">
+          <button onClick={done}>Pular</button>
+          {step > 0 && <button onClick={() => onStep(step - 1)}>Voltar</button>}
+          {step < TOUR.length - 1 ? <button className="launch small" onClick={() => onStep(step + 1)}>Próximo</button> : <button className="launch small" onClick={done}>Começar</button>}
+        </div>
+        <small>{step + 1} / {TOUR.length}</small>
+      </div>
     </div>
   );
 }

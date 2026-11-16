@@ -1,0 +1,12 @@
+{
+  "name": "ASTRA — simulador de foguetes",
+  "short_name": "ASTRA",
+  "description": "Simulador de foguetes com física real, da garrafa PET à órbita.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1018",
+  "theme_color": "#0b1018",
+  "icons": [{ "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }]
+}

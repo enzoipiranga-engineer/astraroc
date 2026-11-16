@@ -10,6 +10,7 @@
     "typecheck": "pnpm -r typecheck",
     "test:core": "cargo test --workspace",
     "test:js": "pnpm build:wasm && pnpm -r test",
-    "test": "pnpm test:core && pnpm test:js"
+    "test": "pnpm test:core && pnpm test:js",
+    "desktop": "pnpm build && cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml"
   }
 }

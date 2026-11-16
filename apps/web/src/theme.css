@@ -365,3 +365,12 @@ table.tornado td { padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,0
 table.tornado .bar { height: 10px; background: var(--orange); }
 table.tornado .bar.neg { background: #5eb1ff; }
 .opt, .calib { margin-top: 14px; }
+
+/* Tutorial */
+.tour { position: fixed; inset: 0; background: rgba(5, 8, 13, 0.6); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.tour-card { max-width: 440px; background: var(--panel, #111827); border: 1px solid rgba(94, 177, 255, 0.35); border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.tour-card h3 { margin: 0 0 8px; color: var(--orange); }
+.tour-card small { color: var(--muted); }
+.topbar .tpl { min-width: 0; max-width: 100%; }
+.topbar .tpl select { min-width: 0; max-width: calc(100vw - 110px); }
+.pareto, .rules-col, .fin-rev, .mission-report .checks { overflow-x: auto; }

@@ -4,3 +4,4 @@ dist/
 packages/core-js/wasm/
 *.tsbuildinfo
 .DS_Store
+apps/desktop/src-tauri/gen/

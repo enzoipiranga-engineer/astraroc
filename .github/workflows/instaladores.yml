@@ -21,7 +21,8 @@ jobs:
             args: ""
             targets: wasm32-unknown-unknown
           - name: macOS (Intel e Apple Silicon)
-            os: macos-latest
+            # Máquinas Mac Intel: a fila das arm64 vive lotada. O instalador é universal.
+            os: macos-15-intel
             args: --target universal-apple-darwin
             targets: wasm32-unknown-unknown,aarch64-apple-darwin,x86_64-apple-darwin
           - name: Linux

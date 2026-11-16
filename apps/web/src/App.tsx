@@ -4,6 +4,7 @@ import { ElectronicsPanel } from "./components/ElectronicsPanel";
 import { MissionReport } from "./components/MissionReport";
 import { PayloadPanel } from "./components/PayloadPanel";
 import { FinancePanel } from "./components/FinancePanel";
+import { SpaceView } from "./components/SpaceView";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
 import { LauncherPanel } from "./components/LauncherPanel";
@@ -55,7 +56,7 @@ export function App() {
   const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
   const [picking, setPicking] = useState(false);
   const [gps, setGps] = useState<TrackPoint[]>([]);
-  const [mode, setMode] = useState<"rocket" | "orbital">("rocket");
+  const [mode, setMode] = useState<"rocket" | "orbital" | "space">("rocket");
   const [elecLib, setElecLib] = useState<ElecComponent[]>([]);
   const [example, setExample] = useState<ExampleFirmware | null>(null);
   const [payloadPresets, setPayloadPresets] = useState<PayloadPreset[]>([]);
@@ -202,6 +203,7 @@ export function App() {
         <div className="modes" role="tablist">
           <button role="tab" aria-selected={mode === "rocket"} className={mode === "rocket" ? "on" : ""} onClick={() => setMode("rocket")}>Foguete</button>
           <button role="tab" aria-selected={mode === "orbital"} className={mode === "orbital" ? "on" : ""} onClick={() => setMode("orbital")}>Lançador orbital</button>
+          <button role="tab" aria-selected={mode === "space"} className={mode === "space" ? "on" : ""} onClick={() => setMode("space")}>Espaço</button>
         </div>
         {mode === "rocket" && (
           <>
@@ -226,7 +228,9 @@ export function App() {
         )}
       </header>
 
-      {mode === "orbital" ? (
+      {mode === "space" ? (
+        <SpaceView core={core} />
+      ) : mode === "orbital" ? (
         <OrbitalView core={core} ionToken={ionToken} />
       ) : (
         <>

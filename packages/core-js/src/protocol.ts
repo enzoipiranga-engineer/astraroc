@@ -24,6 +24,7 @@ export type CoreRequest =
   | { id: number; kind: "checkPlugin"; spec: PluginSpec }
   | { id: number; kind: "electronics" }
   | { id: number; kind: "presets" }
+  | { id: number; kind: "space"; tool: string; input: unknown }
   | { id: number; kind: "fly"; design: Design; seed?: number };
 
 export type CoreResult =
@@ -38,6 +39,7 @@ export type CoreResult =
   | { kind: "checkPlugin"; check: PluginCheck }
   | { kind: "electronics"; library: ElecComponent[]; firmware: ExampleFirmware }
   | { kind: "presets"; payloads: PayloadPreset[]; rules: [string, RuleSet][] }
+  | { kind: "space"; result: unknown }
   | { kind: "fly"; result: FlyResult };
 
 /** Firmware de exemplo que acompanha o ASTRA. */

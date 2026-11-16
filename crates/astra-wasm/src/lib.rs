@@ -402,3 +402,69 @@ pub fn payload_presets() -> String {
 pub fn rule_presets() -> String {
     serde_json::to_string(&astra_design::rules::presets()).unwrap_or_else(|_| "[]".to_owned())
 }
+
+/// Ferramentas espaciais. `kind`: "bodies", "maneuver", "interplanetary", "lambert",
+/// "lagrange", "entry" ou "landing"; `json` com os dados de cada uma. Devolve JSON.
+///
+/// # Errors
+/// Dados inválidos ou corpo desconhecido.
+#[wasm_bindgen]
+pub fn space(kind: &str, json: &str) -> Result<String, String> {
+    use astra_space::{body, entry, lagrange, landing, transfer, BODIES};
+    use serde_json::{json, Value};
+    let v: Value = if json.trim().is_empty() {
+        Value::Null
+    } else {
+        serde_json::from_str(json).map_err(|e| e.to_string())?
+    };
+    let num = |k: &str| {
+        v.get(k)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| format!("Falta o campo numérico \"{k}\"."))
+    };
+    let text = |k: &str| {
+        v.get(k)
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .ok_or_else(|| format!("Falta o campo \"{k}\"."))
+    };
+    let vec3 = |k: &str| -> Result<astra_math::Vec3, String> {
+        let a: Vec<f64> = serde_json::from_value(v.get(k).cloned().unwrap_or(Value::Null))
+            .map_err(|e| e.to_string())?;
+        match a.as_slice() {
+            [x, y, z] => Ok(astra_math::Vec3::new(*x, *y, *z)),
+            _ => Err(format!("\"{k}\" precisa de 3 números.")),
+        }
+    };
+    let out = match kind {
+        "bodies" => json!(BODIES.iter().map(|b| json!({"body": b, "escapeSpeed": b.escape_speed(), "surfaceGravity": b.surface_gravity(), "soi": if b.soi().is_finite() { Some(b.soi()) } else { None }})).collect::<Vec<_>>()),
+        "maneuver" => {
+            let b = body(&text("body")?).ok_or("Corpo desconhecido.")?;
+            let (r1, r2) = (b.radius + num("h1")?, b.radius + num("h2")?);
+            let h = transfer::hohmann(b.gm, r1, r2);
+            let bi = v.get("hb").and_then(Value::as_f64).map(|hb| transfer::bielliptic(b.gm, r1, b.radius + hb, r2));
+            let di = v.get("diDeg").and_then(Value::as_f64).unwrap_or(0.0).to_radians();
+            let v1 = (b.gm / r1).sqrt();
+            let v2 = (b.gm / r2).sqrt();
+            json!({"hohmann": h, "bielliptic": bi, "planeChangeLow": transfer::plane_change(v1, di), "planeChangeHigh": transfer::plane_change(v2, di), "v1": v1, "v2": v2,
+                   "period1": astra_space::kepler::period(b.gm, r1), "period2": astra_space::kepler::period(b.gm, r2)})
+        }
+        "interplanetary" => json!(transfer::interplanetary(&text("from")?, &text("to")?, num("hDep")?, num("hArr")?, num("after")?, 6)?),
+        "lambert" => {
+            let b = body(&text("body")?).ok_or("Corpo desconhecido.")?;
+            let (r1, r2) = (vec3("r1")?, vec3("r2")?);
+            let s = transfer::lambert(b.gm, r1, r2, num("tof")?, v.get("prograde").and_then(Value::as_bool).unwrap_or(true))?;
+            let k = astra_space::kepler::rv2coe(b.gm, r1, s.v1);
+            json!({"v1": [s.v1.x, s.v1.y, s.v1.z], "v2": [s.v2.x, s.v2.y, s.v2.z], "elements": k})
+        }
+        "lagrange" => {
+            let (p, s) = (body(&text("primary")?).ok_or("Corpo desconhecido.")?, body(&text("secondary")?).ok_or("Corpo desconhecido.")?);
+            let d = v.get("distance").and_then(Value::as_f64).unwrap_or(s.a_parent);
+            json!(lagrange::lagrange(p.gm, s.gm, d))
+        }
+        "entry" => json!(entry::simulate(&serde_json::from_value(v).map_err(|e| e.to_string())?)?),
+        "landing" => json!(landing::simulate(&serde_json::from_value(v).map_err(|e| e.to_string())?)?),
+        _ => return Err(format!("Ferramenta \"{kind}\" desconhecida.")),
+    };
+    Ok(out.to_string())
+}

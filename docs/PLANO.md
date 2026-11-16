@@ -14,8 +14,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | **Feita** |
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | **Feita, com uma pendência:** o preset Zyrion espera os dados da equipe; o relatório aprovado/reprovado funciona para qualquer carga |
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | **Feita** |
-| 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | Próxima |
-| 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | |
+| 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | **Feita** |
+| 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | Próxima |
 | 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | |
 
 ## Fase 1 em detalhe (concluída)
@@ -135,3 +135,21 @@ Ficam registrados aqui para não virarem promessa falsa:
 - Notas fiscais: só o número; anexar o arquivo fica para quando houver armazenamento.
 - Pareto: varia materiais de até duas peças (até 48 combinações); trocar motor e
   dimensões no explorador fica para o otimizador da fase 11.
+
+## Fase 10: o que ficou para depois
+
+- **Efemérides:** sem a tabela do JPL (rede bloqueada), as janelas usam órbitas circulares e
+  coplanares com longitude média J2000 transcrita de memória. As janelas Terra→Marte de
+  2020, 2022, 2024 e 2026 caem a menos de 75 dias das reais (teste). Efemérides DE440 e
+  N-corpos ficam para quando a tabela/arquivo for fornecido.
+- **Lambert** sem voltas múltiplas; sem gráfico porkchop (precisa das efemérides).
+- **Assistência gravitacional** e transferências de baixo empuxo não implementadas.
+- **Reentrada** planar sobre planeta sem rotação, aquecimento só convectivo de estagnação
+  (sem radiação do gás de choque, relevante acima de ~10 km/s), proteção térmica pelo
+  equilíbrio radiativo (sem ablação nem condução).
+- **Pouso propulsivo** planar: curva de gravidade com ignição por bisseção (início
+  suborbital) ou guiagem simples com portão (início orbital); sem dinâmica de atitude, sem
+  limite mínimo de empuxo.
+- **Pouso do 1º estágio do Falcon 9** ainda não liga à simulação da fase 5: o exemplo da
+  ferramenta usa números informados.
+- **Vista 3D do Sistema Solar:** a transferência é desenhada em 2D; o globo 3D cobre Terra.

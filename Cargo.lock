@@ -79,6 +79,16 @@ name = "astra-propulsion"
 version = "0.0.1"
 
 [[package]]
+name = "astra-space"
+version = "0.0.1"
+dependencies = [
+ "astra-env",
+ "astra-math",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "astra-vehicle"
 version = "0.0.1"
 dependencies = [
@@ -100,6 +110,7 @@ dependencies = [
  "astra-math",
  "astra-mission",
  "astra-propulsion",
+ "astra-space",
  "astra-vehicle",
  "serde_json",
  "wasm-bindgen",

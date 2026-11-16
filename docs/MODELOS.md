@@ -233,3 +233,25 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 - **Pontuação IREC:** 350 − 350/(0,3·alvo)·|alvo − apogeu|, zero fora de ±30 % (§2.7.1.4);
   recuperação (150) passa se nenhuma junta, aleta, tubo ou cordão falhou e todos os corpos
   pousaram — aproximação do critério "sem dano que impeça novo voo seguro".
+
+## Espaço (fase 10)
+
+- **Dois corpos:** elementos ↔ estado e propagação por variáveis universais (Curtis,
+  Algoritmos 3.3, 3.4, 4.2 e 4.5). Hohmann, bi-elíptica e mudança de plano analíticas.
+- **Lambert:** variáveis universais (Curtis, Algoritmo 5.2) resolvido por bisseção em z
+  (sem voltas completas). Reproduz o exemplo 5.2 do Curtis.
+- **Interplanetário:** cônicas combinadas com Hohmann heliocêntrica entre órbitas
+  circulares de raio igual ao semieixo maior; Δv de partida/captura
+  √(v∞² + 2μ/r) − √(μ/r). Janelas pelo ângulo de fase com longitudes médias (órbitas
+  circulares e coplanares; excentricidade e inclinação ignoradas).
+- **Lagrange:** problema restrito de três corpos circular; pontos colineares por Newton e
+  triangulares equiláteros.
+- **Reentrada:** equações planares de Vinh-Busemann-Culp, planeta esférico sem rotação,
+  sustentação vertical L·cos(rolamento); Terra com USSA 1976, demais corpos com atmosfera
+  exponencial (NASA Fact Sheets; Vênus e Titã com valores de referência a conferir);
+  aquecimento de Sutton-Graves com k do gás (Terra 1,7415e-4; Marte 1,9027e-4); parede em
+  equilíbrio radiativo; paraquedas com área ∝ (t/t_f)², t_f = 8·D/v (Knacke).
+  Validação: pico de g contra Allen-Eggers dentro de 8 % (teste).
+- **Pouso propulsivo:** Euler semi-implícito a 0,01 s; empuxo contra a velocidade (curva de
+  gravidade) com ignição por bisseção; a partir de órbita, guiagem com portão; fase
+  terminal a 1 m/s com empuxo igual ao peso.

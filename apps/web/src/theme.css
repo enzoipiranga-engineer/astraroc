@@ -327,3 +327,20 @@ svg.scatter circle.front { fill: var(--orange); }
 svg.scatter circle.dom { fill: #5eb1ff; }
 .stats small.up { color: var(--orange); }
 .stats small.down { color: #5eb1ff; }
+
+/* Espaço */
+.space { padding: 0 16px 16px; }
+.space .panel { margin-bottom: 12px; }
+.modes.sub { flex-wrap: wrap; }
+.space-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.orbit-svg { width: 100%; max-width: 320px; }
+.orbit-svg .sun { fill: #f0c36d; }
+.orbit-svg .orb { fill: none; stroke: rgba(255,255,255,0.25); }
+.orbit-svg .xfer { fill: none; stroke: var(--orange); stroke-width: 2; stroke-dasharray: 5 4; }
+.orbit-svg .p1 { fill: #5eb1ff; }
+.orbit-svg .p2 { fill: #ff6b6b; }
+.orbit-svg .lpt { fill: var(--orange); }
+.orbit-svg .lbl { fill: var(--muted); font-size: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.space .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; }
+.card.bad b { color: var(--bad); }

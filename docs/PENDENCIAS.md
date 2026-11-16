@@ -12,6 +12,7 @@ inventado: enquanto o dado não chegar, o recurso correspondente não é impleme
 | Repositório GitHub | já | Resolvido: código em enzoipiranga-engineer/astraroc. |
 | Voo medido de garrafa PET (altímetro) | 2 | Nenhum dado medido disponível na sessão; a validação do foguete de água é só analítica. |
 | Conferir tabela da atmosfera acima de 86 km (Vallado, Tabela 8-4) e dados do KNSB (Nakka) | 1 e 2 | Transcritos de memória; fontes não acessíveis nesta sessão. |
+| Elementos dos planetas (Standish, tabela 1: a, e, L0, taxa de L) e atmosferas de Vênus e Titã | 10 | ssd.jpl.nasa.gov fora da rede permitida; valores transcritos de memória. Janelas de Marte conferem com as reais (±75 dias), mas convém conferir a tabela. |
 | Curvas de motores pequenos (Estes etc.) | 2 | thrustcurve.org fora da rede permitida; só o Cesaroni M1670 está embutido. |
 
 ## Resumo do LASC General Rules (LGR), ed. 1, rev. 1 (março de 2026)

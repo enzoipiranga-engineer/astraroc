@@ -90,6 +90,11 @@ export class CoreClient {
     return { payloads: r.payloads, rules: r.rules };
   }
 
+  /** Ferramentas espaciais (manobras, transferências, Lagrange, reentrada, pouso). */
+  async space<T>(tool: string, input?: unknown): Promise<T> {
+    return (await this.call({ kind: "space", tool, input })).result as T;
+  }
+
   /** Voo com o firmware da placa emulado no laço. */
   async fly(design: Design, seed?: number): Promise<FlyResult> {
     return (await this.call(seed === undefined ? { kind: "fly", design } : { kind: "fly", design, seed })).result;

@@ -10,8 +10,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 3 | Peças, materiais, juntas, grafo, validação contínua, quebra de junta, editor e gráficos 2D | Coifa solta gera aviso e, se ignorado, dois corpos com trajetórias próprias | **Feita** |
 | 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | **Feita** |
 | 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | **Feita** |
-| 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | Próxima |
-| 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | |
+| 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | **Feita** |
+| 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | Próxima |
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | |
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | |
 | 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | |
@@ -81,3 +81,14 @@ Ficam registrados aqui para não virarem promessa falsa:
 - Editor de estágios na tela (hoje: Falcon 9 e Starship com parâmetros da missão; o núcleo
   aceita qualquer número de estágios, boosters e grupos de motores).
 - TVC só no núcleo (teste); a tela de TVC entra com a eletrônica (fase 7).
+
+## Fase 6: o que ficou para depois
+
+- Editor visual por blocos é uma lista arrastável com formulários; não há desenho do
+  mecanismo em diagrama.
+- Animação 3D dos lançadores usa as trajetórias dos corpos (carrinho, ponta do braço, avião,
+  balão) no globo, sem modelos 3D próprios.
+- Avaliação de plugins por estrelas e biblioteca online exigem um servidor; hoje a biblioteca
+  é local (importar, exportar, duplicar, link compartilhável).
+- Monte Carlo de erros de liberação: fase 11.
+- Canhão, catapulta e estilingue são guias retilíneas (a catapulta não gira um braço).

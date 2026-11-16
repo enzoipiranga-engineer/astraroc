@@ -2,6 +2,7 @@ import { CoreClient, type Design, type Material, type SimOutput, type TemplateEn
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
+import { LauncherPanel } from "./components/LauncherPanel";
 import { OrbitalView } from "./components/OrbitalView";
 import { PartPanel } from "./components/PartPanel";
 import { Results } from "./components/Results";
@@ -61,7 +62,9 @@ export function App() {
         setTemplates(t);
         setMaterials(m);
         setVersion(info.version);
-        setHist(historyOf(loadSaved() ?? t[0]!.design));
+        const saved = loadSaved();
+        // Projetos salvos por versões anteriores podem não ter os campos novos.
+        setHist(historyOf(saved ? { ...t[0]!.design, ...saved, zones: saved.zones ?? [], launcher: saved.launcher ?? [], launch: { ...t[0]!.design.launch, ...saved.launch, wind: saved.launch?.wind ?? { layers: [] } } } : t[0]!.design));
         setBoot({ status: "ready" });
       },
       (e: Error) => setBoot({ status: "error", message: e.message }),
@@ -220,6 +223,7 @@ export function App() {
         <div className="col">
           <JointPanel design={design} materials={materials} errorJoints={errorJoints} selectedPart={selected} onChange={change} />
           <SetupPanel design={design} onChange={change} />
+          <LauncherPanel design={design} core={core} onChange={change} />
           <SitePanel design={design} onChange={change} picking={picking} onTogglePick={() => setPicking((p) => !p)} ionToken={ionToken} onIonToken={saveIon} />
         </div>
         <div className="col">

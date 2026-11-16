@@ -39,6 +39,9 @@ pub struct Design {
     /// Zonas de segurança e de pouso.
     #[serde(default)]
     pub zones: Vec<Zone>,
+    /// Sistema de lançamento alternativo (vazio = trilho do lançamento).
+    #[serde(default)]
+    pub launcher: Vec<astra_launch::Launcher>,
 }
 
 /// Tabela de Cd por Mach.

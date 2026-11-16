@@ -175,6 +175,7 @@ pub fn pet_bottle() -> Design {
         drag_table: None,
         materials: Vec::new(),
         zones: Vec::new(),
+        launcher: Vec::new(),
     }
 }
 
@@ -426,6 +427,7 @@ pub fn competition_500m() -> Design {
         drag_table: None,
         materials: Vec::new(),
         zones: Vec::new(),
+        launcher: Vec::new(),
     }
 }
 

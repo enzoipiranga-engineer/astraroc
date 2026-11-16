@@ -66,6 +66,17 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 | Orçamento de Δv (gravidade, arrasto, direção, contrapressão) | idem | d|v|/dt = (T/m)cosθ + D·v̂/m + g·v̂ | Referencial inercial | Fecha em 1% (trapézios) |
 | Elementos orbitais RV2COE | `astra-mission::elements` | Vallado alg. 9 | Elíptica ou hiperbólica | Arredondamento |
 | TVC: gimbal com controle PD por alocação de polos; giroscópio com viés e ruído de banda limitada | `astra-vehicle::TvcRocket` | Ogata cap. 5; Wie cap. 6 | Ângulos pequenos; atuador ideal | — |
+| Guia retilínea 1-D (rampa, trilho, canhão, mola, mão, plugins) | `astra-launch::guided` | Newton com atrito de Coulomb e arrasto | Guia rígida; referencial local plano | Balanço de energia fecha em < 1e-8 |
+| Canhão de gás adiabático | `Push::GasGun` | Sutton & Biblarz cap. 3 | Gás ideal, sem atrito do gás | Superestima (perdas reais de 20 a 40%) |
+| Railgun F = ½·L'·I² | `Push::Railgun` | Fair, IEEE Trans. Magnetics (1999) | Corrente constante; sem arco nem aquecimento | Ordem de grandeza |
+| Plataforma giratória (braço rígido, torque do motor, arrasto do braço) | `astra-launch::spin` | Dinâmica de rotação de corpo rígido | Plano vertical; braço uniforme | Arrasto do braço estimado |
+| Lançamento aéreo (soma galileana do estado do avião) | `air_launch` | Cinemática | Separação limpa, sem esteira do avião | — |
+| Balão de pressão zero com deriva pelo vento | `balloon` | Yajima et al., "Scientific Ballooning" cap. 2 | Gás em equilíbrio térmico com o ar; sem massa aparente | Velocidade de subida ±20% |
+| Navio (convés com arfagem e balanço senoidais) | `ship` | Cinemática | Aceleração do convés desprezada no trilho | — |
+| Submarino (ejeção a frio, empuxo e arrasto na água) | `submarine` | Hidrostática; arrasto quadrático | Sem cavitação nem massa adicional | ±30% |
+| Cadeia de lançadores | `run_chain` | Composição galileana | — | — |
+| Plugins declarativos com expressões seguras | `astra-launch::PluginSpec`, `expr` | — | Guia retilínea com força arbitrária | Verificação de energia e testes do autor |
+| Limites de g da estrutura na fase de lançamento | `astra-design` (`structural_g_limits`) | Capacidade dos cortes / (massa · g0) | Carga quase estática | Igual ao das capacidades das juntas |
 ## Simplificações em vigor
 
 - **ECI simplificado.** O referencial inercial coincide com o ECEF girado de θ0 + ω·t em z,
@@ -147,3 +158,10 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
   instantaneamente). A malha só age durante a queima e fora do trilho.
 - **Sem equilíbrio químico (NASA CEA):** Isp de motores customizados vem de Tc, M e γ
   informados ou da tabela aproximada.
+- **Fase de lançamento em referencial local plano** (sem curvatura nem Coriolis), válida até
+  dezenas de quilômetros do local; o voo depois da liberação usa o modelo completo.
+- **Na fase de lançamento as juntas não quebram**: as cargas são comparadas com o limite
+  da estrutura e geram alerta. A falha simulada continua valendo depois da liberação.
+- **Plugins só de guia retilínea** nesta versão (o formato é versionado para crescer).
+  Scripts TypeScript/WASM arbitrários não são aceitos: no lugar deles há a linguagem de
+  expressões, que não tem laços nem acesso a nada fora das variáveis.

@@ -340,6 +340,28 @@ pub fn engine_library_json() -> String {
     serde_json::Value::Array(list).to_string()
 }
 
+/// Plugins de lançador que acompanham o ASTRA (JSON).
+#[wasm_bindgen(js_name = launcherPlugins)]
+#[must_use]
+pub fn launcher_plugins() -> String {
+    serde_json::to_string(&astra_launch::builtin_plugins()).unwrap_or_default()
+}
+
+/// Verifica um plugin de lançador (JSON de `PluginSpec`): campos, unidades, expressões,
+/// balanço de energia e os testes do pacote. Devolve `{ok, messages}`.
+#[wasm_bindgen(js_name = checkPlugin)]
+#[must_use]
+pub fn check_plugin(json: &str) -> String {
+    let check = match serde_json::from_str::<astra_launch::PluginSpec>(json) {
+        Ok(p) => p.check(),
+        Err(e) => astra_launch::PluginCheck {
+            ok: false,
+            messages: vec![format!("pacote inválido: {e}")],
+        },
+    };
+    serde_json::to_string(&check).unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

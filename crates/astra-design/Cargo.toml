@@ -12,6 +12,7 @@ astra-dynamics = { path = "../astra-dynamics" }
 astra-aero = { path = "../astra-aero" }
 astra-propulsion = { path = "../astra-propulsion" }
 astra-vehicle = { path = "../astra-vehicle" }
+astra-launch = { path = "../astra-launch" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

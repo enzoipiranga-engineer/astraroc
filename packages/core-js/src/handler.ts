@@ -3,7 +3,9 @@
  * poder ser testado em Node.
  */
 import {
+  checkPlugin,
   coreVersion,
+  launcherPlugins,
   designTemplates,
   engineLibrary,
   simulateMission,
@@ -13,7 +15,7 @@ import {
   validateDesign,
 } from "../wasm/astra_wasm.js";
 import type { CoreRequest, CoreResponse } from "./protocol";
-import type { EngineInfo, Material, MissionOutput, SimOutput, TemplateEntry, Validation } from "./types";
+import type { EngineInfo, Material, MissionOutput, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 export function handle(req: CoreRequest): CoreResponse {
   try {
@@ -45,6 +47,10 @@ export function handle(req: CoreRequest): CoreResponse {
         };
       case "mission":
         return { id: req.id, ok: true, kind: "mission", mission: JSON.parse(simulateMission(JSON.stringify(req.request))) as MissionOutput };
+      case "plugins":
+        return { id: req.id, ok: true, kind: "plugins", plugins: JSON.parse(launcherPlugins()) as PluginSpec[] };
+      case "checkPlugin":
+        return { id: req.id, ok: true, kind: "checkPlugin", check: JSON.parse(checkPlugin(JSON.stringify(req.spec))) as PluginCheck };
       case "engines":
         return { id: req.id, ok: true, kind: "engines", engines: JSON.parse(engineLibrary()) as EngineInfo[] };
     }

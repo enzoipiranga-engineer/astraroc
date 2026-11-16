@@ -78,3 +78,18 @@ describe("missão orbital pelo worker", () => {
     expect(e.find((x) => x.name === "Merlin 1D")!.thrustSlKn).toBeCloseTo(845, 0);
   });
 });
+
+describe("lançadores pelo worker", () => {
+  const client = new CoreClient(fakeWorker());
+  it("plugins verificados e lançamento aéreo comparado com o trilho", async () => {
+    const ps = await client.plugins();
+    expect(ps.length).toBeGreaterThanOrEqual(2);
+    for (const p of ps) expect((await client.checkPlugin(p)).ok).toBe(true);
+    const bad = { ...ps[0]!, force: "segredo * 2" };
+    expect((await client.checkPlugin(bad)).messages.join(" ")).toMatch(/desconhecida/);
+    const d = structuredClone((await client.templates()).find((x) => x.id === "competicao-500m")!.design) as Design;
+    d.launcher = [{ type: "air", altitude: 3000, speed: 120, flightPathDeg: 20, headingDeg: 0, dropTime: 1, aircraftMass: 2000 }];
+    const o = await client.simulate(d);
+    expect(o.launcher!.apogeeWith).toBeGreaterThan(o.launcher!.apogeeWithout + 2000);
+  });
+});

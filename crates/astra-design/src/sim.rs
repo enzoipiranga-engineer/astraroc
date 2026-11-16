@@ -69,6 +69,45 @@ pub struct SimOutput {
     pub events: Vec<FlightEvent>,
     /// Avisos do motor e da simulação.
     pub warnings: Vec<String>,
+    /// Relatório do sistema de lançamento, quando houver.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub launcher: Option<LauncherReport>,
+}
+
+/// Relatório do sistema de lançamento e comparação com o lançamento do trilho.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LauncherReport {
+    /// Lançadores da cadeia.
+    pub name: String,
+    /// Liberou o foguete.
+    pub released: bool,
+    /// Instante da liberação, s.
+    pub release_time: f64,
+    /// Velocidade na liberação em relação ao solo, m/s.
+    pub release_speed: f64,
+    /// Altura da liberação acima do solo, m.
+    pub release_altitude: f64,
+    /// Instante de ignição do motor, s.
+    pub ignition_time: f64,
+    /// Balanço de energia da fase de lançamento.
+    pub energy: astra_launch::Energy,
+    /// Maior aceleração axial no foguete durante o lançamento, g.
+    pub max_axial_g: f64,
+    /// Maior aceleração lateral, g.
+    pub max_lateral_g: f64,
+    /// Aceleração axial que a estrutura aguenta (pior junta), g.
+    pub axial_limit_g: f64,
+    /// Aceleração lateral que a fixação das peças internas aguenta, g.
+    pub lateral_limit_g: f64,
+    /// Apogeu acima do solo com o lançador, m.
+    pub apogee_with: f64,
+    /// Apogeu acima do solo saindo do trilho comum, m.
+    pub apogee_without: f64,
+    /// Δv equivalente entregue pelo lançador: √(v² + 2·g·h), m/s.
+    pub dv_equivalent: f64,
+    /// Propelente que daria o mesmo Δv (Tsiolkovsky com o Isp do motor), kg. Estimativa.
+    pub propellant_equivalent: f64,
 }
 
 pub(crate) fn launch_of(d: &Design) -> Launch {
@@ -226,7 +265,130 @@ fn name_of(asm: &Assembly, members: &[usize]) -> String {
 #[must_use]
 pub fn simulate(design: &Design, db: &MaterialDb) -> SimOutput {
     let asm = Assembly::new(design, db);
-    run(&asm, false).0
+    let mut out = run(&asm, false).0;
+    if out.launcher.is_some() {
+        let mut plain = design.clone();
+        plain.launcher.clear();
+        let ground = run(&Assembly::new(&plain, db), false).0;
+        // O foguete é o primeiro corpo depois das trajetórias do lançador.
+        let apo = |o: &SimOutput| {
+            o.bodies
+                .first()
+                .map_or(0.0, |b| b.samples.iter().map(|r| r[1]).fold(0.0, f64::max))
+        };
+        let (without, with) = (apo(&ground), apo(&out));
+        if let Some(rep) = out.launcher.as_mut() {
+            rep.apogee_without = without;
+            rep.apogee_with = with;
+        }
+    }
+    out
+}
+
+/// Foguete visto pelo lançador: massa e empuxo do motor com a ignição dada.
+struct RocketPayload<'a> {
+    asm: &'a Assembly,
+    dry: f64,
+    cd_a: f64,
+    length: f64,
+    diameter: f64,
+}
+
+impl astra_launch::Payload for RocketPayload<'_> {
+    fn mass(&self, t: f64, ign: f64) -> f64 {
+        let tm = if ign.is_finite() { t - ign } else { -1.0 };
+        self.dry
+            + self.asm.motor.dry_mass
+            + self
+                .asm
+                .motor
+                .prop_mass(tm.max(0.0))
+                .min(self.asm.motor.initial_prop_mass())
+    }
+    fn thrust(&self, t: f64, ign: f64, p: f64) -> f64 {
+        if ign.is_finite() && t >= ign {
+            self.asm.motor.thrust(t - ign, p)
+        } else {
+            0.0
+        }
+    }
+    fn drag_area(&self) -> f64 {
+        self.cd_a
+    }
+    fn length(&self) -> f64 {
+        self.length
+    }
+    fn diameter(&self) -> f64 {
+        self.diameter
+    }
+}
+
+/// Converte uma liberação local (leste, norte, cima a partir do local) em estado inercial.
+fn release_state(planet: &Planet, l: &Launch, rel: &astra_launch::Release) -> State {
+    let (e, n, u) = Planet::enu_basis(l.site.lat, l.site.lon);
+    let to_ecef = |v: Vec3| e * v.x + n * v.y + u * v.z;
+    let site = planet.geodetic_to_ecef(Geodetic {
+        lat: l.site.lat,
+        lon: l.site.lon,
+        h: l.ground_h,
+    });
+    let th = l.theta0 + planet.omega * rel.t;
+    let r = astra_env::rot_z(site + to_ecef(rel.pos), th);
+    let v = astra_env::rot_z(to_ecef(rel.vel), th) + planet.omega_vec().cross(r);
+    let x = astra_env::rot_z(to_ecef(rel.axis), th)
+        .normalized()
+        .unwrap_or(Vec3::Z);
+    let helper = if x.dot(astra_env::rot_z(u, th)).abs() < 0.9 {
+        astra_env::rot_z(u, th)
+    } else {
+        astra_env::rot_z(e, th)
+    };
+    let y = helper.cross(x).normalized().unwrap_or(Vec3::Y);
+    let q = Quat::from_mat3(Mat3::from_cols(x, y, x.cross(y)));
+    let w_inertial = astra_env::rot_z(to_ecef(rel.omega), th) + planet.omega_vec();
+    State {
+        t: rel.t,
+        r,
+        v,
+        q: Some(q),
+        omega: q.conj().rotate(w_inertial),
+        apogee: None,
+    }
+}
+
+/// Aceleração (g) que a estrutura aguenta: axial, pela pior junta (compressão para as
+/// peças à frente, tração para as de trás); lateral, pela pior fixação em cisalhamento.
+fn structural_g_limits(asm: &Assembly) -> (f64, f64) {
+    let all: Vec<usize> = (0..asm.design.parts.len()).collect();
+    let none = BTreeSet::new();
+    let body = asm
+        .rigid_bodies(&all, &none)
+        .into_iter()
+        .find(|b| b.contains(&asm.root))
+        .unwrap_or_default();
+    let (mut axial, mut lateral) = (f64::INFINITY, f64::INFINITY);
+    for c in asm.cuts(&body, asm.root, &none) {
+        let m: f64 = c.distal.iter().map(|&i| asm.props[i].mass).sum();
+        if m <= 0.0 {
+            continue;
+        }
+        let cap_axial = if c.distal_forward {
+            c.compression
+        } else {
+            c.tension
+        };
+        axial = axial.min(cap_axial / (m * 9.806_65));
+        // Lateralmente toda fixação trabalha em cisalhamento (cola, parafuso, pino,
+        // trava); o simples contato entre tubos é carregado pelo ombro e fica de fora.
+        let contact = c
+            .joints
+            .iter()
+            .any(|&j| asm.joints[j].as_ref().is_none_or(|x| x.implicit));
+        if !contact {
+            lateral = lateral.min(c.tension / (m * 9.806_65));
+        }
+    }
+    (axial, lateral)
 }
 
 /// Cargas mínimas (margens) registradas no voo nominal: por peça de limite.
@@ -237,7 +399,94 @@ pub(crate) struct Nominal {
 }
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>) {
+pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>) {
+    let planet0 = Planet::EARTH;
+    let launch0 = launch_of(&asm_in.design);
+    // Sistema de lançamento: roda a cadeia e adia a ignição do motor.
+    let mut launched: Option<(State, astra_launch::LaunchOutcome, LauncherReport)> = None;
+    let mut asm_owned;
+    let mut asm = asm_in;
+    if !asm_in.design.launcher.is_empty() {
+        let all: Vec<usize> = (0..asm_in.design.parts.len()).collect();
+        let rocket = asm_in.rocket(&all, &vec![0; all.len()]);
+        let payload = RocketPayload {
+            asm: asm_in,
+            dry: rocket.dry_mass,
+            cd_a: rocket.cd(0.3, 1e6, false) * rocket.geometry().ref_area(),
+            length: rocket.geometry().length(),
+            diameter: rocket.geometry().ref_diameter(),
+        };
+        let site_ecef = planet0.geodetic_to_ecef(Geodetic {
+            lat: launch0.site.lat,
+            lon: launch0.site.lon,
+            h: launch0.ground_h,
+        });
+        let g_eff = (planet0.gravity(site_ecef)
+            + planet0
+                .omega_vec()
+                .cross(planet0.omega_vec().cross(site_ecef))
+                * -1.0)
+            .norm();
+        let env = astra_launch::LocalEnv {
+            g: g_eff,
+            ground: launch0.ground_h,
+            atm: AtmosphereModel::Ussa1976 {
+                delta_t: asm_in.design.launch.delta_t,
+            },
+            wind: asm_in.design.launch.wind.to_wind(),
+        };
+        let o = astra_launch::run_chain(&asm_in.design.launcher, &payload, &env);
+        let (axial_limit, lateral_limit) = structural_g_limits(asm_in);
+        let max_ax = o.loads.iter().map(|l| l.1.abs()).fold(0.0, f64::max);
+        let max_lat = o.loads.iter().map(|l| l.2.abs()).fold(0.0, f64::max);
+        let name = asm_in
+            .design
+            .launcher
+            .iter()
+            .map(astra_launch::Launcher::label)
+            .collect::<Vec<_>>()
+            .join(" → ");
+        if let Some(rel) = o.release {
+            let ign = rel.ignition_time();
+            asm_owned = asm_in.clone();
+            asm_owned.motor = asm_in.motor.delayed(ign);
+            asm = &asm_owned;
+            let v = rel.vel.norm();
+            let h = rel.pos.z;
+            let dv_eq = (v * v + 2.0 * g_eff * h.max(0.0)).sqrt();
+            let isp = asm_in.motor.specific_impulse().max(1.0);
+            let m_end = rocket.dry_mass + asm_in.motor.dry_mass;
+            let report = LauncherReport {
+                name,
+                released: true,
+                release_time: rel.t,
+                release_speed: v,
+                release_altitude: h,
+                ignition_time: ign,
+                energy: o.energy,
+                max_axial_g: max_ax,
+                max_lateral_g: max_lat,
+                axial_limit_g: axial_limit,
+                lateral_limit_g: lateral_limit,
+                apogee_with: 0.0,
+                apogee_without: 0.0,
+                dv_equivalent: dv_eq,
+                propellant_equivalent: m_end * ((dv_eq / (isp * 9.806_65)).exp() - 1.0),
+            };
+            launched = Some((release_state(&planet0, &launch0, &rel), o, report));
+        } else {
+            let mut out = SimOutput {
+                bodies: Vec::new(),
+                events: Vec::new(),
+                warnings: o.warnings.clone(),
+                launcher: None,
+            };
+            out.warnings.push(format!(
+                "O sistema de lançamento ({name}) não liberou o foguete."
+            ));
+            return (out, None);
+        }
+    }
     let planet = Planet::EARTH;
     let atmosphere = AtmosphereModel::Ussa1976 {
         delta_t: asm.design.launch.delta_t,
@@ -257,6 +506,7 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
         bodies: Vec::new(),
         events: Vec::new(),
         warnings: Vec::new(),
+        launcher: None,
     };
     if let Some(e) = &asm.motor_error {
         out.warnings.push(format!("Motor: {e}"));
@@ -285,9 +535,22 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
             names.join(", ")
         ));
     }
+    let initial_state = launched.as_ref().map(|l| l.0.clone());
+    let mut launcher_outcome = None;
+    if let Some((_, o, report)) = launched {
+        if report.max_axial_g > report.axial_limit_g {
+            out.warnings.push(format!("O lançador acelera o foguete a {:.0} g, acima dos {:.0} g que a junta mais fraca aguenta: a estrutura falharia na fase de lançamento.", report.max_axial_g, report.axial_limit_g));
+        }
+        if report.max_lateral_g > report.lateral_limit_g {
+            out.warnings.push(format!("Carga lateral de {:.0} g no lançador, acima dos {:.0} g que a fixação das peças internas aguenta.", report.max_lateral_g, report.lateral_limit_g));
+        }
+        out.warnings.extend(o.warnings.iter().cloned());
+        out.launcher = Some(report);
+        launcher_outcome = Some(o);
+    }
     let mut queue = vec![Pending {
         members: main,
-        state: None,
+        state: initial_state,
         parent: None,
         track: None,
     }];
@@ -350,8 +613,10 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
         // No lançamento o corpo inteiro voa em 6-DOF mesmo instável (é assim que a
         // capotagem aparece). Partes soltas depois só voltam ao 6-DOF se tiverem nariz e
         // forem estáveis; senão capotam como ponto de massa.
+        // Primeiro trecho do voo (do trilho ou da liberação do lançador).
+        let first_leg = job.parent.is_none() && job.track.is_none();
         let six = single
-            && (job.state.is_none() || {
+            && (first_leg || {
                 let body = &structural[0];
                 let r = asm.rocket(body, &st.fin_loss);
                 let t = job.state.as_ref().map_or(0.0, |s| s.t);
@@ -383,8 +648,8 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
                 &st.broken,
                 pending_chutes.clone(),
                 p_ground,
-                nominal && job.state.is_none(),
-                job.state.is_none(),
+                nominal && first_leg,
+                first_leg,
             );
             let start = job.state.as_ref().map(|s| {
                 let fired = vec![None; pending_chutes.len()];
@@ -879,6 +1144,10 @@ pub(crate) fn run(asm: &Assembly, nominal: bool) -> (SimOutput, Option<Nominal>)
             });
         }
     }
+    // Corpos do lançador vão depois do foguete (o foguete continua sendo o corpo 0).
+    if let Some(o) = &launcher_outcome {
+        launcher_bodies(&planet, &launch, &asm.design, o, &mut out);
+    }
     out.events.sort_by(|a, b| a.t.total_cmp(&b.t));
     let nominal_out = nominal.then(|| Nominal {
         out: out.clone(),
@@ -975,4 +1244,79 @@ fn fall_plate(
                 .collect()
         },
     )
+}
+
+/// Corpos do lançador (avião, braço, carrinho, balão) como trajetórias para o globo.
+fn launcher_bodies(
+    planet: &Planet,
+    l: &Launch,
+    d: &Design,
+    o: &astra_launch::LaunchOutcome,
+    out: &mut SimOutput,
+) {
+    let (e, n, u) = Planet::enu_basis(l.site.lat, l.site.lon);
+    let to_ecef = |v: Vec3| e * v.x + n * v.y + u * v.z;
+    let site = planet.geodetic_to_ecef(Geodetic {
+        lat: l.site.lat,
+        lon: l.site.lon,
+        h: l.ground_h,
+    });
+    let atm = AtmosphereModel::Ussa1976 {
+        delta_t: d.launch.delta_t,
+    };
+    for (name, pts) in &o.tracks {
+        let samples: Vec<Row> = pts
+            .iter()
+            .map(|p| {
+                let g = planet.ecef_to_geodetic(site + to_ecef(p.pos));
+                let a = atm.at(g.h);
+                let v = p.vel.norm();
+                let ax = to_ecef(p.axis);
+                [
+                    p.t,
+                    g.h - l.ground_h,
+                    v,
+                    p.vel.z,
+                    if a.sound_speed > 0.0 {
+                        v / a.sound_speed
+                    } else {
+                        0.0
+                    },
+                    0.5 * a.density * v * v,
+                    p.pos.y,
+                    p.pos.x,
+                    f64::NAN,
+                    f64::NAN,
+                    g.lat.to_degrees(),
+                    g.lon.to_degrees(),
+                    g.h,
+                    ax.x,
+                    ax.y,
+                    ax.z,
+                ]
+            })
+            .collect();
+        let id = out.bodies.len();
+        out.bodies.push(BodyTrack {
+            id,
+            name: name.clone(),
+            parts: Vec::new(),
+            models: vec!["lançador".into()],
+            parent: None,
+            samples,
+            fate: "Sistema de lançamento.".into(),
+            landing: None,
+        });
+    }
+    let first = out.bodies.len() - o.tracks.len();
+    for (t, kind, msg) in &o.events {
+        out.events.push(FlightEvent {
+            t: *t,
+            body: first,
+            kind: format!("launcher:{kind}"),
+            message: msg.clone(),
+            alt: 0.0,
+            speed: 0.0,
+        });
+    }
 }

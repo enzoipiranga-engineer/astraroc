@@ -24,6 +24,7 @@ dependencies = [
  "astra-aero",
  "astra-dynamics",
  "astra-env",
+ "astra-launch",
  "astra-math",
  "astra-propulsion",
  "astra-vehicle",
@@ -44,6 +45,17 @@ name = "astra-env"
 version = "0.0.1"
 dependencies = [
  "astra-math",
+]
+
+[[package]]
+name = "astra-launch"
+version = "0.0.1"
+dependencies = [
+ "astra-dynamics",
+ "astra-env",
+ "astra-math",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -84,6 +96,7 @@ dependencies = [
  "astra-design",
  "astra-dynamics",
  "astra-env",
+ "astra-launch",
  "astra-math",
  "astra-mission",
  "astra-propulsion",

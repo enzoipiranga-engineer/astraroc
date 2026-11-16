@@ -1,5 +1,5 @@
 import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, RequestBody } from "./protocol";
-import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 /** O mínimo de `Worker` que o cliente usa (permite testar sem navegador). */
 export interface WorkerLike {
@@ -65,6 +65,16 @@ export class CoreClient {
   /** Simula uma missão orbital. */
   async mission(request: MissionRequest): Promise<MissionOutput> {
     return (await this.call({ kind: "mission", request })).mission;
+  }
+
+  /** Plugins de lançador que acompanham o ASTRA. */
+  async plugins(): Promise<PluginSpec[]> {
+    return (await this.call({ kind: "plugins" })).plugins;
+  }
+
+  /** Verificação automática de um plugin. */
+  async checkPlugin(spec: PluginSpec): Promise<PluginCheck> {
+    return (await this.call({ kind: "checkPlugin", spec })).check;
   }
 
   /** Biblioteca de motores líquidos. */

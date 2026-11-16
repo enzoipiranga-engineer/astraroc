@@ -152,6 +152,7 @@ export interface Design {
   dragTable?: { powerOff: [number, number][]; powerOn: [number, number][] } | null;
   materials: Material[];
   zones: Zone[];
+  launcher: Launcher[];
 }
 
 export type Severity = "error" | "warning" | "info";
@@ -233,6 +234,7 @@ export interface SimOutput {
   bodies: BodyTrack[];
   events: FlightEvent[];
   warnings: string[];
+  launcher?: LauncherReport | null;
 }
 
 export interface TemplateEntry {
@@ -299,4 +301,89 @@ export interface EngineInfo {
   massKg: number;
   source: string;
   reliability: string;
+}
+
+export type Push =
+  | { type: "none" }
+  | { type: "constant"; force: number }
+  | { type: "power"; power: number; maxForce: number }
+  | { type: "gasGun"; p0: number; volume: number; bore: number; gamma: number }
+  | { type: "railgun"; current: number; inductanceGradient: number }
+  | { type: "spring"; stiffness: number; stroke: number }
+  | { type: "expr"; source: string; consts: Record<string, number> };
+
+export interface Guide {
+  label: string;
+  length: number;
+  elevationDeg: number;
+  azimuthDeg: number;
+  carriageMass: number;
+  friction: number;
+  carriageCdA: number;
+  push: Push;
+  releaseSpeed?: number | null;
+  igniteAt?: number | null;
+  ignitionDelay: number;
+  brake: number;
+  height: number;
+}
+
+export interface PluginParam {
+  name: string;
+  value: number;
+  unit: string;
+  min: number;
+  max: number;
+  help: string;
+}
+
+export interface PluginSpec {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  validity: string;
+  params: PluginParam[];
+  length: string;
+  elevationDeg: string;
+  azimuthDeg: string;
+  carriageMass: string;
+  friction: string;
+  force: string;
+  igniteOnGuide: boolean;
+  model: string;
+  tests: { name: string; mass: number; values: Record<string, number>; minSpeed: number; maxSpeed: number }[];
+}
+
+export type Launcher =
+  | ({ type: "guided" } & Guide)
+  | { type: "spin"; radius: number; armMass: number; torque: number; targetRpm: number; chamberPressure: number; armCdWidth: number; releaseElevationDeg: number; azimuthDeg: number; hubHeight: number; ignitionDelay: number }
+  | { type: "air"; altitude: number; speed: number; flightPathDeg: number; headingDeg: number; dropTime: number; aircraftMass: number }
+  | { type: "balloon"; envelopeMass: number; gasMass: number; gasMolarMass: number; gondolaMass: number; burstDiameter: number; cd: number; releaseAltitude: number; railElevationDeg: number; railAzimuthDeg: number }
+  | { type: "ship"; speed: number; headingDeg: number; pitchAmplitudeDeg: number; rollAmplitudeDeg: number; wavePeriod: number; launchPhase: number; deckHeight: number; railLength: number; railElevationDeg: number }
+  | { type: "submarine"; depth: number; ejectionSpeed: number; waterCd: number; ignitionDelay: number }
+  | { type: "plugin"; spec: PluginSpec; values: Record<string, number> };
+
+export interface LauncherReport {
+  name: string;
+  released: boolean;
+  releaseTime: number;
+  releaseSpeed: number;
+  releaseAltitude: number;
+  ignitionTime: number;
+  energy: { input: number; dissipated: number; kinetic: number; potential: number; massFlux: number; residual: number; rocketKinetic: number };
+  maxAxialG: number;
+  maxLateralG: number;
+  axialLimitG: number;
+  lateralLimitG: number;
+  apogeeWith: number;
+  apogeeWithout: number;
+  dvEquivalent: number;
+  propellantEquivalent: number;
+}
+
+export interface PluginCheck {
+  ok: boolean;
+  messages: string[];
 }

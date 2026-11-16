@@ -82,6 +82,19 @@
 | Boosters separam antes do núcleo e caem; max-Q dentro do limite | Física esperada | 15% | Passa |
 | Starship com 100 t chega a 200 km (hot staging) | Ordem de grandeza pública | — | Passa |
 | TVC estabiliza foguete sem aletas (α < 5° na queima; sem TVC, > 20°) | Física esperada | — | Passa |
+| Expressões de plugin: precedência, funções, erros, limite de tamanho | Definição | Exato | Passa |
+| Força constante, railgun, mola: v = √(2W/m) | Trabalho-energia | 1e-6 m/s | Passa |
+| Canhão de gás: trabalho adiabático fechado | p0V0/(γ−1)·(1 − (V0/V1)^(γ−1)) − p_atm·A·L | 1e-6 | Passa |
+| Rampa inclinada com atrito | a = F/m − g sen θ − μ g cos θ | 1e-6 | Passa |
+| Motor aceso no carrinho, com ar: balanço inclui a energia do propelente expelido | Conservação | 1e-6 | Passa |
+| Plataforma giratória: tempo I·ω/τ, v = ωR, elevação, rotação herdada, carga ω²R | Rotação de corpo rígido | 1e-6 | Passa |
+| Balão: chega à altura, deriva com o vento, falta de gás e estouro detectados | Física esperada | 1e-5 no balanço | Passa |
+| Submarino e navio | Física esperada | — | Passa |
+| Cadeia avião + mola: velocidades somam | Galileu | 1e-6 | Passa |
+| Plugins: os de exemplo passam na verificação; variável desconhecida e parâmetro fora da faixa recusados | Verificação | — | Passa |
+| Lançamento aéreo do foguete de competição: parte do estado do avião, ignição após a queda livre, apogeu muito maior | Integração | — | Passa |
+| Plataforma giratória forte demais: alerta estrutural e foguete sai girando (capota) | Consequência física | — | Passa |
+| Carrinho em rampa na interface: 535 → 902 m, 74 g (limite 91 g), balanço 3e-13 | Playwright | — | Passa |
 
 ## Benchmarks contra voos reais e outros simuladores
 

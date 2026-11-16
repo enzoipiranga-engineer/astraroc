@@ -26,6 +26,25 @@ const bearing = (n: number, e: number) => {
   return names[Math.round(deg / 45) % 8];
 };
 
+function LauncherCompare({ r }: { r: NonNullable<SimOutput["launcher"]> }) {
+  const over = r.maxAxialG > r.axialLimitG || r.maxLateralG > r.lateralLimitG;
+  return (
+    <div className="compare">
+      <h3>Com e sem o sistema de lançamento ({r.name})</h3>
+      <table className="bodies">
+        <thead><tr><th /><th>Trilho comum</th><th>Com o lançador</th></tr></thead>
+        <tbody>
+          <tr><td>Apogeu</td><td className="num">{fmt(r.apogeeWithout, 0)} m</td><td className="num">{fmt(r.apogeeWith, 0)} m ({r.apogeeWith >= r.apogeeWithout ? "+" : ""}{fmt(r.apogeeWith - r.apogeeWithout, 0)})</td></tr>
+          <tr><td>Liberação</td><td className="num">—</td><td className="num">{fmt(r.releaseSpeed, 1)} m/s a {fmt(r.releaseAltitude, 0)} m, aos {fmt(r.releaseTime, 1)} s</td></tr>
+          <tr><td>Δv equivalente entregue</td><td className="num">—</td><td className="num">{fmt(r.dvEquivalent, 0)} m/s (≈ {fmt(r.propellantEquivalent, 2)} kg de propelente)</td></tr>
+          <tr className={over ? "bad" : ""}><td>Cargas no foguete</td><td className="num">—</td><td className="num">{fmt(r.maxAxialG, 1)} g axial (limite {fmt(r.axialLimitG, 0)}), {fmt(r.maxLateralG, 1)} g lateral (limite {fmt(r.lateralLimitG, 0)})</td></tr>
+          <tr><td>Energia do lançador</td><td className="num">—</td><td className="num">{fmt(r.energy.input / 1000, 1)} kJ entregues, {fmt(r.energy.dissipated / 1000, 1)} kJ dissipados; balanço fecha em {r.energy.residual.toExponential(1)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((t: number) => void) | undefined; onExport?: ((kind: "kml" | "csv") => void) | undefined }) {
   const series = useMemo(() => {
     const pick = (col: number): Series[] =>
@@ -66,6 +85,7 @@ export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((
         <div className="card"><b>{fmt(Math.max(...out.bodies.map((b) => b.landing ? Math.hypot(b.landing[2], b.landing[3]) : 0)), 0)} m</b><span>maior distância de pouso</span></div>
         <div className="card"><b>{out.bodies.length}</b><span>{out.bodies.length === 1 ? "corpo" : "corpos depois das separações"}</span></div>
       </div>
+      {out.launcher && <LauncherCompare r={out.launcher} />}
       <table className="bodies">
         <thead>
           <tr><th>Corpo</th><th>Modelo</th><th>Pouso</th><th>Destino</th></tr>

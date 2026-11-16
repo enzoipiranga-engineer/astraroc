@@ -2,7 +2,7 @@
  * Protocolo de mensagens entre a thread da UI e o Web Worker do núcleo.
  * Cada pedido carrega um `id`; a resposta devolve o mesmo `id`.
  */
-import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 export interface CoreInfo {
   /** Versão do núcleo Rust (semver). */
@@ -18,7 +18,9 @@ export type CoreRequest =
   | { id: number; kind: "validate"; design: Design; withFlight: boolean }
   | { id: number; kind: "simulate"; design: Design }
   | { id: number; kind: "mission"; request: MissionRequest }
-  | { id: number; kind: "engines" };
+  | { id: number; kind: "engines" }
+  | { id: number; kind: "plugins" }
+  | { id: number; kind: "checkPlugin"; spec: PluginSpec };
 
 export type CoreResult =
   | { kind: "info"; info: CoreInfo }
@@ -27,7 +29,9 @@ export type CoreResult =
   | { kind: "validate"; validation: Validation }
   | { kind: "simulate"; output: SimOutput }
   | { kind: "mission"; mission: MissionOutput }
-  | { kind: "engines"; engines: EngineInfo[] };
+  | { kind: "engines"; engines: EngineInfo[] }
+  | { kind: "plugins"; plugins: PluginSpec[] }
+  | { kind: "checkPlugin"; check: PluginCheck };
 
 export type CoreResponse =
   | ({ id: number; ok: true } & CoreResult)

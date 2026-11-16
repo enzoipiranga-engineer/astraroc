@@ -114,6 +114,26 @@ impl Motor {
         Some((&self.points[i - 1], &self.points[i]))
     }
 
+    /// O mesmo motor com a ignição atrasada de `t0` segundos: empuxo nulo e propelente
+    /// cheio até `t0`, depois a curva original deslocada.
+    #[must_use]
+    pub fn delayed(&self, t0: f64) -> Self {
+        if t0 <= 0.0 || !t0.is_finite() {
+            return self.clone();
+        }
+        let full = self.initial_prop_mass();
+        let mut points = vec![MotorPoint {
+            t: 0.0,
+            thrust: 0.0,
+            prop_mass: full,
+        }];
+        points.extend(self.points.iter().map(|p| MotorPoint { t: p.t + t0, ..*p }));
+        Self {
+            points,
+            ..self.clone()
+        }
+    }
+
     /// Instante do último ponto da tabela, s.
     #[must_use]
     pub fn burn_time(&self) -> f64 {

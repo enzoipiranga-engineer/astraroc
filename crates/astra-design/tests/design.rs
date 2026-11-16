@@ -412,3 +412,94 @@ impl Vec3Like {
         self.0 * o.0 + self.1 * o.1 + self.2 * o.2
     }
 }
+
+/// Lançamento aéreo do foguete de competição: parte do estado do avião, acende depois da
+/// queda livre e sobe muito mais que do trilho; o relatório compara os dois.
+#[test]
+fn air_launch_of_the_competition_rocket() {
+    let mut d = templates::competition_500m();
+    d.launcher = vec![astra_launch::Launcher::Air(astra_launch::AirLaunch {
+        altitude: 3_000.0,
+        speed: 120.0,
+        flight_path_deg: 20.0,
+        heading_deg: 0.0,
+        drop_time: 1.0,
+        aircraft_mass: 2_000.0,
+    })];
+    let o = simulate(&d, &db());
+    let rep = o.launcher.clone().expect("relatório do lançador");
+    assert!(rep.released && (rep.release_speed - 120.0).abs() < 1e-6);
+    assert!((rep.ignition_time - rep.release_time - 1.0).abs() < 1e-9);
+    assert!(
+        rep.apogee_with > rep.apogee_without + 2_500.0,
+        "com {} sem {}",
+        rep.apogee_with,
+        rep.apogee_without
+    );
+    assert!(rep.dv_equivalent > 120.0 && rep.propellant_equivalent > 0.0);
+    // O foguete continua sendo o corpo 0 e começa no estado de liberação.
+    let first = o.bodies[0].samples[0];
+    assert!((first[1] - 3_000.0).abs() < 1.0 && (first[2] - 120.0).abs() < 1.0);
+    assert!(o.bodies.iter().any(|b| b.name == "Avião"));
+    assert!(o.events.iter().any(|e| e.kind == "launcher:release"));
+}
+
+/// Plataforma giratória forte demais para o foguete de papel: o aviso estrutural aparece
+/// e o foguete sai girando com o braço (e capota).
+#[test]
+fn spin_launch_overloads_and_tumbles() {
+    let mut d = templates::competition_500m();
+    d.launcher = vec![astra_launch::Launcher::Spin(astra_launch::Spin {
+        radius: 5.0,
+        arm_mass: 200.0,
+        torque: 20_000.0,
+        target_rpm: 400.0,
+        chamber_pressure: 0.0,
+        arm_cd_width: 0.2,
+        release_elevation_deg: 80.0,
+        azimuth_deg: 0.0,
+        hub_height: 6.0,
+        ignition_delay: 0.5,
+    })];
+    let o = simulate(&d, &db());
+    let rep = o.launcher.clone().unwrap();
+    assert!(rep.max_lateral_g > 800.0);
+    assert!(
+        o.warnings.iter().any(|w| w.contains("lateral")),
+        "{:?}",
+        o.warnings
+    );
+    assert!(rep.energy.residual < 1e-8);
+    let alpha_max = o.bodies[0]
+        .samples
+        .iter()
+        .take(60)
+        .map(|r| r[8])
+        .filter(|a| a.is_finite())
+        .fold(0.0, f64::max);
+    assert!(
+        alpha_max > 30.0,
+        "sai girando a {:.0} rad/s: α {alpha_max}",
+        400.0 * 2.0 * core::f64::consts::PI / 60.0
+    );
+}
+
+/// Plugin da comunidade dentro do projeto, ida e volta pelo JSON.
+#[test]
+fn plugin_launcher_in_design() {
+    let mut d = templates::competition_500m();
+    let spec = astra_launch::builtin_plugins().remove(0);
+    let mut values = std::collections::BTreeMap::new();
+    values.insert("mc".to_owned(), 5.0);
+    d.launcher = vec![astra_launch::Launcher::Plugin { spec: Box::new(spec), values }];
+    let back = Design::from_json(&d.to_json()).unwrap();
+    assert_eq!(back, d);
+    let o = simulate(&back, &db());
+    let rep = o.launcher.unwrap();
+    assert!(
+        rep.release_speed > 50.0 && rep.apogee_with > rep.apogee_without,
+        "{} {}",
+        rep.apogee_with,
+        rep.apogee_without
+    );
+}

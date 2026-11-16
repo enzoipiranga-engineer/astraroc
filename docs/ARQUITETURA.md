@@ -47,7 +47,7 @@ astra/
 │  ├─ astra-propulsion/  Fase 2   curvas .eng/.rse, BATES, água (feito); Fase 5: líquido, híbrido e demais
 │  ├─ astra-vehicle/     Fase 2   foguete montado, paraquedas, exemplos (feito)
 │  ├─ astra-design/      Fase 3   gêmeo digital: peças, materiais, juntas, verificação, falha simulada (feito)
-│  ├─ astra-launch/      Fase 6   contrato LaunchSystem e modos nativos
+│  ├─ astra-launch/      Fase 6   lançadores plugáveis, cadeias, plugins com expressões seguras (feito)
 │  ├─ astra-avionics/    Fase 7   sensores, circuito, barramentos
 │  ├─ astra-mission/     Fase 5   lançadores multiestágio, guiagem, órbita, Δv (feito)
 │  ├─ astra-orbit/       Fase 10  2 corpos + J2, Lambert, N-corpos

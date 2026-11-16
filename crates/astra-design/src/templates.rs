@@ -180,6 +180,7 @@ pub fn pet_bottle() -> Design {
         electronics: crate::elec::Electronics::default(),
         payloads: Vec::new(),
         competition: None,
+        finance: serde_json::Value::Null,
     }
 }
 
@@ -437,6 +438,7 @@ pub fn competition_500m() -> Design {
         electronics: crate::elec::Electronics::default(),
         payloads: Vec::new(),
         competition: None,
+        finance: serde_json::Value::Null,
     }
 }
 

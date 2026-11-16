@@ -157,6 +157,8 @@ export interface Design {
   electronics: Electronics;
   payloads: Payload[];
   competition?: RuleSet | null;
+  /** Lista de materiais, orçamento e receitas (ver `finance.ts`). */
+  finance?: import("./finance").Finance;
 }
 
 export type PayloadKind =
@@ -402,6 +404,8 @@ export interface DesignSummary {
   thrustToWeight: number;
   cost: number;
   partsWithoutCost: number;
+  minSafetyFactor?: number | null;
+  partMasses?: number[];
   apogee: number;
   railExitSpeed: number;
   maxSpeed: number;

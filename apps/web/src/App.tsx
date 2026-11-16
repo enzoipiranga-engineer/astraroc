@@ -1,8 +1,9 @@
-import { CoreClient, type Design, type ElecComponent, type ExampleFirmware, type Material, type PayloadPreset, type RuleSet, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
+import { CoreClient, buildBom, type Design, type ElecComponent, type ExampleFirmware, type Material, type PayloadPreset, type RuleSet, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ElectronicsPanel } from "./components/ElectronicsPanel";
 import { MissionReport } from "./components/MissionReport";
 import { PayloadPanel } from "./components/PayloadPanel";
+import { FinancePanel } from "./components/FinancePanel";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
 import { LauncherPanel } from "./components/LauncherPanel";
@@ -14,7 +15,7 @@ import { RecoveryMap } from "./components/RecoveryMap";
 import { SetupPanel } from "./components/SetupPanel";
 import { SitePanel } from "./components/SitePanel";
 import { WindPanel } from "./components/WindPanel";
-import { download, toCsv, toKml } from "./export";
+import { download, fileStem, toCsv, toKml } from "./export";
 import { parseTrack, type TrackPoint } from "./geo";
 import { commit, historyOf, loadSaved, redo, save, undo, type History } from "./state";
 import { fmt } from "./units";
@@ -62,6 +63,9 @@ export function App() {
   const onTime = useCallback((t: number) => setSimTime(t), []);
   const pickAt = useCallback((t: number) => setSeek((s) => ({ t, n: (s?.n ?? 0) + 1 })), []);
   const seq = useRef(0);
+  const prevRef = useRef<{ mass: number; cost: number; apogee: number } | null>(null);
+  const [delta, setDelta] = useState<{ mass: number; cost: number; apogee: number } | null>(null);
+  const elecLibRef = useRef<ElecComponent[]>([]);
 
   useEffect(() => {
     Promise.all([core.templates(), core.materials(), core.info(), core.electronics(), core.presets()]).then(
@@ -69,6 +73,7 @@ export function App() {
         setPayloadPresets(pr.payloads);
         setRulePresets(pr.rules);
         setElecLib(el.library);
+        elecLibRef.current = el.library;
         setExample(el.firmware);
         setTemplates(t);
         setMaterials(m);
@@ -97,6 +102,12 @@ export function App() {
           if (id === seq.current) {
             setValidation(v);
             setLoadsBusy(false);
+            // Efeito da última mudança: compara com a versão anterior verificada com voo.
+            const cost = buildBom(design, elecLibRef.current, v.summary.partMasses ?? []).reduce((a, l) => a + l.totalBrl, 0);
+            const now = { mass: v.summary.liftoffMass, cost, apogee: v.summary.apogee };
+            const before = prevRef.current;
+            setDelta(before ? { mass: now.mass - before.mass, cost: now.cost - before.cost, apogee: now.apogee - before.apogee } : null);
+            prevRef.current = now;
           }
         },
         () => id === seq.current && setLoadsBusy(false),
@@ -157,7 +168,7 @@ export function App() {
   const exportJson = () => {
     if (!design) return;
     const url = URL.createObjectURL(new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `${design.name.replace(/[^\w-]+/g, "_")}.astra.json` });
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${fileStem(design.name)}.astra.json` });
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -177,6 +188,11 @@ export function App() {
   const errorParts = new Set(issues.filter((i) => i.severity === "error").flatMap((i) => i.parts));
   const errorJoints = new Set(issues.filter((i) => i.severity !== "info").flatMap((i) => i.joints));
   const s = validation?.summary;
+  const bom = s ? buildBom(design, elecLib, s.partMasses ?? []) : [];
+  const bomTotal = bom.reduce((a, l) => a + l.totalBrl, 0);
+  const bomMissing = bom.filter((l) => l.missing).length;
+  const dlt = (v: number | undefined, unit: string, k = 1, digits = 0) =>
+    delta && v !== undefined && Math.abs(v * k) >= 0.5 * 10 ** -digits ? <small className={v > 0 ? "up" : "down"}> {v > 0 ? "+" : "−"}{fmt(Math.abs(v * k), digits)} {unit}</small> : null;
   const nErr = issues.filter((i) => i.severity === "error").length;
 
   return (
@@ -216,12 +232,12 @@ export function App() {
         <>
       {s && (
         <div className="stats">
-          <span>Massa <b>{fmt(s.liftoffMass * 1000, 0)} g</b></span>
+          <span>Massa <b>{fmt(s.liftoffMass * 1000, 0)} g</b>{!loadsBusy && dlt(delta?.mass, "g", 1000)}</span>
           <span>Margem <b className={s.staticMargin < 0 ? "bad" : s.staticMargin < 1 ? "warn" : ""}>{fmt(s.staticMargin, 2)} cal</b></span>
           <span>Empuxo/peso <b>{fmt(s.thrustToWeight, 1)}</b></span>
-          <span>Apogeu previsto <b>{loadsBusy ? "…" : `${fmt(s.apogee, 0)} m`}</b></span>
+          <span>Apogeu previsto <b>{loadsBusy ? "…" : `${fmt(s.apogee, 0)} m`}</b>{!loadsBusy && dlt(delta?.apogee, "m")}</span>
           <span>Saída do trilho <b>{loadsBusy ? "…" : `${fmt(s.railExitSpeed, 1)} m/s`}</b></span>
-          <span>Custo <b>R$ {fmt(s.cost, 2)}</b>{s.partsWithoutCost > 0 && <small> ({s.partsWithoutCost} sem preço)</small>}</span>
+          <span>Custo <b>R$ {fmt(bomTotal, 2)}</b>{dlt(delta?.cost, "R$", 1, 2)}{bomMissing > 0 && <small> ({bomMissing} sem preço)</small>}</span>
         </div>
       )}
 
@@ -243,6 +259,7 @@ export function App() {
         </div>
       </div>
 
+      <FinancePanel design={design} validation={validation} library={elecLib} materials={materials} core={core} onChange={change} />
       <PayloadPanel design={design} presets={payloadPresets} rulePresets={rulePresets} onChange={change} />
       <ElectronicsPanel design={design} validation={validation} core={core} library={elecLib} example={example} result={result} onChange={change} onFlight={setResult} />
 
@@ -279,8 +296,8 @@ export function App() {
           onPick={pickAt}
           onExport={(k) =>
             k === "kml"
-              ? download(`${design.name.replace(/[^\w-]+/g, "_")}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml")
-              : download(`${design.name.replace(/[^\w-]+/g, "_")}.csv`, toCsv(result), "text/csv")
+              ? download(`${fileStem(design.name)}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml")
+              : download(`${fileStem(design.name)}.csv`, toCsv(result), "text/csv")
           }
         />
       )}

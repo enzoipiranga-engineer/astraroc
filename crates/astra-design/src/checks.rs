@@ -61,6 +61,10 @@ pub struct DesignSummary {
     pub cost: f64,
     /// Peças sem preço.
     pub parts_without_cost: usize,
+    /// Menor fator de segurança estrutural no voo nominal (capacidade/carga), quando calculado.
+    pub min_safety_factor: Option<f64>,
+    /// Massa de cada peça, kg (mesma ordem de `parts`).
+    pub part_masses: Vec<f64>,
     /// Do voo nominal (sem falhas): apogeu acima do solo, m.
     pub apogee: f64,
     /// Velocidade na saída do trilho, m/s.
@@ -642,6 +646,7 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
         thrust_to_weight: asm.motor.peak_thrust() / (rocket.mass(0.0) * 9.806_65),
         cost: parts.iter().filter_map(|p| p.cost).fold(0.0, |a, b| a + b),
         parts_without_cost: parts.iter().filter(|p| p.cost.is_none()).count(),
+        part_masses: asm.props.iter().map(|p| p.mass).collect(),
         ..DesignSummary::default()
     };
     let mut prof = Vec::new();
@@ -721,6 +726,21 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
                 }
             }
             load_issues(&asm, design, &nom.margins, &mut v);
+            // Margem m = (cap − carga)/cap ⇒ fator de segurança = 1/(1 − m).
+            s.min_safety_factor = nom
+                .margins
+                .iter()
+                .map(|(_, m)| *m)
+                .filter(|m| m.is_finite())
+                .map(|m| {
+                    if m < 1.0 {
+                        1.0 / (1.0 - m)
+                    } else {
+                        f64::INFINITY
+                    }
+                })
+                .reduce(f64::min)
+                .filter(|f| f.is_finite());
             zone_issues(design, &nom.out, &mut v);
             for e in nom
                 .out

@@ -6,3 +6,4 @@ export type { FlyResult, SerialLine, PinEvent, PyroLog, TraceRow } from "./avr/f
 export { parseHex } from "./avr/hex";
 export { Bmp280, Mpu6050, nmeaGga } from "./avr/devices";
 export { staticPortError } from "./avr/fly";
+export * from "./finance";

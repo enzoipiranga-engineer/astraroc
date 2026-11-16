@@ -51,6 +51,10 @@ pub struct Design {
     /// Regras de competição usadas na avaliação do voo.
     #[serde(default)]
     pub competition: Option<crate::rules::RuleSet>,
+    /// Dados financeiros (lista de materiais, orçamento, receitas). O núcleo só os preserva;
+    /// os cálculos ficam em `@astra/core-js` (`finance.ts`).
+    #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
+    pub finance: serde_json::Value,
 }
 
 fn default_vent_diameter() -> f64 {

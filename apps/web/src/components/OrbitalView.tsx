@@ -22,6 +22,7 @@ interface Props {
 
 /** Lançador orbital: Falcon 9 ou Starship até uma órbita circular, com guiagem automática. */
 export function OrbitalView({ core, ionToken }: Props) {
+  const [launchCost, setLaunchCost] = useState<number | null>(null);
   const [req, setReq] = useState<MissionRequest>({
     vehicle: "falcon9",
     payload: 15_000,
@@ -73,6 +74,7 @@ export function OrbitalView({ core, ionToken }: Props) {
         <div className="orbital-form">
           <SelectField label="Lançador" value={req.vehicle} options={[{ value: "falcon9", label: "Falcon 9 (descartável)" }, { value: "starship", label: "Starship + Super Heavy" }]} onChange={(v) => set({ vehicle: v, payload: v === "starship" ? 100_000 : 15_000 })} />
           <NumberField label="Carga útil" unit="kg" value={req.payload} onChange={(v) => v !== null && set({ payload: v })} />
+          <NumberField label="Custo do lançamento (US$)" unit="count" optional placeholder="informe" value={launchCost} help="Preço do lançamento ou custo do veículo, em dólares. Usado para o custo por kg em órbita." onChange={setLaunchCost} />
           <NumberField label="Órbita circular alvo" unit="m" value={req.targetAltitude} help="Altitude, m" onChange={(v) => v !== null && set({ targetAltitude: v })} />
           <SelectField
             label="Local"
@@ -115,6 +117,7 @@ export function OrbitalView({ core, ionToken }: Props) {
               <div className="card"><b>{fmt(out.liftoffMass / 1000, 0)} t</b><span>massa na decolagem</span></div>
               <div className="card"><b>{fmt(out.maxQ[0] / 1000, 1)} kPa</b><span>max-Q aos {fmt(out.maxQ[1], 0)} s</span></div>
               <div className="card"><b>{fmt(out.maxAccelG, 1)} g</b><span>aceleração máxima</span></div>
+              {launchCost !== null && out.reachedOrbit && <div className="card"><b>US$ {fmt(launchCost / req.payload, 0)}</b><span>por kg em órbita</span></div>}
             </div>
             <h3>Orçamento de Δv</h3>
             <table className="bodies">

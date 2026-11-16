@@ -296,3 +296,34 @@ table.score tr.muted td { color: var(--muted); }
 .badge.bad { background: rgba(255, 107, 107, 0.15); color: var(--bad); }
 .env .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; }
 .rules-col { overflow-x: auto; }
+
+/* Finanças */
+.finance { margin: 0 16px 16px; }
+.finance .card.bad b { color: var(--bad); }
+.fin-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 8px 0; }
+.fin-controls .field { width: 150px; }
+table.fin-budget, table.fin-rev { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 760px; }
+table.fin-budget td, table.fin-budget th, table.fin-rev td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; }
+.bar-cell { width: 160px; }
+.bar { height: 8px; background: var(--good); border-radius: 4px; }
+.bar.over { background: var(--bad); }
+.bom-wrap { overflow-x: auto; }
+table.bom { border-collapse: collapse; font-size: 12px; width: 100%; }
+table.bom td, table.bom th { padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; white-space: nowrap; }
+table.bom input:not([type=checkbox]) { min-width: 70px; }
+table.bom tr.missing td:first-child { color: var(--warn, #f0c36d); }
+table.bom tr.front td { color: var(--orange); }
+table.bom td.num, .num { text-align: right; }
+h3.inline { display: inline; }
+.export { margin-top: 12px; }
+.mats .field { max-width: 220px; }
+.pareto { margin-top: 16px; }
+.pareto .knob { margin: 6px 0; }
+.pareto .cands { display: flex; flex-wrap: wrap; gap: 2px 10px; max-height: 120px; overflow: auto; margin-top: 4px; }
+svg.scatter { width: 100%; max-width: 560px; display: block; margin: 8px 0; }
+svg.scatter .axis { stroke: var(--muted); }
+svg.scatter .lbl { fill: var(--muted); font-size: 11px; }
+svg.scatter circle.front { fill: var(--orange); }
+svg.scatter circle.dom { fill: #5eb1ff; }
+.stats small.up { color: var(--orange); }
+.stats small.down { color: #5eb1ff; }

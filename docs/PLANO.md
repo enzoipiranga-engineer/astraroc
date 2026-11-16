@@ -13,8 +13,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | **Feita** |
 | 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | **Feita** |
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | **Feita, com uma pendência:** o preset Zyrion espera os dados da equipe; o relatório aprovado/reprovado funciona para qualquer carga |
-| 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | Próxima |
-| 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | |
+| 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | **Feita** |
+| 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | Próxima |
 | 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | |
 | 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | |
 
@@ -119,3 +119,19 @@ Ficam registrados aqui para não virarem promessa falsa:
 - **Pirochoque** da carga de ejeção e da separação não é estimado.
 - Os bônus de lançamento na quarta/quinta-feira e as penalidades de conduta da IREC não
   dependem do voo e ficam fora da conta.
+
+## Fase 9: o que ficou para depois
+
+- Preços: o ASTRA não traz preços de materiais nem de peças (variam demais e mudariam
+  sem aviso); o usuário informa preço por item ou R$/kg por material, e o custo das peças
+  sem preço é estimado pela massa.
+- Impostos de importação são uma porcentagem informada por item; o ASTRA não calcula as
+  regras da Receita Federal.
+- Cotação: botão busca a taxa do BCE pela API pública Frankfurter no navegador; não foi
+  possível testá-la a partir do ambiente de desenvolvimento (rede bloqueada). A cotação
+  manual funciona sempre.
+- PDF: o relatório para patrocinadores abre pronto para imprimir e o navegador salva em
+  PDF (não há gerador de PDF próprio).
+- Notas fiscais: só o número; anexar o arquivo fica para quando houver armazenamento.
+- Pareto: varia materiais de até duas peças (até 48 combinações); trocar motor e
+  dimensões no explorador fica para o otimizador da fase 11.

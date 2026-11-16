@@ -52,3 +52,8 @@ export function download(name: string, text: string, type: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Nome de arquivo seguro a partir do nome do projeto (sem acentos nem símbolos). */
+export function fileStem(name: string): string {
+  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "") || "projeto";
+}

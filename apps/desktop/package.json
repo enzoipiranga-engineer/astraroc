@@ -4,6 +4,10 @@
   "private": true,
   "description": "ASTRA como aplicativo de computador (Tauri 2).",
   "scripts": {
+    "tauri": "tauri",
     "build:check": "cargo build --manifest-path src-tauri/Cargo.toml --release"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3"
   }
 }

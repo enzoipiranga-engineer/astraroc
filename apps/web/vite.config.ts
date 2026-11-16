@@ -31,6 +31,7 @@ export default defineConfig({
       targets: ["Workers", "ThirdParty", "Assets", "Widgets"].map((d) => ({ src: `${cesium}/${d}`, dest: "cesium", rename: { stripBase: 4 } })),
     }),
   ],
+  base: "./",
   worker: { format: "es" },
   build: { target: "es2022", chunkSizeWarningLimit: 6000 },
 });

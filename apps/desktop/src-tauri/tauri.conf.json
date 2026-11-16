@@ -10,15 +10,41 @@
     "beforeBuildCommand": "pnpm --filter @astra/web build"
   },
   "app": {
-    "windows": [{ "title": "ASTRA — simulador de foguetes", "width": 1440, "height": 920, "minWidth": 900, "minHeight": 600 }],
-    "security": { "csp": null }
+    "windows": [
+      {
+        "title": "ASTRA — simulador de foguetes",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 900,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "appimage", "msi", "dmg"],
-    "icon": ["icons/icon.png"],
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "category": "Education",
     "shortDescription": "Simulador de foguetes, da garrafa PET à órbita",
-    "longDescription": "ASTRA simula foguetes com física real: projeto peça por peça, falhas estruturais, eletrônica emulada, Monte Carlo, órbitas e reentrada."
+    "longDescription": "ASTRA simula foguetes com física real: projeto peça por peça, falhas estruturais, eletrônica emulada, Monte Carlo, órbitas e reentrada.",
+    "publisher": "ASTRA",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ]
+      }
+    }
   }
 }

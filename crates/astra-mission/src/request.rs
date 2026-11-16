@@ -20,7 +20,7 @@ pub struct EngineOutRequest {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MissionRequest {
-    /// "falcon9" ou "starship".
+    /// "falcon9", "starship" ou "saturnv".
     pub vehicle: String,
     /// Carga útil, kg.
     pub payload: f64,
@@ -57,6 +57,7 @@ impl MissionRequest {
         let mut v = match self.vehicle.as_str() {
             "falcon9" => templates::falcon9(self.payload),
             "starship" => templates::starship(self.payload),
+            "saturnv" => templates::saturn_v(self.payload),
             other => return Err(format!("lançador desconhecido: {other}")),
         };
         let reserve = self.recovery_reserve.clamp(0.0, 0.3);

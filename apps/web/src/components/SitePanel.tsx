@@ -16,6 +16,8 @@ export const SITES = [
   { id: "spaceport", name: "Spaceport America", lat: 32.99, lon: -106.975, alt: 1400 },
   { id: "blackrock", name: "Black Rock Desert, aprox.", lat: 40.9, lon: -119.06, alt: 1190 },
   { id: "esrange", name: "Esrange, aprox.", lat: 67.89, lon: 21.11, alt: 330 },
+  // LASC, "Sugarcane Launch Range" rev. 01 (05/10/2025): 21°56'34,99"S 48°57'14,71"W. Altitude buscada na hora.
+  { id: "slr", name: "Sugarcane Launch Range (LASC)", lat: -21.943053, lon: -48.954086, alt: Number.NaN },
 ] as const;
 
 interface Props {
@@ -65,7 +67,16 @@ export function SitePanel({ design, onChange, picking, onTogglePick, ionToken, o
         options={[{ value: "", label: "personalizado" }, ...SITES.map((s) => ({ value: s.id, label: s.name }))]}
         onChange={(id) => {
           const s = SITES.find((x) => x.id === id);
-          if (s) setL({ latDeg: s.lat, lonDeg: s.lon, altitude: s.alt });
+          if (!s) return;
+          if (s.id === "slr") {
+            // Trilho a 80° (RCSM FLT 4.3.1) e área de recuperação nominal de 1600 m de diâmetro.
+            const zones = [...design.zones.filter((z) => !z.name.startsWith("SLR:")), { name: "SLR: recuperação nominal", latDeg: s.lat, lonDeg: s.lon, radius: 800, kind: "landing" as const }];
+            onChange({ ...design, zones, launch: { ...l, latDeg: s.lat, lonDeg: s.lon, railElevationDeg: 80 } });
+            elevationAt(s.lat, s.lon).then(
+              (alt) => onChange({ ...design, zones, launch: { ...l, latDeg: s.lat, lonDeg: s.lon, railElevationDeg: 80, altitude: Math.round(alt) } }),
+              () => setMsg("Sem internet para a altitude do campo: informe-a à mão."),
+            );
+          } else setL({ latDeg: s.lat, lonDeg: s.lon, altitude: s.alt });
         }}
       />
       <div className="search">

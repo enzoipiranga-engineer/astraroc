@@ -163,3 +163,30 @@ fn boosters_and_max_q_limit() {
         o.max_q.0
     );
 }
+
+#[test]
+fn saturn_v_leo_payload_matches_public_figure() {
+    use astra_mission::templates::{mission, saturn_v};
+    let sv = |p: f64| mission(saturn_v(p), 185_000.0);
+    // Apollo: ≈ 45 t de nave (CSM + LM) em órbita de estacionamento de 185 km.
+    let apollo = simulate(&sv(45_000.0));
+    assert!(apollo.reached_orbit);
+    let (mut lo, mut hi) = (45_000.0, 220_000.0);
+    assert!(!simulate(&sv(hi)).reached_orbit);
+    for _ in 0..7 {
+        let mid = 0.5 * (lo + hi);
+        if simulate(&sv(mid)).reached_orbit {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    println!("Saturn V: carga máxima a 185 km ≈ {:.0} t", lo / 1000.0);
+    // NASA: ≈ 140 t em órbita baixa contando o S-IVB (estágio vazio + propelente que sobra
+    // para a injeção lunar + nave). Aqui: carga máxima + S-IVB seco (12 t).
+    let in_orbit = lo + 12_000.0;
+    assert!(
+        in_orbit > 0.75 * 140_000.0 && in_orbit < 1.25 * 140_000.0,
+        "em órbita {in_orbit}"
+    );
+}

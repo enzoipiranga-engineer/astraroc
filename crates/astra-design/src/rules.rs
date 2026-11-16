@@ -95,6 +95,9 @@ pub struct ApogeeScoring {
     pub points: f64,
     /// Janela relativa (0,3 = ±30 %).
     pub window: f64,
+    /// Fator de tolerância k da fórmula (LASC RCSM: 0,71/0,50/0,29); sem ele, k = janela (IREC).
+    #[serde(default)]
+    pub k: Option<f64>,
 }
 
 /// Bônus.
@@ -238,7 +241,7 @@ fn irec(name: &str, target_ft: f64) -> RuleSet {
         name: name.into(),
         document: doc.into(),
         target_apogee: Some(target_ft * FT),
-        apogee_scoring: Some(ApogeeScoring { points: 350.0, window: 0.3 }),
+        apogee_scoring: Some(ApogeeScoring { points: 350.0, window: 0.3, k: None }),
         recovery_points: Some(150.0),
         podium_fraction: Some(0.5),
         rules: vec![
@@ -258,44 +261,111 @@ fn irec(name: &str, target_ft: f64) -> RuleSet {
     }
 }
 
+/// LASC Rocket Challenge Standards Manual (RCSM), ed. 7, rev. 1 (março de 2026).
+fn lasc(name: &str, target: f64, k: f64, min_payload: f64, hybrid: bool) -> RuleSet {
+    let blocking = |r: Rule| Rule {
+        blocking: true,
+        ..r
+    };
+    let mut rules = vec![
+        rule("payload-massa", &format!("Payload de no mínimo {:.0} g (aceita até 5 % a menos na pesagem)", min_payload * 1000.0), Metric::PayloadMass, Op::AtLeast, Some(0.95 * min_payload), None, 0.0, "RKT 1.1.2, tabela 1"),
+        blocking(rule("trilho-15", "Velocidade na saída do trilho acima de 15 m/s (abaixo de 30 m/s, só com análise de estabilidade)", Metric::RailExitSpeed, Op::AtLeast, Some(15.0), None, 0.0, "FLT 4.3.4")),
+        rule("trilho-30", "Velocidade na saída do trilho de pelo menos 30 m/s (aceita sem análise)", Metric::RailExitSpeed, Op::AtLeast, Some(30.0), None, 0.0, "FLT 4.3.4"),
+        blocking(rule("margem", "Margem estática entre 1,5 e 4 calibres (o ASTRA mede na decolagem; a regra vale para toda a subida)", Metric::StaticMargin, Op::Between, Some(1.5), Some(4.0), 0.0, "FLT 4.3.5 e 4.3.6")),
+        blocking(rule("tw", "Empuxo/peso de pelo menos 5:1", Metric::ThrustToWeight, Op::AtLeast, Some(5.0), None, 0.0, "PRS 5.1.4")),
+        rule("descida", "Descida final abaixo de 10 m/s", Metric::LandingSpeed, Op::AtMost, None, Some(10.0), 0.0, "REC 8.1.4 e 8.1.6"),
+        rule("altimetro", "Altímetro COTS oficial da lista aprovada a bordo", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "ECS 7.1.1"),
+        rule("pinos", "Força da ejeção ≥ 3 × a resistência somada dos pinos de cisalhamento", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "STR 6.5.8"),
+        rule("flutter", "Velocidade de flutter das aletas ≥ 1,5 × a velocidade máxima", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "STR 6.3.2"),
+        rule("lrr", "Revisão de prontidão (LRR) aprovada (verde)", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "FLT 4.1"),
+    ];
+    if target > 1500.0 {
+        rules.push(rule("dual", "Recuperação em dois eventos: estabilizador logo após o apogeu (20–45 m/s) e principal abaixo de 500 m", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "REC 8.1.2 a 8.1.4"));
+        rules.push(rule(
+            "telemetria",
+            "Telemetria COTS da lista aprovada",
+            Metric::Declared,
+            Op::AtLeast,
+            Some(1.0),
+            None,
+            0.0,
+            "ECS 7.1.2",
+        ));
+    }
+    if hybrid {
+        rules.push(rule(
+            "vasos",
+            "Vasos de pressão testados a pelo menos 1,5 × a pressão de operação",
+            Metric::Declared,
+            Op::AtLeast,
+            Some(1.0),
+            None,
+            0.0,
+            "SAF 3.5.4",
+        ));
+    }
+    RuleSet {
+        name: name.into(),
+        document: "LASC Rocket Challenge Standards Manual (RCSM), ed. 7, rev. 1 (2026)".into(),
+        target_apogee: Some(target),
+        apogee_scoring: Some(ApogeeScoring { points: 350.0, window: 0.5, k: Some(k) }),
+        recovery_points: Some(100.0),
+        podium_fraction: None,
+        rules,
+        bonuses: vec![Bonus { text: "Satélite do Satellite Challenge voando neste foguete (bônus de dois desafios)".into(), points: 25.0, metric: None, declared: false, source: "RCSM, Dual-Challenge Bonus".into() }],
+        judged: vec![
+            ("Esforço da equipe (atualizações, patch, vídeo, redes)".into(), 100.0),
+            ("Relatório da missão".into(), 200.0),
+            ("Implementação do projeto".into(), 100.0),
+            ("Prontidão operacional (LRR verde + uso do slot)".into(), 100.0),
+        ],
+        pending: vec!["Penalidades por payload abaixo do mínimo e por atraso não têm valor fixo no RCSM: ficam a critério dos oficiais.".into()],
+    }
+}
+
 /// Presets de regras: só o que está nos documentos recebidos.
 #[must_use]
 pub fn presets() -> Vec<(String, RuleSet)> {
     vec![
-        ("irec-10k".into(), irec("Spaceport America Cup — IREC 10.000 ft", 10_000.0)),
-        ("irec-30k".into(), irec("Spaceport America Cup — IREC 30.000 ft", 30_000.0)),
+        (
+            "irec-10k".into(),
+            irec("Spaceport America Cup — IREC 10.000 ft", 10_000.0),
+        ),
+        (
+            "irec-30k".into(),
+            irec("Spaceport America Cup — IREC 30.000 ft", 30_000.0),
+        ),
         (
             "lasc-500m".into(),
-            RuleSet {
-                name: "LASC — categoria 0,5 km AGL".into(),
-                document: "LASC General Rules (LGR), ed. 1, rev. 1 (2026)".into(),
-                target_apogee: Some(500.0),
-                apogee_scoring: None,
-                recovery_points: None,
-                podium_fraction: None,
-                rules: vec![],
-                bonuses: vec![],
-                judged: vec![],
-                pending: vec![
-                    "O LGR cita a categoria de 0,5 km AGL (ORG 4.1.3), mas pontuação e critérios técnicos ficam no Rocket Challenge Standard Manual (RCSM), ainda não recebido.".into(),
-                    "Regras de segurança de voo: Launch Operations Manual (LOM), ainda não recebido.".into(),
-                ],
-            },
+            lasc("LASC — 0,5 km, propulsão sólida", 500.0, 0.71, 0.400, false),
         ),
         (
             "lasc-1km".into(),
-            RuleSet {
-                name: "LASC — categoria 1 km AGL (híbrido/líquido)".into(),
-                document: "LASC General Rules (LGR), ed. 1, rev. 1 (2026)".into(),
-                target_apogee: Some(1000.0),
-                apogee_scoring: None,
-                recovery_points: None,
-                podium_fraction: None,
-                rules: vec![],
-                bonuses: vec![],
-                judged: vec![],
-                pending: vec!["Pontuação e critérios técnicos no RCSM, e segurança no LOM, ainda não recebidos.".into()],
-            },
+            lasc("LASC — 1 km, propulsão sólida", 1000.0, 0.50, 0.800, false),
+        ),
+        (
+            "lasc-3km".into(),
+            lasc("LASC — 3 km, propulsão sólida", 3000.0, 0.29, 4.000, false),
+        ),
+        (
+            "lasc-hibrido-1km".into(),
+            lasc(
+                "LASC — híbrido/líquido, alvo 1 km",
+                1000.0,
+                0.50,
+                0.400,
+                true,
+            ),
+        ),
+        (
+            "lasc-hibrido-3km".into(),
+            lasc(
+                "LASC — híbrido/líquido, alvo 3 km",
+                3000.0,
+                0.29,
+                2.000,
+                true,
+            ),
         ),
         (
             "vazio".into(),
@@ -399,11 +469,16 @@ pub fn evaluate(
         .collect();
     let apogee_points = match (&set.apogee_scoring, set.target_apogee) {
         // SA Cup IREC 2024 v1.4, §2.7.1.4: 350 − 350/(0,3·alvo)·|alvo − apogeu|, zero fora de ±30 %.
-        (Some(s), Some(t)) => Some(if (apogee - t).abs() <= s.window * t {
-            s.points - s.points / (s.window * t) * (apogee - t).abs()
-        } else {
-            0.0
-        }),
+        // LASC RCSM ed. 7, apêndice B: 350 − 350/(k·alvo)·|alvo − apogeu|, só dentro de ±50 %,
+        // negativo vira zero.
+        (Some(s), Some(t)) => {
+            let k = s.k.unwrap_or(s.window);
+            Some(if (apogee - t).abs() <= s.window * t {
+                (s.points - s.points / (k * t) * (apogee - t).abs()).max(0.0)
+            } else {
+                0.0
+            })
+        }
         _ => None,
     };
     // Recuperação: passa se nada quebrou e cada regra de pouso passou.

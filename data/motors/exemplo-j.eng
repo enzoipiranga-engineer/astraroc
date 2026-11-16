@@ -1,0 +1,10 @@
+; Curva de EXEMPLO do ASTRA: NAO e um motor comercial. Forma tipica de motor de 38 mm,
+; impulso total 700.0 N.s (subida linear a partir de t = 0). Troque pela curva real do seu motor (thrustcurve.org).
+EXEMPLO-J 38 367 0 0.37 0.72 ASTRA
+   0.060 381.83
+   0.200 422.02
+   0.600 401.92
+   1.200 371.78
+   1.700 331.59
+   1.900 150.72
+   2.050 0.00

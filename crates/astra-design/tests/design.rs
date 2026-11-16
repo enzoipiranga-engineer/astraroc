@@ -947,3 +947,81 @@ mod openrocket {
         assert!(imp.warnings.iter().any(|w| w.contains("Carga de ejeção")));
     }
 }
+
+mod lasc {
+    use astra_design::rules::presets;
+    use astra_design::{simulate, templates, MaterialDb};
+
+    #[test]
+    fn rcsm_k_factor_scoring_and_rules() {
+        let db = MaterialDb::builtin();
+        let d = templates::competition_payload();
+        let c = simulate(&d, &db).competition.unwrap();
+        // RCSM ed. 7 apêndice B: 350 − 350/(0,71·500)·|500 − apogeu|.
+        let want = (350.0 - 350.0 / (0.71 * 500.0) * (500.0 - c.apogee).abs()).max(0.0);
+        assert!(
+            (c.apogee_points.unwrap() - want).abs() < 1e-9,
+            "{} {want} {:?}",
+            c.apogee,
+            c.apogee_points
+        );
+        // 150 g de carga: abaixo dos 380 g (400 g − 5 %) da categoria de 0,5 km.
+        assert!(
+            c.results.iter().any(|r| r.id == "payload-massa" && !r.pass),
+            "{:?}",
+            c.results
+        );
+        assert!(c.results.iter().any(|r| r.id == "tw" && r.pass));
+        assert!(c.results.iter().any(|r| r.id == "descida" && r.pass));
+        assert_eq!(c.recovery_points, Some(100.0));
+        // Erro de 33 % com k = 0,29: a fórmula fica negativa e vira zero.
+        let mut far = d.clone();
+        let mut s = presets()
+            .into_iter()
+            .find(|(id, _)| id == "lasc-3km")
+            .unwrap()
+            .1;
+        s.target_apogee = Some(c.apogee * 1.5);
+        far.competition = Some(s);
+        let c2 = simulate(&far, &db).competition.unwrap();
+        assert_eq!(c2.apogee_points, Some(0.0));
+        assert!(c2.results.iter().any(|r| r.id == "dual"));
+    }
+}
+
+mod kits {
+    use astra_design::{simulate, templates, validate, MaterialDb, Severity};
+
+    #[test]
+    fn hobby_and_certification_templates_fly_clean() {
+        let db = MaterialDb::builtin();
+        for (id, d, lo, hi) in [
+            ("kit-18mm", templates::model_kit(), 250.0, 600.0),
+            ("nivel-1", templates::level_1(), 600.0, 1400.0),
+            ("nivel-2", templates::level_2(), 700.0, 1600.0),
+            ("nivel-3", templates::level_3(), 2000.0, 4500.0),
+        ] {
+            let v = validate(&d, &db, true);
+            let bad: Vec<_> = v
+                .issues
+                .iter()
+                .filter(|i| i.severity != Severity::Info)
+                .map(|i| &i.message)
+                .collect();
+            assert!(bad.is_empty(), "{id}: {bad:?}");
+            assert!(
+                v.summary.apogee > lo && v.summary.apogee < hi,
+                "{id}: {}",
+                v.summary.apogee
+            );
+            let out = simulate(&d, &db);
+            let land = out
+                .bodies
+                .iter()
+                .filter_map(|b| b.landing)
+                .map(|l| l[1])
+                .fold(0.0, f64::max);
+            assert!(land < 9.0, "{id}: pouso a {land} m/s");
+        }
+    }
+}

@@ -19,6 +19,13 @@ pub enum PayloadKind {
         /// Unidades (1 a 4).
         units: u32,
     },
+    /// CanSat (formato 1C da LASC: Ø 66 × 105 mm).
+    CanSat,
+    /// PocketQube de `units` P (50 × 50 × 50 mm por unidade).
+    PocketQube {
+        /// Unidades.
+        units: u32,
+    },
     /// Experimento científico.
     Experiment,
     /// Câmera.
@@ -147,6 +154,76 @@ pub fn presets() -> Vec<PayloadPreset> {
             width: 0.1,
             requirements: Requirements::default(),
             source: irec.into(),
+        });
+    }
+    let lasc = "LASC Satellite Challenge Standards Manual ed. 7 rev. 2: CubeSat 1U 700–1330 g, 2U 1400–2660 g, 3U 2800–4000 g; CanSat 1C Ø 66 × 105 mm, 200–400 g; PocketQube 1P 200–250 g, 2P 400–500 g, 3P 600–750 g. Massa inicial = máxima permitida.";
+    for (id, name, kind, mass, l, w) in [
+        (
+            "lasc-cubesat-1u",
+            "LASC: CubeSat 1U",
+            PayloadKind::CubeSat { units: 1 },
+            1.33,
+            0.1,
+            0.1,
+        ),
+        (
+            "lasc-cubesat-2u",
+            "LASC: CubeSat 2U",
+            PayloadKind::CubeSat { units: 2 },
+            2.66,
+            0.2,
+            0.1,
+        ),
+        (
+            "lasc-cubesat-3u",
+            "LASC: CubeSat 3U",
+            PayloadKind::CubeSat { units: 3 },
+            4.0,
+            0.3,
+            0.1,
+        ),
+        (
+            "lasc-cansat",
+            "LASC: CanSat 1C",
+            PayloadKind::CanSat,
+            0.4,
+            0.105,
+            0.066,
+        ),
+        (
+            "lasc-pocketqube-1p",
+            "LASC: PocketQube 1P",
+            PayloadKind::PocketQube { units: 1 },
+            0.25,
+            0.05,
+            0.05,
+        ),
+        (
+            "lasc-pocketqube-2p",
+            "LASC: PocketQube 2P",
+            PayloadKind::PocketQube { units: 2 },
+            0.5,
+            0.114,
+            0.05,
+        ),
+        (
+            "lasc-pocketqube-3p",
+            "LASC: PocketQube 3P",
+            PayloadKind::PocketQube { units: 3 },
+            0.75,
+            0.178,
+            0.05,
+        ),
+    ] {
+        v.push(PayloadPreset {
+            id: id.into(),
+            name: name.into(),
+            kind,
+            mass,
+            length: l,
+            width: w,
+            requirements: Requirements::default(),
+            source: lasc.into(),
         });
     }
     for (id, name, kind, mass, l, w) in [

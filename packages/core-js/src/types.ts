@@ -166,6 +166,8 @@ export interface Design {
 export type PayloadKind =
   | { type: "cubeSat"; units: number }
   | { type: "cubeUnit"; units: number }
+  | { type: "canSat" }
+  | { type: "pocketQube"; units: number }
   | { type: "experiment" }
   | { type: "camera" }
   | { type: "sensors" }
@@ -261,7 +263,7 @@ export interface RuleSet {
   name: string;
   document: string;
   targetApogee?: number | null;
-  apogeeScoring?: { points: number; window: number } | null;
+  apogeeScoring?: { points: number; window: number; k?: number | null } | null;
   recoveryPoints?: number | null;
   podiumFraction?: number | null;
   rules: Rule[];
@@ -500,7 +502,7 @@ export interface TemplateEntry {
 }
 
 export interface MissionRequest {
-  vehicle: "falcon9" | "starship";
+  vehicle: "falcon9" | "starship" | "saturnv";
   payload: number;
   targetAltitude: number;
   azimuthDeg: number;

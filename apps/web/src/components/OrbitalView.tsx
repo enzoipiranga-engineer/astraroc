@@ -62,7 +62,7 @@ export function OrbitalView({ core, ionToken }: Props) {
     zones: [],
     launch: { latDeg: req.latDeg, lonDeg: req.lonDeg, altitude: req.altitude, railLength: 0, railElevationDeg: 90, railAzimuthDeg: req.azimuthDeg, deltaT: 0, utc: req.utc ?? null, wind: { layers: [] } },
   } as unknown as Design;
-  const size = (req.vehicle === "starship" ? { length: 121, diameter: 9 } : { length: 70, diameter: 3.66 }) as unknown;
+  const size = (req.vehicle === "starship" ? { length: 121, diameter: 9 } : req.vehicle === "saturnv" ? { length: 110.6, diameter: 10.1 } : { length: 70, diameter: 3.66 }) as unknown;
   const validation = { summary: size, issues: [] } as unknown as Validation;
   const o = out?.orbit;
   const dv = out?.dv;
@@ -72,7 +72,7 @@ export function OrbitalView({ core, ionToken }: Props) {
       <section className="panel">
         <h2>Lançador orbital</h2>
         <div className="orbital-form">
-          <SelectField label="Lançador" value={req.vehicle} options={[{ value: "falcon9", label: "Falcon 9 (descartável)" }, { value: "starship", label: "Starship + Super Heavy" }]} onChange={(v) => set({ vehicle: v, payload: v === "starship" ? 100_000 : 15_000 })} />
+          <SelectField label="Lançador" value={req.vehicle} options={[{ value: "falcon9", label: "Falcon 9 (descartável)" }, { value: "starship", label: "Starship + Super Heavy" }, { value: "saturnv", label: "Saturn V (Apollo)" }]} onChange={(v) => set({ vehicle: v, payload: v === "starship" ? 100_000 : v === "saturnv" ? 45_000 : 15_000, ...(v === "saturnv" ? { latDeg: 28.6083, lonDeg: -80.6041, altitude: 3, targetAltitude: 185_000, azimuthDeg: 72 } : {}) })} />
           <NumberField label="Carga útil" unit="kg" value={req.payload} onChange={(v) => v !== null && set({ payload: v })} />
           <NumberField label="Custo do lançamento (US$)" unit="count" optional placeholder="informe" value={launchCost} help="Preço do lançamento ou custo do veículo, em dólares. Usado para o custo por kg em órbita." onChange={setLaunchCost} />
           <NumberField label="Órbita circular alvo" unit="m" value={req.targetAltitude} help="Altitude, m" onChange={(v) => v !== null && set({ targetAltitude: v })} />

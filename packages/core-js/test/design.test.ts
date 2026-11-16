@@ -26,7 +26,7 @@ describe("projeto pelo worker", () => {
 
   it("lista exemplos e materiais", async () => {
     const t = await client.templates();
-    expect(t.map((x) => x.id)).toEqual(["pet", "competicao-500m", "competicao-avionica", "competicao-carga"]);
+    expect(t.map((x) => x.id)).toEqual(["pet", "competicao-500m", "competicao-avionica", "competicao-carga", "kit-18mm", "nivel-1", "nivel-2", "nivel-3"]);
     const m = await client.materials();
     expect(m.length).toBeGreaterThan(45);
     expect(m.every((x) => x.source.length > 0)).toBe(true);

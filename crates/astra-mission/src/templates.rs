@@ -75,6 +75,64 @@ pub fn falcon9(payload: f64) -> LaunchVehicle {
     }
 }
 
+/// Saturn V (configuração das missões Apollo, números públicos aproximados, confiabilidade
+/// "estimado"): S-IC com 5 F-1, ~131 t seco e ~2150 t de propelente; S-II com 5 J-2, ~40 t
+/// seco (com o interestágio) e ~444 t; S-IVB com 1 J-2, ~12 t seco (com a unidade de
+/// instrumentos) e ~109 t. Torre de escape (~4 t) descartada no início do 2º estágio.
+/// Fonte: NASA, "Saturn V Flight Manual SA-503" (MSFC-MAN-503) e "Saturn V News Reference",
+/// valores arredondados lembrados, não conferidos nesta sessão.
+#[must_use]
+pub fn saturn_v(payload: f64) -> LaunchVehicle {
+    LaunchVehicle {
+        name: "Saturn V".into(),
+        stages: vec![
+            Stage {
+                name: "S-IC".into(),
+                dry_mass: 131_000.0,
+                propellant: 2_150_000.0,
+                engines: vec![(engine("F-1"), 5)],
+                diameter: 10.1,
+                length: 42.1,
+                max_q: Some(40_000.0),
+                max_accel: None,
+                engine_out: None,
+                reserve: 0.0,
+            },
+            Stage {
+                name: "S-II".into(),
+                dry_mass: 40_000.0,
+                propellant: 444_000.0,
+                engines: vec![(engine("J-2"), 5)],
+                diameter: 10.1,
+                length: 24.9,
+                max_q: None,
+                max_accel: None,
+                engine_out: None,
+                reserve: 0.0,
+            },
+            Stage {
+                name: "S-IVB".into(),
+                dry_mass: 12_000.0,
+                propellant: 109_000.0,
+                engines: vec![(engine("J-2"), 1)],
+                diameter: 6.6,
+                length: 17.8,
+                max_q: None,
+                max_accel: None,
+                engine_out: None,
+                reserve: 0.0,
+            },
+        ],
+        boosters: None,
+        fairing: Some(Fairing {
+            mass: 4_000.0,
+            jettison_altitude: 90_000.0,
+        }),
+        payload,
+        cd_table: generic_cd(),
+    }
+}
+
 /// Starship com Super Heavy (versão de 2024–2025, números públicos aproximados):
 /// Super Heavy com 33 Raptor 2, ~200 t seco e ~3400 t de propelente; Starship com 3 Raptor
 /// de nível do mar e 3 Raptor Vacuum, ~120 t seco e ~1200 t de propelente. Hot staging.

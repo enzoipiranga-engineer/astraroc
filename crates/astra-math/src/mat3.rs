@@ -108,10 +108,10 @@ mod tests {
             m: [[2.0, -1.0, 0.5], [0.3, 4.0, -2.0], [1.0, 0.2, 3.0]],
         };
         let p = a.inverse().unwrap() * a;
-        for i in 0..3 {
-            for j in 0..3 {
+        for (i, row) in p.m.iter().enumerate() {
+            for (j, v) in row.iter().enumerate() {
                 let want = if i == j { 1.0 } else { 0.0 };
-                assert!((p.m[i][j] - want).abs() < 1e-14);
+                assert!((v - want).abs() < 1e-14);
             }
         }
         assert!(Mat3::ZERO.inverse().is_none());

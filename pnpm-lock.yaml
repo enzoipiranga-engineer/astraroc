@@ -49,6 +49,10 @@ importers:
         version: 4.1.12(@types/node@22.20.5)(vite@8.3.8(@types/node@22.20.5))
 
   packages/core-js:
+    dependencies:
+      avr8js:
+        specifier: 0.21.1
+        version: 0.21.1
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -297,6 +301,10 @@ packages:
   autolinker@4.1.5:
     resolution: {integrity: sha512-vEfYZPmvVOIuE567XBVCsx8SBgOYtjB2+S1iAaJ+HgH+DNjAcrHem2hmAeC9yaNGWayicv4yR+9UaJlkF3pvtw==}
     engines: {pnpm: '>=10.10.0'}
+
+  avr8js@0.21.1:
+    resolution: {integrity: sha512-lS1vPaB0gB2GXoPrHFQOUG/5CRORjvnmjbs8SiPZdJpt4HkV0+v6HnNeXxo/X9lPqumqphls2Qyql8zsw9rBaw==}
+    engines: {node: '>= 20.19.0', npm: '>= 10.0.0'}
 
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
@@ -928,6 +936,8 @@ snapshots:
   autolinker@4.1.5:
     dependencies:
       tslib: 2.9.1
+
+  avr8js@0.21.1: {}
 
   binary-extensions@2.3.0: {}
 

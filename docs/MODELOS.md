@@ -165,3 +165,49 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 - **Plugins só de guia retilínea** nesta versão (o formato é versionado para crescer).
   Scripts TypeScript/WASM arbitrários não são aceitos: no lugar deles há a linguagem de
   expressões, que não tem laços nem acesso a nada fora das variáveis.
+
+## Eletrônica e firmware (fase 7)
+
+- **Redes elétricas** por união de pinos ligados por fios (union-find). Tensão de cada rede:
+  a da bateria, depois a das saídas de regulador das placas alimentadas. Verificações:
+  sub/sobretensão contra a faixa do componente, GND comum, saída de regulador sobrecarregada,
+  corrente de pino de saída, endereço I2C repetido no mesmo barramento, nível lógico
+  (sensor de 3,3 V num barramento de 5 V), antena dentro de tubo de carbono (≈ 30 dB) ou
+  metal (≈ 60 dB).
+- **Circuito pirotécnico:** I = V / (R_ematch + R_interna + R_ds,on). Se o gate recebe menos
+  que a tensão de condução plena do MOSFET, R_ds é tomado como 10 Ω (MOSFET mal saturado).
+  E-match ligado direto no pino: o pino só fornece a corrente máxima absoluta (≈ 40 mA no
+  ATmega328P), muito abaixo do all-fire. **Brownout:** a tensão no disparo cai para
+  V − I·R_interna; se ficar abaixo da alimentação mínima da placa ligada na mesma bateria, a
+  placa reinicia. Modelo resistivo em regime, sem indutância nem capacitores.
+- **Autonomia** = capacidade × carga / soma das correntes típicas (sem picos de rádio).
+- **Alcance de rádio:** perda de espaço livre (ITU-R P.525) com 10 dB de margem e antena de
+  2,15 dBi em terra; sem relevo, sem polarização, sem a atenuação variável com a atitude.
+- **Verdade dos sensores** (a 100 Hz no corpo que leva a placa): pressão e temperatura da
+  atmosfera na altitude; força específica f = a − g, com a por diferença central da
+  velocidade inercial e g da gravidade J2, girada para o corpo pelo quaternion; velocidade
+  angular do corpo. No 3-DOF (sob paraquedas ou capotando) a atitude é desconhecida: o eixo
+  x é tomado como a vertical local e a velocidade angular é zero.
+- **Sensores virtuais:** ruído gaussiano do datasheet, viés fixo sorteado (acelerômetro
+  2 % de g por eixo), saturação no fundo de escala configurado pelo firmware, atraso de meia
+  janela de medição do BMP280 (tempo típico do §3.8.1 do datasheet). O BMP280 usa os
+  coeficientes de calibração do exemplo do datasheet e as fórmulas inteiras de compensação;
+  o valor cru é obtido por bisseção, de modo que o firmware reconstrói a pressão simulada.
+- **Erro da porta estática com o Mach** é **ilustrativo**: k = −0,01 subsônico, um pico de
+  +0,15·q na faixa transônica (0,85 < M < 1,15) e +0,02·q supersônico. Reproduz o fenômeno
+  qualitativo (o altímetro “vê” uma queda de altitude ao passar pelo transônico), mas não é
+  medido para uma geometria.
+- **Baia sem furo de respiro:** o barômetro lê a pressão do solo durante todo o voo (selagem
+  perfeita; vazamento lento não é modelado).
+- **GPS:** sentenças GGA a 5 Hz com erro gaussiano; perde a solução acima de 4 g, acima de
+  515 m/s e 18 km juntos (COCOM) ou com a antena bloqueada. Sem tempo de reaquisição.
+- **Fio mal crimpado** solta (e fica solto) quando a aceleração passa do limite escolhido:
+  o sensor deixa de responder; se for alimentação da placa, a placa para.
+- **Firmware no laço:** uma única passada do firmware; quando ele aciona um canal
+  pirotécnico, a física é refeita com o disparo naquele instante. Como as entradas antes do
+  disparo não mudam, o firmware continua de onde estava sem rebobinar. A placa liga 3 s antes
+  da ignição. A emulação termina 1 s depois do pouso, 2 s depois do último canal acionado ou
+  em 300 s.
+- **Fórmula de altitude do firmware de exemplo** (hipsométrica de atmosfera padrão) supõe
+  15 °C na pressão de referência; num campo a 470 m o erro é de ≈ 1 % da altura. É um erro
+  real dos altímetros barométricos simples e aparece na simulação.

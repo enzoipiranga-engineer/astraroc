@@ -72,6 +72,85 @@ pub struct SimOutput {
     /// Relatório do sistema de lançamento, quando houver.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub launcher: Option<LauncherReport>,
+    /// Grandezas verdadeiras na placa da eletrônica, a cada 0,01 s, para alimentar os
+    /// sensores virtuais. Colunas em [`SensorRow`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sensors: Vec<SensorRow>,
+}
+
+/// Verdade na placa: t (s), pressão estática (Pa), temperatura (K), velocidade do ar (m/s),
+/// Mach, pressão dinâmica (Pa), força específica no corpo x, y, z (m/s², o que um
+/// acelerômetro mede), velocidade angular no corpo x, y, z (rad/s), latitude (°),
+/// longitude (°), altitude (m), velocidade em relação ao solo (m/s), velocidade vertical
+/// (m/s). No 3-DOF o eixo x do corpo é tomado como a vertical local (pendurado no
+/// paraquedas ou capotando: atitude desconhecida) e a velocidade angular é zero.
+pub type SensorRow = [f64; 17];
+
+/// Amostra genérica para a verdade dos sensores.
+struct Truth {
+    t: f64,
+    r: Vec3,
+    v: Vec3,
+    att: Option<(Quat, Vec3)>,
+    nav: Nav,
+}
+
+/// Força específica: f = a − g, com a por diferença central da velocidade inercial.
+/// No referencial inercial do integrador (ECI), a = dv/dt; g pela gravidade J2.
+/// Fonte: Titterton & Weston, Strapdown Inertial Navigation Technology, 2ª ed., §3.2.
+fn sensor_rows(planet: &Planet, atmosphere: &AtmosphereModel, pts: &[Truth]) -> Vec<SensorRow> {
+    let n = pts.len();
+    (0..n)
+        .map(|i| {
+            let (a, b) = (i.saturating_sub(1), (i + 1).min(n - 1));
+            let dt = pts[b].t - pts[a].t;
+            let acc = if dt > 1e-9 {
+                (pts[b].v - pts[a].v) * (1.0 / dt)
+            } else {
+                Vec3::ZERO
+            };
+            let p = &pts[i];
+            let f = acc - planet.gravity(p.r);
+            let up = p.r.normalized().unwrap_or(Vec3::Z);
+            let (fb, wb) = match p.att {
+                Some((q, w)) => (q.conj().rotate(f), w),
+                None => {
+                    let e = Vec3::Z.cross(up).normalized().unwrap_or(Vec3::X);
+                    let nn = up.cross(e);
+                    (Vec3::new(f.dot(up), f.dot(e), f.dot(nn)), Vec3::ZERO)
+                }
+            };
+            let at = atmosphere.at(p.nav.alt);
+            [
+                p.t,
+                at.pressure,
+                at.temperature,
+                p.nav.speed,
+                p.nav.mach,
+                p.nav.q_dyn,
+                fb.x,
+                fb.y,
+                fb.z,
+                wb.x,
+                wb.y,
+                wb.z,
+                p.nav.lat.to_degrees(),
+                p.nav.lon.to_degrees(),
+                p.nav.alt,
+                p.nav.ground_speed,
+                p.nav.vertical_speed,
+            ]
+        })
+        .collect()
+}
+
+/// Mantém uma amostra a cada `k` (e a última).
+fn decimate<T: Clone>(v: &[T], k: usize) -> Vec<T> {
+    v.iter()
+        .enumerate()
+        .filter(|(i, _)| i % k == 0 || *i + 1 == v.len())
+        .map(|(_, x)| x.clone())
+        .collect()
 }
 
 /// Relatório do sistema de lançamento e comparação com o lançamento do trilho.
@@ -225,7 +304,7 @@ fn chute_canopy(asm: &Assembly, c: usize, t: f64, speed: f64) -> Parachute {
         cd,
         deploy,
         ..
-    } = asm.design.parts[c].kind
+    } = &asm.design.parts[c].kind
     else {
         unreachable!()
     };
@@ -233,8 +312,8 @@ fn chute_canopy(asm: &Assembly, c: usize, t: f64, speed: f64) -> Parachute {
     Parachute {
         name: asm.design.parts[c].name.clone(),
         cd_s: cd * 0.25 * core::f64::consts::PI * diameter * diameter,
-        trigger: crate::limits::trigger_of(deploy),
-        inflation_time: Parachute::fill_time(diameter, speed),
+        trigger: crate::limits::trigger_of(deploy, &asm.design),
+        inflation_time: Parachute::fill_time(*diameter, speed),
         reef: None,
     }
 }
@@ -264,6 +343,19 @@ fn name_of(asm: &Assembly, members: &[usize]) -> String {
 /// Simula o voo do projeto com as falhas físicas.
 #[must_use]
 pub fn simulate(design: &Design, db: &MaterialDb) -> SimOutput {
+    // Disparos do firmware só abrem o paraquedas se o circuito acende o e-match.
+    let filtered;
+    let design = if design.electronics.pyro_events.is_empty() {
+        design
+    } else {
+        let mut d = design.clone();
+        let rep = crate::elec::analyze(&d, &Assembly::new(design, db).props);
+        d.electronics
+            .pyro_events
+            .retain(|e| rep.pyro.iter().any(|p| p.ematch == e.ematch && p.fires));
+        filtered = d;
+        &filtered
+    };
     let asm = Assembly::new(design, db);
     let mut out = run(&asm, false).0;
     if out.launcher.is_some() {
@@ -480,6 +572,7 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                 events: Vec::new(),
                 warnings: o.warnings.clone(),
                 launcher: None,
+                sensors: Vec::new(),
             };
             out.warnings.push(format!(
                 "O sistema de lançamento ({name}) não liberou o foguete."
@@ -507,6 +600,7 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         events: Vec::new(),
         warnings: Vec::new(),
         launcher: None,
+        sensors: Vec::new(),
     };
     if let Some(e) = &asm.motor_error {
         out.warnings.push(format!("Motor: {e}"));
@@ -515,6 +609,14 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         out.warnings.extend(w.warnings.iter().cloned());
     }
     let mut nominal_margins: Vec<(Limit, f64)> = Vec::new();
+    // Peça física da placa com firmware (para a verdade dos sensores).
+    let elec = &asm.design.electronics;
+    let board_part: Option<usize> = elec
+        .firmware
+        .as_ref()
+        .map(|f| f.board.as_str())
+        .and_then(|b| elec.components.iter().find(|c| c.id == b))
+        .and_then(|c| asm.design.parts.iter().position(|p| p.id == c.part));
 
     // Começa pelo sistema que contém a peça raiz; o que não estiver amarrado a ele
     // nem rigidamente preso já cai como peça solta no lançador (fora do escopo do voo).
@@ -629,6 +731,8 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
         // Peças sem estrutura (paraquedas, cordão) vão junto no corpo de 6-DOF como massa.
         let push_samples =
             |out: &mut SimOutput, rows: Vec<Row>| out.bodies[track].samples.extend(rows);
+        // Este trecho leva a placa da eletrônica: grava a verdade dos sensores.
+        let carries_board = board_part.is_some_and(|b| members.contains(&b));
         let end_state: State;
         let reason: EndReason;
         let final_nav: Option<Nav>;
@@ -674,7 +778,7 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                 m0: veh.rocket.mass(0.0),
                 initial_omega_body: Vec3::ZERO,
                 t_max: 1800.0,
-                output_dt: 0.05,
+                output_dt: if carries_board { 0.01 } else { 0.05 },
                 ode: opts(),
                 start,
                 wind: wind.clone(),
@@ -684,8 +788,26 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
             }
             match simulate6(&cfg) {
                 Ok(res) => {
-                    let rows = res
-                        .samples
+                    if carries_board {
+                        let pts: Vec<Truth> = res
+                            .samples
+                            .iter()
+                            .map(|x| Truth {
+                                t: x.t,
+                                r: x.r,
+                                v: x.v,
+                                att: Some((x.q, x.omega)),
+                                nav: x.nav,
+                            })
+                            .collect();
+                        out.sensors.extend(sensor_rows(&planet, &atmosphere, &pts));
+                    }
+                    let kept = if carries_board {
+                        decimate(&res.samples, 5)
+                    } else {
+                        res.samples.clone()
+                    };
+                    let rows = kept
                         .iter()
                         .map(|s| {
                             row(
@@ -832,7 +954,7 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                 launch,
                 m0: mass.max(1e-4),
                 t_max: 3600.0,
-                output_dt: 0.1,
+                output_dt: if carries_board { 0.01 } else { 0.1 },
                 ode: opts(),
                 start: job.state.as_ref().map(|_| Start3 {
                     t: s.t,
@@ -850,8 +972,26 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
             }
             match simulate3(&cfg) {
                 Ok(res) => {
-                    let rows = res
-                        .samples
+                    if carries_board {
+                        let pts: Vec<Truth> = res
+                            .samples
+                            .iter()
+                            .map(|x| Truth {
+                                t: x.t,
+                                r: x.r,
+                                v: x.v,
+                                att: None,
+                                nav: x.nav,
+                            })
+                            .collect();
+                        out.sensors.extend(sensor_rows(&planet, &atmosphere, &pts));
+                    }
+                    let kept = if carries_board {
+                        decimate(&res.samples, 10)
+                    } else {
+                        res.samples.clone()
+                    };
+                    let rows = kept
                         .iter()
                         .map(|x| {
                             row(

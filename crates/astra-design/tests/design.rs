@@ -491,7 +491,10 @@ fn plugin_launcher_in_design() {
     let spec = astra_launch::builtin_plugins().remove(0);
     let mut values = std::collections::BTreeMap::new();
     values.insert("mc".to_owned(), 5.0);
-    d.launcher = vec![astra_launch::Launcher::Plugin { spec: Box::new(spec), values }];
+    d.launcher = vec![astra_launch::Launcher::Plugin {
+        spec: Box::new(spec),
+        values,
+    }];
     let back = Design::from_json(&d.to_json()).unwrap();
     assert_eq!(back, d);
     let o = simulate(&back, &db());
@@ -502,4 +505,174 @@ fn plugin_launcher_in_design() {
         rep.apogee_with,
         rep.apogee_without
     );
+}
+
+mod electronics {
+    use astra_design::elec::{analyze, library, PyroEvent};
+    use astra_design::{simulate, templates, validate, Assembly, MaterialDb};
+
+    #[test]
+    fn library_loads_and_example_is_clean() {
+        let lib = library();
+        assert!(lib.len() >= 25);
+        let db = MaterialDb::builtin();
+        let d = templates::competition_avionics();
+        let v = validate(&d, &db, false);
+        let elec: Vec<_> = v
+            .issues
+            .iter()
+            .filter(|i| i.code != "pyroNoFirmware")
+            .map(|i| (i.code.clone(), i.message.clone()))
+            .collect();
+        let rep = v.electronics.expect("relatório elétrico");
+        assert_eq!(rep.pyro.len(), 1);
+        assert!(rep.pyro[0].fires, "{:?}", rep.pyro[0]);
+        // I = 7,4 V / (1,6 + 0,06 + 0,025) Ω ≈ 4,39 A.
+        assert!(
+            (rep.pyro[0].current - 4.39).abs() < 0.02,
+            "{}",
+            rep.pyro[0].current
+        );
+        assert!(!rep.pyro[0].brownout);
+        assert!(rep
+            .devices
+            .iter()
+            .any(|x| x.lib == "bmp280-modulo" && x.on_bus && x.address == Some(0x76)));
+        assert!(
+            !elec.iter().any(|(c, _)| [
+                "ematchOnPin",
+                "ematchCurrent",
+                "unpowered",
+                "noGround",
+                "i2cConflict",
+                "brownout",
+                "battery"
+            ]
+            .contains(&c.as_str())),
+            "{elec:?}"
+        );
+        // 500 mAh / (20 + 1) mA ≈ 23,8 h.
+        assert!((rep.autonomy_h - 500.0 / 21.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn wiring_mistakes_are_found() {
+        let db = MaterialDb::builtin();
+        let base = templates::competition_avionics();
+        let codes = |d: &astra_design::Design| {
+            let a = Assembly::new(d, &db);
+            analyze(d, &a.props)
+                .issues
+                .into_iter()
+                .map(|i| i.code)
+                .collect::<Vec<_>>()
+        };
+        // E-match direto no pino D3, sem MOSFET.
+        let mut d = base.clone();
+        d.electronics
+            .wires
+            .retain(|w| !w.a.starts_with("q1") && !w.b.starts_with("q1"));
+        d.electronics.wires.push(astra_design::elec::Wire {
+            a: "em1:B".into(),
+            b: "nano:D3".into(),
+            loose_g: None,
+        });
+        assert!(codes(&d).contains(&"ematchOnPin".to_owned()));
+        // Bateria 9 V comum: resistência interna derruba a tensão no disparo.
+        let mut d = base.clone();
+        d.electronics.components[2].lib = "bateria-9v".into();
+        assert!(codes(&d).contains(&"brownout".to_owned()));
+        // BMP280 nu (3,6 V máx.) ligado no 5 V.
+        let mut d = base.clone();
+        d.electronics.components[1].lib = "bmp280".into();
+        assert!(codes(&d).contains(&"overvoltage".to_owned()));
+        // Dois sensores no mesmo endereço.
+        let mut d = base.clone();
+        d.electronics.components.push(astra_design::elec::EComp {
+            id: "baro2".into(),
+            lib: "bmp280-modulo".into(),
+            part: "altimetro".into(),
+            i2c_address: None,
+            charge: None,
+        });
+        for (a, b) in [
+            ("baro2:VCC", "nano:5V"),
+            ("baro2:GND", "nano:GND"),
+            ("baro2:SDA", "nano:A4"),
+            ("baro2:SCL", "nano:A5"),
+        ] {
+            d.electronics.wires.push(astra_design::elec::Wire {
+                a: a.into(),
+                b: b.into(),
+                loose_g: None,
+            });
+        }
+        assert!(codes(&d).contains(&"i2cConflict".to_owned()));
+        // Sem GND no sensor.
+        let mut d = base.clone();
+        d.electronics.wires.retain(|w| w.a != "baro:GND");
+        assert!(codes(&d).contains(&"noGround".to_owned()));
+        // Bateria quase vazia.
+        let mut d = base;
+        d.electronics.components[2].charge = Some(0.02);
+        assert!(codes(&d).contains(&"battery".to_owned()));
+    }
+
+    #[test]
+    fn pyro_deploys_only_when_fired_and_writes_sensor_truth() {
+        let db = MaterialDb::builtin();
+        let mut d = templates::competition_avionics();
+        let never = simulate(&d, &db);
+        assert!(
+            !never
+                .events
+                .iter()
+                .any(|e| e.kind.contains("paraquedas") || e.kind == "deploy"),
+            "{:?}",
+            never.events.iter().map(|e| &e.kind).collect::<Vec<_>>()
+        );
+        let apo = never
+            .events
+            .iter()
+            .find(|e| e.kind == "apogee")
+            .map(|e| e.t)
+            .unwrap();
+        // Verdade dos sensores a 100 Hz.
+        assert!(never.sensors.len() > 100);
+        let dt = never.sensors[2][0] - never.sensors[1][0];
+        assert!((dt - 0.01).abs() < 1e-6, "{dt}");
+        // Na ignição o empuxo já supera o peso: força específica axial > 1 g.
+        let f0 = never.sensors[0];
+        assert!(f0[6] > 9.8, "{f0:?}");
+        // No voo livre (depois da queima, antes do apogeu) só o arrasto age: o acelerômetro
+        // mede desaceleração axial, e a pressão cai com a altura.
+        let burnout = never
+            .events
+            .iter()
+            .find(|e| e.kind == "burnout")
+            .map(|e| e.t)
+            .unwrap();
+        let coast = never.sensors.iter().find(|r| r[0] > burnout + 0.5).unwrap();
+        assert!(coast[6] < -1.0 && coast[6] > -40.0, "{coast:?}");
+        assert!(coast[7].abs() < 0.5 && coast[8].abs() < 0.5, "{coast:?}");
+        assert!(coast[1] < f0[1]);
+        d.electronics.pyro_events = vec![PyroEvent {
+            ematch: "em1".into(),
+            t: apo + 0.5,
+        }];
+        let fired = simulate(&d, &db);
+        let land = |o: &astra_design::SimOutput| {
+            o.bodies
+                .iter()
+                .filter_map(|b| b.landing)
+                .map(|l| l[1])
+                .fold(0.0, f64::max)
+        };
+        assert!(
+            land(&fired) < 0.6 * land(&never),
+            "{} vs {}",
+            land(&fired),
+            land(&never)
+        );
+    }
 }

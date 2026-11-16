@@ -9,7 +9,8 @@ export type FinProfile = "square" | "rounded" | "airfoil";
 export type DeploySpec =
   | { type: "apogee"; delay: number }
   | { type: "altitude"; agl: number }
-  | { type: "time"; t: number };
+  | { type: "time"; t: number }
+  | { type: "pyro"; ematch: string };
 
 export type PartKind =
   | { type: "noseCone"; shape: NoseShape; length: number; diameter: number; wall: number; shoulderLength: number }
@@ -153,6 +154,103 @@ export interface Design {
   materials: Material[];
   zones: Zone[];
   launcher: Launcher[];
+  electronics: Electronics;
+}
+
+/** Pino de um componente eletrônico. */
+export interface ElecPin {
+  name: string;
+  kind: string;
+  volts?: number;
+  maxMa?: number;
+}
+
+/** Componente da biblioteca de eletrônica (`data/electronics.json`). */
+export interface ElecComponent {
+  id: string;
+  name: string;
+  category: string;
+  massG: number;
+  lengthMm: number;
+  widthMm: number;
+  pins: ElecPin[];
+  supply?: { min: number; max: number } | null;
+  currentMa: number;
+  peakMa: number;
+  loadMa: number;
+  logicV?: number | null;
+  mcu?: string | null;
+  clockHz?: number;
+  i2c: number[];
+  sensor?: SensorSpec | null;
+  antenna: boolean;
+  radio?: { txDbm: number; sensitivityDbm: number; freqMhz: number; antennaDbi: number } | null;
+  battery?: { volts: number; capacityMah: number; internalOhm: number } | null;
+  mosfet?: { vgsOn: number; rdsOn: number; maxA: number } | null;
+  ematch?: { resistanceOhm: number; allFireA: number; noFireA: number } | null;
+  source: string;
+  notes?: string | null;
+}
+
+export type SensorSpec =
+  | { type: "baro"; rangePa: [number, number]; noisePa: number; rateHz: number; biasPa: number }
+  | { type: "imu"; accelRangeG: number; gyroRangeDps: number; accelNoiseG: number; gyroNoiseDps: number; rateHz: number }
+  | { type: "gps"; rateHz: number; accuracyM: number; maxSpeed: number; maxAlt: number; maxG: number; cocomSpeed: number; cocomAlt: number };
+
+export interface EComp {
+  id: string;
+  lib: string;
+  part: string;
+  i2cAddress?: number | null;
+  charge?: number | null;
+}
+
+export interface Wire {
+  a: string;
+  b: string;
+  looseG?: number | null;
+}
+
+export interface PyroEvent {
+  ematch: string;
+  t: number;
+}
+
+export interface Electronics {
+  components: EComp[];
+  wires: Wire[];
+  firmware?: { board: string; name: string; hex: string } | null;
+  standbyHours: number;
+  pyroEvents: PyroEvent[];
+}
+
+export interface PyroPath {
+  ematch: string;
+  board: string | null;
+  pin: string | null;
+  fires: boolean;
+  current: number;
+  brownout: boolean;
+  reason: string;
+}
+
+export interface ElecDevice {
+  comp: string;
+  lib: string;
+  address: number | null;
+  onBus: boolean;
+  powered: boolean;
+  blocked: boolean;
+}
+
+export interface ElecReport {
+  issues: Issue[];
+  pyro: PyroPath[];
+  devices: ElecDevice[];
+  autonomyH: number | null;
+  standbyMa: number;
+  radioRangeKm: number | null;
+  board: string | null;
 }
 
 export type Severity = "error" | "warning" | "info";
@@ -188,6 +286,7 @@ export interface DesignSummary {
 export interface Validation {
   issues: Issue[];
   summary: DesignSummary;
+  electronics?: ElecReport;
 }
 
 /** Colunas de cada amostra de um corpo. */
@@ -235,7 +334,30 @@ export interface SimOutput {
   events: FlightEvent[];
   warnings: string[];
   launcher?: LauncherReport | null;
+  /** Verdade na placa a 100 Hz (ver `SENSOR`). */
+  sensors?: number[][];
 }
+
+/** Colunas de `SimOutput.sensors`. */
+export const SENSOR = {
+  t: 0,
+  pressure: 1,
+  temperature: 2,
+  airspeed: 3,
+  mach: 4,
+  q: 5,
+  fx: 6,
+  fy: 7,
+  fz: 8,
+  wx: 9,
+  wy: 10,
+  wz: 11,
+  lat: 12,
+  lon: 13,
+  alt: 14,
+  groundSpeed: 15,
+  vz: 16,
+} as const;
 
 export interface TemplateEntry {
   id: string;

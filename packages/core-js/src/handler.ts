@@ -7,6 +7,8 @@ import {
   coreVersion,
   launcherPlugins,
   designTemplates,
+  electronicsLibrary,
+  exampleFirmware,
   engineLibrary,
   simulateMission,
   materialsJson,
@@ -14,8 +16,9 @@ import {
   simulateDesign,
   validateDesign,
 } from "../wasm/astra_wasm.js";
-import type { CoreRequest, CoreResponse } from "./protocol";
-import type { EngineInfo, Material, MissionOutput, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
+import type { CoreRequest, CoreResponse, ExampleFirmware } from "./protocol";
+import { fly } from "./avr/fly";
+import type { Design, ElecComponent, EngineInfo, Material, MissionOutput, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 export function handle(req: CoreRequest): CoreResponse {
   try {
@@ -51,6 +54,20 @@ export function handle(req: CoreRequest): CoreResponse {
         return { id: req.id, ok: true, kind: "plugins", plugins: JSON.parse(launcherPlugins()) as PluginSpec[] };
       case "checkPlugin":
         return { id: req.id, ok: true, kind: "checkPlugin", check: JSON.parse(checkPlugin(JSON.stringify(req.spec))) as PluginCheck };
+      case "electronics":
+        return {
+          id: req.id,
+          ok: true,
+          kind: "electronics",
+          library: JSON.parse(electronicsLibrary()) as ElecComponent[],
+          firmware: JSON.parse(exampleFirmware()) as ExampleFirmware,
+        };
+      case "fly": {
+        const validation = JSON.parse(validateDesign(JSON.stringify(req.design), false)) as Validation;
+        const library = JSON.parse(electronicsLibrary()) as ElecComponent[];
+        const sim = (d: Design) => JSON.parse(simulateDesign(JSON.stringify(d))) as SimOutput;
+        return { id: req.id, ok: true, kind: "fly", result: fly(req.design, validation, library, sim, req.seed === undefined ? {} : { seed: req.seed }) };
+      }
       case "engines":
         return { id: req.id, ok: true, kind: "engines", engines: JSON.parse(engineLibrary()) as EngineInfo[] };
     }

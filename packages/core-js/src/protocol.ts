@@ -2,7 +2,8 @@
  * Protocolo de mensagens entre a thread da UI e o Web Worker do núcleo.
  * Cada pedido carrega um `id`; a resposta devolve o mesmo `id`.
  */
-import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
+import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation, ElecComponent } from "./types";
+import type { FlyResult } from "./avr/fly";
 
 export interface CoreInfo {
   /** Versão do núcleo Rust (semver). */
@@ -20,7 +21,9 @@ export type CoreRequest =
   | { id: number; kind: "mission"; request: MissionRequest }
   | { id: number; kind: "engines" }
   | { id: number; kind: "plugins" }
-  | { id: number; kind: "checkPlugin"; spec: PluginSpec };
+  | { id: number; kind: "checkPlugin"; spec: PluginSpec }
+  | { id: number; kind: "electronics" }
+  | { id: number; kind: "fly"; design: Design; seed?: number };
 
 export type CoreResult =
   | { kind: "info"; info: CoreInfo }
@@ -31,7 +34,16 @@ export type CoreResult =
   | { kind: "mission"; mission: MissionOutput }
   | { kind: "engines"; engines: EngineInfo[] }
   | { kind: "plugins"; plugins: PluginSpec[] }
-  | { kind: "checkPlugin"; check: PluginCheck };
+  | { kind: "checkPlugin"; check: PluginCheck }
+  | { kind: "electronics"; library: ElecComponent[]; firmware: ExampleFirmware }
+  | { kind: "fly"; result: FlyResult };
+
+/** Firmware de exemplo que acompanha o ASTRA. */
+export interface ExampleFirmware {
+  name: string;
+  hex: string;
+  source: string;
+}
 
 export type CoreResponse =
   | ({ id: number; ok: true } & CoreResult)

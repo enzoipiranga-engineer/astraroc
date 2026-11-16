@@ -369,3 +369,22 @@ mod tests {
         assert!(super::self_check() < 1e-8);
     }
 }
+
+/// Biblioteca de componentes eletrônicos (`data/electronics.json`).
+#[wasm_bindgen(js_name = electronicsLibrary)]
+#[must_use]
+pub fn electronics_library() -> String {
+    serde_json::to_string(&astra_design::elec::library()).unwrap_or_else(|_| "[]".to_owned())
+}
+
+/// Firmware de exemplo (Intel HEX) e seu código-fonte em C.
+#[wasm_bindgen(js_name = exampleFirmware)]
+#[must_use]
+pub fn example_firmware() -> String {
+    serde_json::json!({
+        "name": "apogeu.hex",
+        "hex": astra_design::templates::EXAMPLE_FIRMWARE_HEX,
+        "source": include_str!("../../../data/firmware/apogeu.c"),
+    })
+    .to_string()
+}

@@ -1,5 +1,6 @@
-import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, RequestBody } from "./protocol";
-import type { Design, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
+import type { CoreInfo, CoreRequest, CoreResponse, CoreResult, ExampleFirmware, RequestBody } from "./protocol";
+import type { FlyResult } from "./avr/fly";
+import type { Design, ElecComponent, EngineInfo, Material, MissionOutput, MissionRequest, PluginCheck, PluginSpec, SimOutput, TemplateEntry, Validation } from "./types";
 
 /** O mínimo de `Worker` que o cliente usa (permite testar sem navegador). */
 export interface WorkerLike {
@@ -75,6 +76,17 @@ export class CoreClient {
   /** Verificação automática de um plugin. */
   async checkPlugin(spec: PluginSpec): Promise<PluginCheck> {
     return (await this.call({ kind: "checkPlugin", spec })).check;
+  }
+
+  /** Biblioteca de eletrônica e firmware de exemplo. */
+  async electronics(): Promise<{ library: ElecComponent[]; firmware: ExampleFirmware }> {
+    const r = await this.call({ kind: "electronics" });
+    return { library: r.library, firmware: r.firmware };
+  }
+
+  /** Voo com o firmware da placa emulado no laço. */
+  async fly(design: Design, seed?: number): Promise<FlyResult> {
+    return (await this.call(seed === undefined ? { kind: "fly", design } : { kind: "fly", design, seed })).result;
   }
 
   /** Biblioteca de motores líquidos. */

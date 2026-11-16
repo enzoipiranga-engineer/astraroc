@@ -95,11 +95,16 @@ pub(crate) struct BodyVehicle<'a> {
     pub monitor: Option<RefCell<Vec<f64>>>,
 }
 
-pub(crate) fn trigger_of(d: DeploySpec) -> Trigger {
+/// Disparo do paraquedas. Para o acionamento pirotécnico, o instante vem do firmware
+/// emulado (`Electronics::pyro_events`); sem disparo, o paraquedas nunca abre.
+pub(crate) fn trigger_of(d: &DeploySpec, design: &crate::model::Design) -> Trigger {
     match d {
-        DeploySpec::Apogee { delay } => Trigger::AfterApogee { delay },
-        DeploySpec::Altitude { agl } => Trigger::DescendingThrough { agl },
-        DeploySpec::Time { t } => Trigger::Time(t),
+        DeploySpec::Apogee { delay } => Trigger::AfterApogee { delay: *delay },
+        DeploySpec::Altitude { agl } => Trigger::DescendingThrough { agl: *agl },
+        DeploySpec::Time { t } => Trigger::Time(*t),
+        DeploySpec::Pyro { ematch } => {
+            Trigger::Time(crate::elec::pyro_time(design, ematch).unwrap_or(f64::INFINITY))
+        }
     }
 }
 
@@ -397,8 +402,8 @@ impl Sequencer for BodyVehicle<'_> {
     fn triggers(&self) -> Vec<Trigger> {
         self.chutes
             .iter()
-            .map(|&c| match self.asm.design.parts[c].kind {
-                PartKind::Parachute { deploy, .. } => trigger_of(deploy),
+            .map(|&c| match &self.asm.design.parts[c].kind {
+                PartKind::Parachute { deploy, .. } => trigger_of(deploy, &self.asm.design),
                 _ => unreachable!(),
             })
             .collect()
@@ -518,8 +523,8 @@ impl Sequencer for PointSystem<'_> {
     fn triggers(&self) -> Vec<Trigger> {
         self.pending
             .iter()
-            .map(|&c| match self.asm.design.parts[c].kind {
-                PartKind::Parachute { deploy, .. } => trigger_of(deploy),
+            .map(|&c| match &self.asm.design.parts[c].kind {
+                PartKind::Parachute { deploy, .. } => trigger_of(deploy, &self.asm.design),
                 _ => unreachable!(),
             })
             .collect()

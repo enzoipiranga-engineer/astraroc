@@ -118,14 +118,23 @@ export function PartPanel({ design, materials, selected, errorParts, onSelect, o
 
 function ChuteFields({ design, kind, setKind }: { design: Design; part: Part; kind: Extract<PartKind, { type: "parachute" }>; setKind: (k: string, v: unknown) => void }) {
   const d = kind.deploy;
+  const ematches = design.electronics.components.filter((c) => c.lib === "ematch");
   return (
     <>
       <SelectField
         label="Quando ejetar"
         value={d.type}
-        options={[{ value: "apogee", label: "No apogeu + atraso" }, { value: "altitude", label: "Descendo por uma altura" }, { value: "time", label: "Tempo após a ignição" }]}
-        onChange={(t) => setKind("deploy", t === "apogee" ? { type: t, delay: 1 } : t === "altitude" ? { type: t, agl: 150 } : { type: t, t: 8 })}
+        options={[
+          { value: "apogee", label: "No apogeu + atraso" },
+          { value: "altitude", label: "Descendo por uma altura" },
+          { value: "time", label: "Tempo após a ignição" },
+          ...(ematches.length ? [{ value: "pyro", label: "Pelo firmware (e-match)" }] : []),
+        ]}
+        onChange={(t) => setKind("deploy", t === "apogee" ? { type: t, delay: 1 } : t === "altitude" ? { type: t, agl: 150 } : t === "pyro" ? { type: t, ematch: ematches[0]!.id } : { type: t, t: 8 })}
       />
+      {d.type === "pyro" && (
+        <SelectField label="E-match" value={d.ematch} options={ematches.map((c) => ({ value: c.id, label: c.id }))} onChange={(v) => setKind("deploy", { type: "pyro", ematch: v })} />
+      )}
       {d.type === "apogee" && <NumberField label="Atraso" unit="s" value={d.delay} onChange={(v) => v !== null && setKind("deploy", { ...d, delay: v })} />}
       {d.type === "altitude" && <NumberField label="Altura acima do solo" unit="m" value={d.agl} onChange={(v) => v !== null && setKind("deploy", { ...d, agl: v })} />}
       {d.type === "time" && <NumberField label="Tempo" unit="s" value={d.t} onChange={(v) => v !== null && setKind("deploy", { ...d, t: v })} />}

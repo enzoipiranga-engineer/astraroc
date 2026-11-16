@@ -42,6 +42,9 @@ pub struct Design {
     /// Sistema de lançamento alternativo (vazio = trilho do lançamento).
     #[serde(default)]
     pub launcher: Vec<astra_launch::Launcher>,
+    /// Eletrônica embarcada.
+    #[serde(default)]
+    pub electronics: crate::elec::Electronics,
 }
 
 /// Tabela de Cd por Mach.
@@ -92,7 +95,7 @@ pub enum FinProfileSpec {
 }
 
 /// Quando um paraquedas é ejetado.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum DeploySpec {
     /// No apogeu mais um atraso, s.
@@ -110,6 +113,11 @@ pub enum DeploySpec {
     Time {
         /// Instante, s.
         t: f64,
+    },
+    /// Quando o firmware dispara o e-match indicado (componente da eletrônica).
+    Pyro {
+        /// E-match.
+        ematch: String,
     },
 }
 

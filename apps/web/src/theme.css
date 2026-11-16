@@ -253,3 +253,23 @@ td.num { text-align: right; font-family: var(--mono); }
 .pcheck.bad { color: var(--bad); }
 tr.bad td { color: var(--bad); }
 .compare { margin: 8px 0 12px; }
+
+/* Eletrônica */
+.electronics { margin: 0 16px 16px; }
+.elec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.elec-list { list-style: none; padding: 0; margin: 0 0 8px; font-size: 13px; }
+.elec-list li { padding: 4px 0; border-bottom: 1px solid var(--line, rgba(255,255,255,0.08)); }
+.elec-list li small { color: var(--muted); }
+.elec-list li small.ok { color: var(--good); }
+.elec-list li small.bad { color: var(--bad); }
+.elec-list.wires li { display: grid; grid-template-columns: 1fr 110px auto; gap: 6px; align-items: center; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.link { background: none; border: none; padding: 0 4px; cursor: pointer; font-size: 12px; text-decoration: underline; }
+.elec-report { margin-top: 12px; font-size: 13px; }
+input.tiny { width: 4.5em; }
+.launch.small { font-size: 13px; padding: 8px 14px; margin: 8px 0; }
+.fw-results { margin-top: 12px; }
+.fw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.console { background: #05080d; color: #b8f5c4; font-family: var(--mono); font-size: 11px; max-height: 320px; overflow: auto; padding: 8px; border-radius: 6px; margin: 0; white-space: pre; }
+.console.small { max-height: 140px; }
+@media (max-width: 600px) { .elec-list.wires li { grid-template-columns: 1fr; } }

@@ -83,6 +83,9 @@ pub struct Validation {
     pub issues: Vec<Issue>,
     /// Números do projeto.
     pub summary: DesignSummary,
+    /// Análise elétrica, quando há eletrônica.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub electronics: Option<crate::elec::ElecReport>,
 }
 
 fn issue(
@@ -736,10 +739,49 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
             }
         }
     }
+    // Eletrônica e acionamento pirotécnico.
+    let elec = crate::elec::analyze(design, &asm.props);
+    v.extend(elec.issues.iter().cloned());
+    for p in parts {
+        if let PartKind::Parachute {
+            deploy: crate::model::DeploySpec::Pyro { ematch },
+            ..
+        } = &p.kind
+        {
+            if !design
+                .electronics
+                .components
+                .iter()
+                .any(|c| &c.id == ematch)
+            {
+                v.push(issue(
+                    Severity::Error,
+                    "pyroMissing",
+                    format!(
+                        "{}: abre pelo e-match \"{ematch}\", que não existe na eletrônica.",
+                        p.name
+                    ),
+                    "Adicione o e-match na eletrônica ou escolha outro modo de abertura.",
+                    vec![p.id.clone()],
+                    vec![],
+                ));
+            } else if design.electronics.firmware.is_none() {
+                v.push(issue(
+                    Severity::Warning,
+                    "pyroNoFirmware",
+                    format!("{}: abre pelo firmware, mas nenhum firmware foi carregado; sem ele o paraquedas não abre.", p.name),
+                    "Carregue um firmware (.hex) ou use o exemplo.",
+                    vec![p.id.clone()],
+                    vec![],
+                ));
+            }
+        }
+    }
     v.sort_by_key(|i| i.severity);
     Validation {
         issues: v,
         summary: s,
+        electronics: (!design.electronics.components.is_empty()).then_some(elec),
     }
 }
 

@@ -1,0 +1,1450 @@
+{
+ "version": 1,
+ "note": "Componentes com dados de fichas técnicas típicas; confiabilidade 'estimado' salvo indicação de fonte específica. Confira a ficha do seu componente.",
+ "components": [
+  {
+   "id": "arduino-uno",
+   "name": "Arduino Uno R3 (ATmega328P)",
+   "category": "placa",
+   "massG": 25,
+   "lengthMm": 69,
+   "widthMm": 53,
+   "pins": [
+    {
+     "name": "VIN",
+     "kind": "vin"
+    },
+    {
+     "name": "5V",
+     "kind": "vout",
+     "volts": 5.0,
+     "maxMa": 500
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 50
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D3",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D6",
+     "kind": "io"
+    },
+    {
+     "name": "D7",
+     "kind": "io"
+    },
+    {
+     "name": "D8",
+     "kind": "io"
+    },
+    {
+     "name": "D9",
+     "kind": "io"
+    },
+    {
+     "name": "D10",
+     "kind": "io"
+    },
+    {
+     "name": "D11",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "A4",
+     "kind": "sda"
+    },
+    {
+     "name": "A5",
+     "kind": "scl"
+    },
+    {
+     "name": "D0",
+     "kind": "rx"
+    },
+    {
+     "name": "D1",
+     "kind": "tx"
+    }
+   ],
+   "supply": {
+    "min": 7.0,
+    "max": 12.0
+   },
+   "currentMa": 50,
+   "peakMa": 50,
+   "logicV": 5.0,
+   "pinMaxMa": 20,
+   "pinAbsMaxMa": 40,
+   "brownoutV": 4.3,
+   "mcu": "atmega328p",
+   "clockHz": 16000000.0,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "arduino-nano",
+   "name": "Arduino Nano (ATmega328P)",
+   "category": "placa",
+   "massG": 7,
+   "lengthMm": 45,
+   "widthMm": 18,
+   "pins": [
+    {
+     "name": "VIN",
+     "kind": "vin"
+    },
+    {
+     "name": "5V",
+     "kind": "vout",
+     "volts": 5.0,
+     "maxMa": 500
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 50
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D3",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D6",
+     "kind": "io"
+    },
+    {
+     "name": "D7",
+     "kind": "io"
+    },
+    {
+     "name": "D8",
+     "kind": "io"
+    },
+    {
+     "name": "D9",
+     "kind": "io"
+    },
+    {
+     "name": "D10",
+     "kind": "io"
+    },
+    {
+     "name": "D11",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "A4",
+     "kind": "sda"
+    },
+    {
+     "name": "A5",
+     "kind": "scl"
+    },
+    {
+     "name": "D0",
+     "kind": "rx"
+    },
+    {
+     "name": "D1",
+     "kind": "tx"
+    }
+   ],
+   "supply": {
+    "min": 7.0,
+    "max": 12.0
+   },
+   "currentMa": 20,
+   "peakMa": 20,
+   "logicV": 5.0,
+   "pinMaxMa": 20,
+   "pinAbsMaxMa": 40,
+   "brownoutV": 4.3,
+   "mcu": "atmega328p",
+   "clockHz": 16000000.0,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "arduino-pro-mini-3v3",
+   "name": "Arduino Pro Mini 3,3 V 8 MHz",
+   "category": "placa",
+   "massG": 2,
+   "lengthMm": 33,
+   "widthMm": 18,
+   "pins": [
+    {
+     "name": "RAW",
+     "kind": "vin"
+    },
+    {
+     "name": "VCC",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 150
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D3",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D6",
+     "kind": "io"
+    },
+    {
+     "name": "D7",
+     "kind": "io"
+    },
+    {
+     "name": "D8",
+     "kind": "io"
+    },
+    {
+     "name": "D9",
+     "kind": "io"
+    },
+    {
+     "name": "D10",
+     "kind": "io"
+    },
+    {
+     "name": "D11",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "A4",
+     "kind": "sda"
+    },
+    {
+     "name": "A5",
+     "kind": "scl"
+    },
+    {
+     "name": "D0",
+     "kind": "rx"
+    },
+    {
+     "name": "D1",
+     "kind": "tx"
+    }
+   ],
+   "supply": {
+    "min": 3.4,
+    "max": 12.0
+   },
+   "currentMa": 4,
+   "peakMa": 4,
+   "logicV": 3.3,
+   "pinMaxMa": 20,
+   "pinAbsMaxMa": 40,
+   "brownoutV": 2.7,
+   "mcu": "atmega328p",
+   "clockHz": 8000000.0,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "arduino-mega",
+   "name": "Arduino Mega 2560",
+   "category": "placa",
+   "massG": 37,
+   "lengthMm": 102,
+   "widthMm": 53,
+   "pins": [
+    {
+     "name": "VIN",
+     "kind": "vin"
+    },
+    {
+     "name": "5V",
+     "kind": "vout",
+     "volts": 5.0,
+     "maxMa": 500
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 50
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D3",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D6",
+     "kind": "io"
+    },
+    {
+     "name": "D7",
+     "kind": "io"
+    },
+    {
+     "name": "D8",
+     "kind": "io"
+    },
+    {
+     "name": "D9",
+     "kind": "io"
+    },
+    {
+     "name": "D10",
+     "kind": "io"
+    },
+    {
+     "name": "D11",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "A4",
+     "kind": "sda"
+    },
+    {
+     "name": "A5",
+     "kind": "scl"
+    },
+    {
+     "name": "D0",
+     "kind": "rx"
+    },
+    {
+     "name": "D1",
+     "kind": "tx"
+    }
+   ],
+   "supply": {
+    "min": 7.0,
+    "max": 12.0
+   },
+   "currentMa": 70,
+   "peakMa": 70,
+   "logicV": 5.0,
+   "pinMaxMa": 20,
+   "pinAbsMaxMa": 40,
+   "brownoutV": 4.3,
+   "mcu": "atmega2560",
+   "clockHz": 16000000.0,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado",
+   "notes": "Emulação de firmware só para ATmega328P nesta versão."
+  },
+  {
+   "id": "esp32-devkit",
+   "name": "ESP32 DevKit",
+   "category": "placa",
+   "massG": 10,
+   "lengthMm": 52,
+   "widthMm": 28,
+   "pins": [
+    {
+     "name": "VIN",
+     "kind": "vin"
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 500
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "D14",
+     "kind": "io"
+    },
+    {
+     "name": "D15",
+     "kind": "io"
+    },
+    {
+     "name": "D16",
+     "kind": "io"
+    },
+    {
+     "name": "D17",
+     "kind": "io"
+    },
+    {
+     "name": "D18",
+     "kind": "io"
+    },
+    {
+     "name": "D19",
+     "kind": "io"
+    },
+    {
+     "name": "D23",
+     "kind": "io"
+    },
+    {
+     "name": "D25",
+     "kind": "io"
+    },
+    {
+     "name": "D26",
+     "kind": "io"
+    },
+    {
+     "name": "D27",
+     "kind": "io"
+    },
+    {
+     "name": "D32",
+     "kind": "io"
+    },
+    {
+     "name": "D33",
+     "kind": "io"
+    },
+    {
+     "name": "D21",
+     "kind": "sda"
+    },
+    {
+     "name": "D22",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 4.5,
+    "max": 12.0
+   },
+   "currentMa": 80,
+   "peakMa": 240,
+   "logicV": 3.3,
+   "pinMaxMa": 20,
+   "pinAbsMaxMa": 40,
+   "brownoutV": 2.4,
+   "mcu": "esp32",
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado",
+   "notes": "Sem emulação de firmware; use hardware-in-the-loop."
+  },
+  {
+   "id": "teensy-40",
+   "name": "Teensy 4.0",
+   "category": "placa",
+   "massG": 3,
+   "lengthMm": 36,
+   "widthMm": 18,
+   "pins": [
+    {
+     "name": "VIN",
+     "kind": "vin"
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 250
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "D2",
+     "kind": "io"
+    },
+    {
+     "name": "D3",
+     "kind": "io"
+    },
+    {
+     "name": "D4",
+     "kind": "io"
+    },
+    {
+     "name": "D5",
+     "kind": "io"
+    },
+    {
+     "name": "D6",
+     "kind": "io"
+    },
+    {
+     "name": "D7",
+     "kind": "io"
+    },
+    {
+     "name": "D8",
+     "kind": "io"
+    },
+    {
+     "name": "D9",
+     "kind": "io"
+    },
+    {
+     "name": "D10",
+     "kind": "io"
+    },
+    {
+     "name": "D11",
+     "kind": "io"
+    },
+    {
+     "name": "D12",
+     "kind": "io"
+    },
+    {
+     "name": "D13",
+     "kind": "io"
+    },
+    {
+     "name": "D14",
+     "kind": "io"
+    },
+    {
+     "name": "D15",
+     "kind": "io"
+    },
+    {
+     "name": "D16",
+     "kind": "io"
+    },
+    {
+     "name": "D18",
+     "kind": "sda"
+    },
+    {
+     "name": "D19",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 3.6,
+    "max": 5.5
+   },
+   "currentMa": 100,
+   "peakMa": 100,
+   "logicV": 3.3,
+   "pinMaxMa": 4,
+   "pinAbsMaxMa": 10,
+   "brownoutV": 2.9,
+   "mcu": "imxrt1062",
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado",
+   "notes": "Sem emulação de firmware; use hardware-in-the-loop."
+  },
+  {
+   "id": "stm32-bluepill",
+   "name": "STM32F103 \"Blue Pill\"",
+   "category": "placa",
+   "massG": 5,
+   "lengthMm": 53,
+   "widthMm": 23,
+   "pins": [
+    {
+     "name": "5V",
+     "kind": "vin"
+    },
+    {
+     "name": "3V3",
+     "kind": "vout",
+     "volts": 3.3,
+     "maxMa": 150
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "PA0",
+     "kind": "io"
+    },
+    {
+     "name": "PA1",
+     "kind": "io"
+    },
+    {
+     "name": "PA2",
+     "kind": "io"
+    },
+    {
+     "name": "PA3",
+     "kind": "io"
+    },
+    {
+     "name": "PA4",
+     "kind": "io"
+    },
+    {
+     "name": "PA5",
+     "kind": "io"
+    },
+    {
+     "name": "PA8",
+     "kind": "io"
+    },
+    {
+     "name": "PB0",
+     "kind": "io"
+    },
+    {
+     "name": "PB1",
+     "kind": "io"
+    },
+    {
+     "name": "PB12",
+     "kind": "io"
+    },
+    {
+     "name": "PB13",
+     "kind": "io"
+    },
+    {
+     "name": "PB14",
+     "kind": "io"
+    },
+    {
+     "name": "PB15",
+     "kind": "io"
+    },
+    {
+     "name": "PB7",
+     "kind": "sda"
+    },
+    {
+     "name": "PB6",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 4.5,
+    "max": 5.5
+   },
+   "currentMa": 40,
+   "peakMa": 40,
+   "logicV": 3.3,
+   "pinMaxMa": 8,
+   "pinAbsMaxMa": 25,
+   "brownoutV": 2.0,
+   "mcu": "stm32f103",
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado",
+   "notes": "Sem emulação de firmware; use hardware-in-the-loop."
+  },
+  {
+   "id": "bmp280",
+   "name": "Barômetro BMP280 (chip, sem regulador)",
+   "category": "sensor",
+   "massG": 1,
+   "lengthMm": 15,
+   "widthMm": 12,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 1.71,
+    "max": 3.6
+   },
+   "currentMa": 0.7,
+   "peakMa": 1.1,
+   "i2c": [
+    118,
+    119
+   ],
+   "sensor": {
+    "type": "baro",
+    "rangePa": [
+     30000,
+     110000
+    ],
+    "noisePa": 1.3,
+    "rateHz": 157,
+    "biasPa": 0
+   },
+   "source": "Bosch BMP280 datasheet (BST-BMP280-DS001)"
+  },
+  {
+   "id": "bmp280-modulo",
+   "name": "Barômetro BMP280 em módulo com regulador (GY-BMP280 5 V)",
+   "category": "sensor",
+   "massG": 2,
+   "lengthMm": 18,
+   "widthMm": 13,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 3.0,
+    "max": 5.5
+   },
+   "currentMa": 1,
+   "peakMa": 1.5,
+   "i2c": [
+    118,
+    119
+   ],
+   "sensor": {
+    "type": "baro",
+    "rangePa": [
+     30000,
+     110000
+    ],
+    "noisePa": 1.3,
+    "rateHz": 157,
+    "biasPa": 0
+   },
+   "source": "Bosch BMP280 datasheet; módulo com regulador de 3,3 V"
+  },
+  {
+   "id": "bmp388",
+   "name": "Barômetro BMP388",
+   "category": "sensor",
+   "massG": 1,
+   "lengthMm": 15,
+   "widthMm": 12,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 1.65,
+    "max": 3.6
+   },
+   "currentMa": 0.7,
+   "peakMa": 0.7,
+   "i2c": [
+    118,
+    119
+   ],
+   "sensor": {
+    "type": "baro",
+    "rangePa": [
+     30000,
+     125000
+    ],
+    "noisePa": 0.9,
+    "rateHz": 200,
+    "biasPa": 0
+   },
+   "source": "Bosch BMP388 datasheet",
+   "notes": "Registradores diferentes do BMP280: sem dispositivo virtual na emulação."
+  },
+  {
+   "id": "ms5611",
+   "name": "Barômetro MS5611",
+   "category": "sensor",
+   "massG": 1,
+   "lengthMm": 13,
+   "widthMm": 13,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 1.8,
+    "max": 3.6
+   },
+   "currentMa": 1.4,
+   "peakMa": 1.4,
+   "i2c": [
+    118,
+    119
+   ],
+   "sensor": {
+    "type": "baro",
+    "rangePa": [
+     1000,
+     120000
+    ],
+    "noisePa": 1.2,
+    "rateHz": 100,
+    "biasPa": 0
+   },
+   "source": "TE MS5611-01BA03 datasheet",
+   "notes": "Sem dispositivo virtual na emulação."
+  },
+  {
+   "id": "mpu6050",
+   "name": "IMU MPU6050 em módulo GY-521",
+   "category": "sensor",
+   "massG": 2,
+   "lengthMm": 21,
+   "widthMm": 16,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 3.0,
+    "max": 5.5
+   },
+   "currentMa": 3.9,
+   "peakMa": 3.9,
+   "i2c": [
+    104,
+    105
+   ],
+   "sensor": {
+    "type": "imu",
+    "accelRangeG": 16,
+    "gyroRangeDps": 2000,
+    "accelNoiseG": 0.004,
+    "gyroNoiseDps": 0.05,
+    "rateHz": 1000
+   },
+   "source": "InvenSense MPU-6000/6050 Product Specification",
+   "notes": "O acelerômetro satura no fundo de escala configurado (±2 a ±16 g)."
+  },
+  {
+   "id": "bno055",
+   "name": "IMU BNO055",
+   "category": "sensor",
+   "massG": 3,
+   "lengthMm": 27,
+   "widthMm": 20,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SDA",
+     "kind": "sda"
+    },
+    {
+     "name": "SCL",
+     "kind": "scl"
+    }
+   ],
+   "supply": {
+    "min": 2.4,
+    "max": 3.6
+   },
+   "currentMa": 12.3,
+   "peakMa": 12.3,
+   "i2c": [
+    40,
+    41
+   ],
+   "sensor": {
+    "type": "imu",
+    "accelRangeG": 16,
+    "gyroRangeDps": 2000,
+    "accelNoiseG": 0.002,
+    "gyroNoiseDps": 0.014,
+    "rateHz": 100
+   },
+   "source": "Bosch BNO055 datasheet",
+   "notes": "Sem dispositivo virtual na emulação."
+  },
+  {
+   "id": "gps-neo6m",
+   "name": "GPS u-blox NEO-6M",
+   "category": "sensor",
+   "massG": 12,
+   "lengthMm": 35,
+   "widthMm": 26,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "TX",
+     "kind": "tx"
+    },
+    {
+     "name": "RX",
+     "kind": "rx"
+    }
+   ],
+   "supply": {
+    "min": 3.0,
+    "max": 5.5
+   },
+   "currentMa": 45,
+   "peakMa": 67,
+   "sensor": {
+    "type": "gps",
+    "rateHz": 5,
+    "accuracyM": 2.5,
+    "maxSpeed": 500,
+    "maxAlt": 50000,
+    "maxG": 4,
+    "cocomSpeed": 515,
+    "cocomAlt": 18000
+   },
+   "antenna": true,
+   "source": "u-blox NEO-6 Data Sheet (GPS.G6-HW-09005)",
+   "notes": "Perde a solução acima de 4 g (plataforma 'airborne <4g>') e pelos limites COCOM."
+  },
+  {
+   "id": "lora-sx1276",
+   "name": "Rádio LoRa SX1276 (RFM95W)",
+   "category": "radio",
+   "massG": 3,
+   "lengthMm": 16,
+   "widthMm": 16,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "MOSI",
+     "kind": "mosi"
+    },
+    {
+     "name": "MISO",
+     "kind": "miso"
+    },
+    {
+     "name": "SCK",
+     "kind": "sck"
+    },
+    {
+     "name": "NSS",
+     "kind": "cs"
+    }
+   ],
+   "supply": {
+    "min": 1.8,
+    "max": 3.7
+   },
+   "currentMa": 12,
+   "peakMa": 120,
+   "antenna": true,
+   "radio": {
+    "txDbm": 20,
+    "sensitivityDbm": -137,
+    "freqMhz": 915,
+    "antennaDbi": 2.15
+   },
+   "source": "Semtech SX1276/77/78/79 datasheet"
+  },
+  {
+   "id": "xbee-pro",
+   "name": "Rádio XBee-PRO 900HP",
+   "category": "radio",
+   "massG": 5,
+   "lengthMm": 33,
+   "widthMm": 24,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "DOUT",
+     "kind": "tx"
+    },
+    {
+     "name": "DIN",
+     "kind": "rx"
+    }
+   ],
+   "supply": {
+    "min": 2.1,
+    "max": 3.6
+   },
+   "currentMa": 44,
+   "peakMa": 215,
+   "antenna": true,
+   "radio": {
+    "txDbm": 24,
+    "sensitivityDbm": -110,
+    "freqMhz": 900,
+    "antennaDbi": 2.1
+   },
+   "source": "Digi XBee-PRO 900HP datasheet"
+  },
+  {
+   "id": "microsd",
+   "name": "Leitor de cartão microSD (módulo 5 V)",
+   "category": "armazenamento",
+   "massG": 3,
+   "lengthMm": 42,
+   "widthMm": 24,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "MOSI",
+     "kind": "mosi"
+    },
+    {
+     "name": "MISO",
+     "kind": "miso"
+    },
+    {
+     "name": "SCK",
+     "kind": "sck"
+    },
+    {
+     "name": "CS",
+     "kind": "cs"
+    }
+   ],
+   "supply": {
+    "min": 4.5,
+    "max": 5.5
+   },
+   "currentMa": 20,
+   "peakMa": 100,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "buzzer",
+   "name": "Buzzer ativo 5 V",
+   "category": "atuador",
+   "massG": 2,
+   "lengthMm": 12,
+   "widthMm": 12,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "sink"
+    },
+    {
+     "name": "-",
+     "kind": "gnd"
+    }
+   ],
+   "supply": {
+    "min": 3.0,
+    "max": 5.5
+   },
+   "currentMa": 0,
+   "peakMa": 30,
+   "loadMa": 30,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "led",
+   "name": "LED com resistor",
+   "category": "atuador",
+   "massG": 0.5,
+   "lengthMm": 5,
+   "widthMm": 5,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "sink"
+    },
+    {
+     "name": "-",
+     "kind": "gnd"
+    }
+   ],
+   "supply": {
+    "min": 2.0,
+    "max": 5.5
+   },
+   "currentMa": 0,
+   "peakMa": 15,
+   "loadMa": 15,
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "servo-sg90",
+   "name": "Servo SG90",
+   "category": "atuador",
+   "massG": 9,
+   "lengthMm": 23,
+   "widthMm": 12,
+   "pins": [
+    {
+     "name": "VCC",
+     "kind": "vcc"
+    },
+    {
+     "name": "GND",
+     "kind": "gnd"
+    },
+    {
+     "name": "SIG",
+     "kind": "sink"
+    }
+   ],
+   "supply": {
+    "min": 4.8,
+    "max": 6.0
+   },
+   "currentMa": 10,
+   "peakMa": 650,
+   "loadMa": 0.1,
+   "source": "Tower Pro SG90 (ficha do fabricante)"
+  },
+  {
+   "id": "bateria-9v",
+   "name": "Bateria alcalina 9 V",
+   "category": "energia",
+   "massG": 45,
+   "lengthMm": 48,
+   "widthMm": 26,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "bat+"
+    },
+    {
+     "name": "-",
+     "kind": "bat-"
+    }
+   ],
+   "battery": {
+    "volts": 9.0,
+    "capacityMah": 550,
+    "internalOhm": 1.7
+   },
+   "source": "Energizer 522 datasheet (alcalina 9 V)"
+  },
+  {
+   "id": "lipo-2s-500",
+   "name": "LiPo 2S 500 mAh (7,4 V)",
+   "category": "energia",
+   "massG": 30,
+   "lengthMm": 55,
+   "widthMm": 30,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "bat+"
+    },
+    {
+     "name": "-",
+     "kind": "bat-"
+    }
+   ],
+   "battery": {
+    "volts": 7.4,
+    "capacityMah": 500,
+    "internalOhm": 0.06
+   },
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "lipo-1s-400",
+   "name": "LiPo 1S 400 mAh (3,7 V)",
+   "category": "energia",
+   "massG": 10,
+   "lengthMm": 35,
+   "widthMm": 25,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "bat+"
+    },
+    {
+     "name": "-",
+     "kind": "bat-"
+    }
+   ],
+   "battery": {
+    "volts": 3.7,
+    "capacityMah": 400,
+    "internalOhm": 0.15
+   },
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  },
+  {
+   "id": "aa-4x",
+   "name": "4 pilhas AA alcalinas (6 V)",
+   "category": "energia",
+   "massG": 100,
+   "lengthMm": 58,
+   "widthMm": 60,
+   "pins": [
+    {
+     "name": "+",
+     "kind": "bat+"
+    },
+    {
+     "name": "-",
+     "kind": "bat-"
+    }
+   ],
+   "battery": {
+    "volts": 6.0,
+    "capacityMah": 2000,
+    "internalOhm": 0.6
+   },
+   "source": "Energizer E91 datasheet"
+  },
+  {
+   "id": "mosfet-irlz44n",
+   "name": "MOSFET IRLZ44N (nível lógico)",
+   "category": "pirotecnia",
+   "massG": 2,
+   "lengthMm": 10,
+   "widthMm": 10,
+   "pins": [
+    {
+     "name": "G",
+     "kind": "gate"
+    },
+    {
+     "name": "D",
+     "kind": "drain"
+    },
+    {
+     "name": "S",
+     "kind": "source"
+    }
+   ],
+   "mosfet": {
+    "vgsOn": 4.0,
+    "rdsOn": 0.025,
+    "maxA": 47
+   },
+   "source": "Infineon IRLZ44N datasheet",
+   "notes": "Com 3,3 V no gate conduz mal (Vgs(th) até 2 V, Rds especificado a 4–5 V)."
+  },
+  {
+   "id": "ematch",
+   "name": "E-match (ignitor)",
+   "category": "pirotecnia",
+   "massG": 0.5,
+   "lengthMm": 30,
+   "widthMm": 3,
+   "pins": [
+    {
+     "name": "A",
+     "kind": "pyro"
+    },
+    {
+     "name": "B",
+     "kind": "pyro"
+    }
+   ],
+   "ematch": {
+    "resistanceOhm": 1.6,
+    "allFireA": 1.0,
+    "noFireA": 0.25
+   },
+   "source": "Ordem de grandeza de e-matches comerciais (all-fire ~1 A, no-fire ~0,25 A)"
+  },
+  {
+   "id": "chave",
+   "name": "Chave liga/desliga (armar)",
+   "category": "misc",
+   "massG": 2,
+   "lengthMm": 15,
+   "widthMm": 8,
+   "pins": [
+    {
+     "name": "A",
+     "kind": "switch"
+    },
+    {
+     "name": "B",
+     "kind": "switch"
+    }
+   ],
+   "source": "Fichas técnicas do fabricante (valores típicos), transcritas de memória: confiabilidade estimado"
+  }
+ ]
+}

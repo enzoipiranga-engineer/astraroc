@@ -176,6 +176,7 @@ pub fn pet_bottle() -> Design {
         materials: Vec::new(),
         zones: Vec::new(),
         launcher: Vec::new(),
+        electronics: crate::elec::Electronics::default(),
     }
 }
 
@@ -428,6 +429,7 @@ pub fn competition_500m() -> Design {
         materials: Vec::new(),
         zones: Vec::new(),
         launcher: Vec::new(),
+        electronics: crate::elec::Electronics::default(),
     }
 }
 
@@ -437,5 +439,78 @@ pub fn all() -> Vec<(&'static str, Design)> {
     vec![
         ("pet", pet_bottle()),
         ("competicao-500m", competition_500m()),
+        ("competicao-avionica", competition_avionics()),
     ]
+}
+
+/// Firmware de exemplo (`data/firmware/apogeu.c`) compilado para ATmega328P.
+pub const EXAMPLE_FIRMWARE_HEX: &str = include_str!("../../../data/firmware/apogeu.hex");
+
+/// O foguete de competição com aviônica própria: Arduino Nano + BMP280 detectam o apogeu
+/// e acionam o e-match por um MOSFET, alimentados por uma LiPo 2S com chave de armar.
+#[must_use]
+pub fn competition_avionics() -> Design {
+    use crate::elec::{EComp, Electronics, Firmware, Wire};
+    let mut d = competition_500m();
+    d.name = "Competição 500 m com aviônica (exemplo)".into();
+    for p in &mut d.parts {
+        match p.id.as_str() {
+            "altimetro" => p.name = "Placa de aviônica (Nano + BMP280)".into(),
+            "bateria" => {
+                p.name = "LiPo 2S 500 mAh".into();
+                if let PartKind::Mass { mass, .. } = &mut p.kind {
+                    *mass = 0.030;
+                }
+            }
+            _ => {}
+        }
+        if let PartKind::Parachute { deploy, .. } = &mut p.kind {
+            *deploy = DeploySpec::Pyro {
+                ematch: "em1".into(),
+            };
+        }
+    }
+    let c = |id: &str, lib: &str, part: &str| EComp {
+        id: id.into(),
+        lib: lib.into(),
+        part: part.into(),
+        i2c_address: None,
+        charge: None,
+    };
+    let w = |a: &str, b: &str| Wire {
+        a: a.into(),
+        b: b.into(),
+        loose_g: None,
+    };
+    d.electronics = Electronics {
+        components: vec![
+            c("nano", "arduino-nano", "altimetro"),
+            c("baro", "bmp280-modulo", "altimetro"),
+            c("lipo", "lipo-2s-500", "bateria"),
+            c("chave", "chave", "bateria"),
+            c("q1", "mosfet-irlz44n", "altimetro"),
+            c("em1", "ematch", "paraquedas"),
+        ],
+        wires: vec![
+            w("lipo:+", "chave:A"),
+            w("chave:B", "nano:VIN"),
+            w("lipo:-", "nano:GND"),
+            w("nano:5V", "baro:VCC"),
+            w("baro:GND", "nano:GND"),
+            w("baro:SDA", "nano:A4"),
+            w("baro:SCL", "nano:A5"),
+            w("em1:A", "chave:B"),
+            w("em1:B", "q1:D"),
+            w("q1:S", "nano:GND"),
+            w("q1:G", "nano:D3"),
+        ],
+        firmware: Some(Firmware {
+            board: "nano".into(),
+            name: "apogeu.hex".into(),
+            hex: EXAMPLE_FIRMWARE_HEX.into(),
+        }),
+        standby_hours: 1.0,
+        pyro_events: vec![],
+    };
+    d
 }

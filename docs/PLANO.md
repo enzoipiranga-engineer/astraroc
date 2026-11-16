@@ -11,8 +11,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 4 | Globo multi-escala, locais, vento manual e real, câmeras, HUD, linha do tempo, mapa de recuperação | Voo pequeno visível no terreno real; ponto de queda com distância e azimute | **Feita** |
 | 5 | Líquido e híbrido, multi-estágio, boosters, TVC/GNC, Falcon 9 e Starship | Empuxo vs. pressão ambiente; Δv de estágios contra dados públicos | **Feita** |
 | 6 | Lançadores plugáveis: modos 1 a 4, editor visual, comparação com/sem; depois modos 5 a 9 e plugins | Conservação de energia e momento em cada modo; sandbox bloqueia rede e arquivo | **Feita** |
-| 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | Próxima |
-| 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | |
+| 7 | Eletrônica, fiação, firmware AVR emulado, sensores com ruído, hardware-in-the-loop | Sketch de altímetro detecta apogeu e aciona a ejeção na simulação | **Feita** |
+| 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | Próxima |
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | |
 | 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | |
 | 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | |
@@ -92,3 +92,17 @@ Ficam registrados aqui para não virarem promessa falsa:
   é local (importar, exportar, duplicar, link compartilhável).
 - Monte Carlo de erros de liberação: fase 11.
 - Canhão, catapulta e estilingue são guias retilíneas (a catapulta não gira um braço).
+
+## Fase 7: o que ficou para depois
+
+- Emulação de firmware só para ATmega328P (Uno, Nano, Pro Mini). Mega, ESP32, Teensy e
+  STM32 estão na biblioteca com as verificações elétricas, mas o firmware deles só roda por
+  hardware-in-the-loop.
+- Dispositivos virtuais: BMP280, MPU-6050 (I2C) e GPS (NMEA na serial). BMP388, MS5611,
+  BNO055, cartão SD (SPI) e rádio LoRa (SPI) aparecem nas verificações, mas não respondem na
+  emulação (o firmware recebe NACK/sem resposta, e o ASTRA avisa).
+- Hardware-in-the-loop pela Web Serial implementado com protocolo documentado
+  (docs/HIL.md), mas **não testado com placa real** nesta versão.
+- O editor de fiação é por listas (de pino, para pino), sem desenho do esquemático.
+- A espera na rampa entra só no cálculo de autonomia; a emulação liga a placa 3 s antes da
+  ignição.

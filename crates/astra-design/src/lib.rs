@@ -10,6 +10,7 @@
 
 mod assembly;
 mod checks;
+pub mod elec;
 mod limits;
 mod material;
 mod model;

@@ -785,3 +785,165 @@ mod payload_and_rules {
         assert_eq!(c2.podium_eligible, Some(false));
     }
 }
+
+mod analysis {
+    use astra_design::analysis::{
+        calibrate, monte_carlo, optimize, sensitivity, summarize, Dispersion, Knob,
+    };
+    use astra_design::{simulate, templates, MaterialDb};
+
+    fn apogee(o: &astra_design::SimOutput) -> f64 {
+        o.bodies[0].samples.iter().map(|r| r[1]).fold(0.0, f64::max)
+    }
+
+    #[test]
+    fn monte_carlo_is_chunkable_and_ellipse_holds_95_percent() {
+        let db = MaterialDb::builtin();
+        let mut d = templates::competition_500m();
+        d.launch.wind.layers = vec![astra_design::WindLayerSpec {
+            agl: 0.0,
+            speed: 5.0,
+            from_deg: 270.0,
+        }];
+        let disp = Dispersion::default();
+        let all = monte_carlo(&d, &db, &disp, 7, 0, 8);
+        let mut parts = monte_carlo(&d, &db, &disp, 7, 0, 3);
+        parts.extend(monte_carlo(&d, &db, &disp, 7, 3, 5));
+        for (a, b) in all.iter().zip(&parts) {
+            assert_eq!(a.params, b.params);
+            assert!((a.apogee - b.apogee).abs() < 1e-9);
+        }
+        let runs = monte_carlo(&d, &db, &disp, 1, 0, 80);
+        let s = summarize(&d, &runs);
+        let nominal = apogee(&simulate(&d, &db));
+        assert!(
+            (s.apogee[0] - nominal).abs() < 0.05 * nominal,
+            "{} vs {nominal}",
+            s.apogee[0]
+        );
+        assert!(s.apogee[1] > 1.0 && s.apogee[2] < s.apogee[3] && s.apogee[3] < s.apogee[4]);
+        let e = &s.ellipse;
+        assert!(e.axes_1sigma[0] >= e.axes_1sigma[1] && e.axes_1sigma[1] > 0.0);
+        // Fração dentro da elipse de 95 %.
+        let (ca, sa) = (
+            e.azimuth_deg.to_radians().cos(),
+            e.azimuth_deg.to_radians().sin(),
+        );
+        let inside = runs
+            .iter()
+            .filter_map(|r| r.landing)
+            .filter(|l| {
+                let (dn, de) = (l[0] - e.center[0], l[1] - e.center[1]);
+                let (u, v) = (dn * ca + de * sa, -dn * sa + de * ca);
+                (u / e.axes_95[0]).powi(2) + (v / e.axes_95[1]).powi(2) <= 1.0
+            })
+            .count();
+        #[allow(clippy::cast_precision_loss)]
+        let frac = inside as f64 / runs.len() as f64;
+        assert!(frac > 0.85, "{frac}");
+        let sens = sensitivity(&d, &db, &disp);
+        assert_eq!(sens.len(), 7);
+        assert!(sens
+            .iter()
+            .any(|x| x.name == "Impulso do motor" && x.apogee > 0.0));
+        assert!(sens
+            .iter()
+            .any(|x| x.name == "Arrasto (Cd)" && x.apogee < 0.0));
+    }
+
+    #[test]
+    fn calibration_recovers_drag_and_optimizer_hits_target() {
+        let db = MaterialDb::builtin();
+        let d = templates::competition_500m();
+        let mut truth = d.clone();
+        truth.scales.cd = 1.25;
+        let out = simulate(&truth, &db);
+        let data: Vec<[f64; 2]> = out.bodies[0]
+            .samples
+            .iter()
+            .step_by(4)
+            .filter(|r| r[0] < 15.0)
+            .map(|r| [r[0], r[1]])
+            .collect();
+        let c = calibrate(&d, &db, &data, false);
+        assert!((c.cd - 1.25).abs() < 0.03, "{c:?}");
+        assert!(c.rms_after < 0.2 * c.rms_before);
+        let opt = optimize(
+            &d,
+            &db,
+            &Knob {
+                part: "altimetro".into(),
+                field: "massOverride".into(),
+                min: 0.01,
+                max: 0.6,
+            },
+            480.0,
+        )
+        .unwrap();
+        assert!(opt.reached, "{:?}", opt.evaluations);
+        let mut more = d.clone();
+        more.scales.thrust = 1.1;
+        assert!(apogee(&simulate(&more, &db)) > apogee(&simulate(&d, &db)));
+    }
+}
+
+mod openrocket {
+    use astra_design::{ork::import, validate, MaterialDb, PartKind};
+
+    #[test]
+    fn imports_a_simple_ork() {
+        let imp = import(include_str!("data/simples.ork.xml")).unwrap();
+        let d = &imp.design;
+        assert_eq!(d.name, "Foguete simples");
+        let get = |id: &str| d.parts.iter().find(|p| p.id == id).unwrap();
+        // Nariz com o raio do tubo ("auto"), tubo logo depois.
+        match get("nose-cone").kind {
+            PartKind::NoseCone {
+                diameter, length, ..
+            } => {
+                assert!((diameter - 0.049).abs() < 1e-12);
+                assert!((length - 0.12).abs() < 1e-12);
+            }
+            _ => panic!(),
+        }
+        assert!((get("body-tube").position - 0.12).abs() < 1e-12);
+        // Aletas no fim do tubo; anel a 8 cm do fim com furo do tubo do motor.
+        assert!((get("fins").position - (0.57 - 0.07)).abs() < 1e-12);
+        match get("centering-ring").kind {
+            PartKind::CenteringRing {
+                inner_diameter,
+                outer_diameter,
+                ..
+            } => {
+                assert!((inner_diameter - 0.019).abs() < 1e-12);
+                assert!((outer_diameter - 2.0 * (0.0245 - 0.0008)).abs() < 1e-12);
+            }
+            _ => panic!(),
+        }
+        assert_eq!(get("body-tube").material, "papelao-espiral");
+        assert_eq!(get("fins").material, "compensado-betula");
+        assert!(matches!(
+            get("altimeter").kind,
+            PartKind::Mass {
+                needs_static_port: true,
+                ..
+            }
+        ));
+        assert!(imp.warnings.iter().any(|w| w.contains("Estes C6")));
+        assert!(imp.warnings.iter().any(|w| w.contains("Launch lug")));
+        // O projeto importado é verificável e estável.
+        let v = validate(d, &MaterialDb::builtin(), false);
+        assert!(v.summary.static_margin > 1.0, "{}", v.summary.static_margin);
+        assert!((v.summary.length - 0.57).abs() < 1e-9);
+        // Só falta o que o .ork não tem: a carga de ejeção.
+        assert!(
+            v.issues
+                .iter()
+                .filter(|i| i.severity == astra_design::Severity::Error)
+                .all(|i| i.message.contains("carga de ejeção")),
+            "{:?}",
+            v.issues.iter().map(|i| &i.message).collect::<Vec<_>>()
+        );
+        assert!(imp.warnings.iter().any(|w| w.contains("Carga de ejeção")));
+    }
+}

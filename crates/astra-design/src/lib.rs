@@ -8,12 +8,14 @@
 //! - [`simulate`] voa o foguete com falhas físicas: junta que passa do limite quebra, o
 //!   corpo se divide e cada parte segue a própria trajetória.
 
+pub mod analysis;
 mod assembly;
 mod checks;
 pub mod elec;
 mod limits;
 mod material;
 mod model;
+pub mod ork;
 pub mod payload;
 mod props;
 pub mod rules;

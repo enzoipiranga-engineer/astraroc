@@ -468,3 +468,101 @@ pub fn space(kind: &str, json: &str) -> Result<String, String> {
     };
     Ok(out.to_string())
 }
+
+/// Análises em lote. `kind`: "monteCarlo" ({design, dispersion, seed, start, count}),
+/// "summary" ({design, runs}), "sensitivity" ({design, dispersion}), "optimize"
+/// ({design, knob, target}), "calibrate" ({design, data, fitThrust}) ou "importOrk" ({xml}).
+///
+/// # Errors
+/// Dados inválidos.
+#[wasm_bindgen]
+pub fn analysis(kind: &str, json: &str) -> Result<String, String> {
+    use astra_design::analysis as an;
+    use serde_json::Value;
+    let v: Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    let db = astra_design::MaterialDb::builtin();
+    let field = |k: &str| v.get(k).cloned().unwrap_or(Value::Null);
+    let design = || -> Result<astra_design::Design, String> {
+        serde_json::from_value(field("design")).map_err(|e| format!("projeto: {e}"))
+    };
+    let disp = || -> Result<an::Dispersion, String> {
+        serde_json::from_value(field("dispersion")).map_err(|e| e.to_string())
+    };
+    let n = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+    let out = match kind {
+        "monteCarlo" => {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let (seed, start, count) = (n("seed") as u64, n("start") as u64, n("count") as u64);
+            serde_json::to_value(an::monte_carlo(
+                &design()?,
+                &db,
+                &disp()?,
+                seed,
+                start,
+                count,
+            ))
+        }
+        "summary" => {
+            let runs: Vec<Value> =
+                serde_json::from_value(field("runs")).map_err(|e| e.to_string())?;
+            let runs: Vec<an::McRun> = runs.iter().map(mc_run_from).collect::<Result<_, _>>()?;
+            serde_json::to_value(an::summarize(&design()?, &runs))
+        }
+        "sensitivity" => serde_json::to_value(an::sensitivity(&design()?, &db, &disp()?)),
+        "optimize" => {
+            let knob: an::Knob =
+                serde_json::from_value(field("knob")).map_err(|e| e.to_string())?;
+            serde_json::to_value(an::optimize(&design()?, &db, &knob, n("target"))?)
+        }
+        "calibrate" => {
+            let data: Vec<[f64; 2]> =
+                serde_json::from_value(field("data")).map_err(|e| e.to_string())?;
+            if data.len() < 3 {
+                return Err("Poucos pontos de telemetria.".into());
+            }
+            serde_json::to_value(an::calibrate(
+                &design()?,
+                &db,
+                &data,
+                v.get("fitThrust").and_then(Value::as_bool).unwrap_or(false),
+            ))
+        }
+        "importOrk" => serde_json::to_value(astra_design::ork::import(
+            v.get("xml").and_then(Value::as_str).unwrap_or(""),
+        )?),
+        _ => return Err(format!("Análise \"{kind}\" desconhecida.")),
+    };
+    out.map(|o| o.to_string()).map_err(|e| e.to_string())
+}
+
+fn mc_run_from(v: &serde_json::Value) -> Result<astra_design::analysis::McRun, String> {
+    let f = |k: &str| {
+        v.get(k)
+            .and_then(serde_json::Value::as_f64)
+            .unwrap_or(f64::NAN)
+    };
+    let arr = |k: &str| -> Vec<f64> {
+        v.get(k)
+            .and_then(|x| serde_json::from_value(x.clone()).ok())
+            .unwrap_or_default()
+    };
+    let p = arr("params");
+    let l = arr("landing");
+    Ok(astra_design::analysis::McRun {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        index: f("index") as u64,
+        params: p.try_into().map_err(|_| "params".to_owned())?,
+        apogee: f("apogee"),
+        max_mach: f("maxMach"),
+        rail_exit: f("railExit"),
+        landing: (l.len() == 3).then(|| [l[0], l[1], l[2]]),
+        landings: v
+            .get("landings")
+            .and_then(|x| serde_json::from_value(x.clone()).ok())
+            .unwrap_or_default(),
+        failure: v
+            .get("failure")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+    })
+}

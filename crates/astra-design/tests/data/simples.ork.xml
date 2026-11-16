@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- Arquivo escrito à mão no formato do OpenRocket (1.9/23.09) para testar a importação. -->
+<openrocket version="1.9" creator="teste ASTRA">
+  <rocket>
+    <name>Foguete simples</name>
+    <subcomponents>
+      <stage>
+        <name>Sustainer</name>
+        <subcomponents>
+          <nosecone>
+            <name>Nose cone</name>
+            <material type="bulk" density="1050.0">Polystyrene PS</material>
+            <length>0.12</length>
+            <thickness>0.002</thickness>
+            <shape>ogive</shape>
+            <shapeparameter>1.0</shapeparameter>
+            <aftradius>auto</aftradius>
+            <aftshoulderradius>0.0235</aftshoulderradius>
+            <aftshoulderlength>0.04</aftshoulderlength>
+          </nosecone>
+          <bodytube>
+            <name>Body tube</name>
+            <material type="bulk" density="680.0">Cardboard</material>
+            <length>0.45</length>
+            <thickness>0.0008</thickness>
+            <radius>0.0245</radius>
+            <subcomponents>
+              <innertube>
+                <name>Inner tube</name>
+                <position type="bottom">0.0</position>
+                <material type="bulk" density="680.0">Cardboard</material>
+                <length>0.095</length>
+                <outerradius>0.0095</outerradius>
+                <thickness>0.0005</thickness>
+                <motormount><motor configid="1"><manufacturer>Estes</manufacturer><designation>C6</designation><delay>5</delay></motor></motormount>
+              </innertube>
+              <centeringring>
+                <name>Centering ring</name>
+                <axialoffset method="bottom">-0.08</axialoffset>
+                <material type="bulk" density="680.0">Cardboard</material>
+                <length>0.003</length>
+                <outerradius>auto</outerradius>
+                <innerradius>auto</innerradius>
+              </centeringring>
+              <trapezoidfinset>
+                <name>Fins</name>
+                <position type="bottom">0.0</position>
+                <material type="bulk" density="680.0">Birch plywood</material>
+                <fincount>3</fincount>
+                <thickness>0.003</thickness>
+                <crosssection>rounded</crosssection>
+                <rootchord>0.07</rootchord>
+                <tipchord>0.03</tipchord>
+                <sweeplength>0.04</sweeplength>
+                <height>0.05</height>
+              </trapezoidfinset>
+              <parachute>
+                <name>Parachute</name>
+                <position type="top">0.03</position>
+                <material type="surface" density="0.067">Ripstop nylon</material>
+                <packedlength>0.04</packedlength>
+                <packedradius>0.018</packedradius>
+                <cd>auto</cd>
+                <deployevent>ejection</deployevent>
+                <deploydelay>0.0</deploydelay>
+                <diameter>0.45</diameter>
+              </parachute>
+              <shockcord>
+                <name>Shock cord</name>
+                <position type="top">0.08</position>
+                <material type="line" density="0.003">Elastic cord</material>
+                <packedlength>0.03</packedlength>
+                <packedradius>0.012</packedradius>
+                <cordlength>0.6</cordlength>
+              </shockcord>
+              <masscomponent>
+                <name>Altimeter</name>
+                <position type="top">0.15</position>
+                <packedlength>0.05</packedlength>
+                <packedradius>0.015</packedradius>
+                <mass>0.02</mass>
+                <masscomponenttype>altimeter</masscomponenttype>
+              </masscomponent>
+              <launchlug><name>Launch lug</name><length>0.03</length></launchlug>
+            </subcomponents>
+          </bodytube>
+        </subcomponents>
+      </stage>
+    </subcomponents>
+  </rocket>
+</openrocket>

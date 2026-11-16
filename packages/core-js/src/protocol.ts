@@ -25,6 +25,7 @@ export type CoreRequest =
   | { id: number; kind: "electronics" }
   | { id: number; kind: "presets" }
   | { id: number; kind: "space"; tool: string; input: unknown }
+  | { id: number; kind: "analysis"; tool: string; input: unknown }
   | { id: number; kind: "fly"; design: Design; seed?: number };
 
 export type CoreResult =
@@ -40,6 +41,7 @@ export type CoreResult =
   | { kind: "electronics"; library: ElecComponent[]; firmware: ExampleFirmware }
   | { kind: "presets"; payloads: PayloadPreset[]; rules: [string, RuleSet][] }
   | { kind: "space"; result: unknown }
+  | { kind: "analysis"; result: unknown }
   | { kind: "fly"; result: FlyResult };
 
 /** Firmware de exemplo que acompanha o ASTRA. */

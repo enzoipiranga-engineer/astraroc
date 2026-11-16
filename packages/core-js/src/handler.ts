@@ -12,6 +12,7 @@ import {
   payloadPresets,
   rulePresets,
   space,
+  analysis,
   engineLibrary,
   simulateMission,
   materialsJson,
@@ -65,6 +66,8 @@ export function handle(req: CoreRequest): CoreResponse {
           library: JSON.parse(electronicsLibrary()) as ElecComponent[],
           firmware: JSON.parse(exampleFirmware()) as ExampleFirmware,
         };
+      case "analysis":
+        return { id: req.id, ok: true, kind: "analysis", result: JSON.parse(analysis(req.tool, JSON.stringify(req.input))) as unknown };
       case "space":
         return { id: req.id, ok: true, kind: "space", result: JSON.parse(space(req.tool, req.input === undefined ? "" : JSON.stringify(req.input))) as unknown };
       case "presets":

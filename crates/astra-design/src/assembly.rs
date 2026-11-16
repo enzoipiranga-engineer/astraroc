@@ -111,6 +111,14 @@ impl Assembly {
     #[must_use]
     pub fn new(design: &Design, db: &MaterialDb) -> Self {
         let mut props: Vec<PartProps> = design.parts.iter().map(|p| PartProps::of(p, db)).collect();
+        let ms = design.scales.mass;
+        if (ms - 1.0).abs() > 1e-15 {
+            for q in &mut props {
+                q.mass *= ms;
+                q.i_axial *= ms;
+                q.i_trans *= ms;
+            }
+        }
         let idx = |id: &str| design.parts.iter().position(|p| p.id == id);
 
         // Aletas: soma o raio do tubo hospedeiro à inércia axial e transversal.
@@ -138,8 +146,13 @@ impl Assembly {
             .collect();
         Self::add_implicit(design, &props, &mut joints);
 
-        let (motor, motor_aft, prop_cg, nozzle_exit, water, motor_error) =
+        let (mut motor, motor_aft, prop_cg, nozzle_exit, water, motor_error) =
             Self::resolve_motor(design, &props);
+        if (design.scales.thrust - 1.0).abs() > 1e-15 {
+            for p in &mut motor.points {
+                p.thrust *= design.scales.thrust;
+            }
+        }
         let root = design
             .parts
             .iter()
@@ -849,6 +862,7 @@ impl Assembly {
         let m = m.max(1e-4);
         let mut r = Rocket::new(geometry, m, cg, (ia.max(1e-9), it.max(1e-9)), motor);
         r.nozzle_station = self.motor_aft - x0;
+        r.cd_scale = self.design.scales.cd;
         r.case_cg_from_nozzle = 0.5 * r.motor.length;
         r.prop_cg_from_nozzle = if with_motor {
             self.prop_cg_from_nozzle

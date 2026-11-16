@@ -1,10 +1,12 @@
 import { CoreClient, buildBom, type Design, type ElecComponent, type ExampleFirmware, type Material, type PayloadPreset, type RuleSet, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
+import { strFromU8, unzipSync } from "fflate";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ElectronicsPanel } from "./components/ElectronicsPanel";
 import { MissionReport } from "./components/MissionReport";
 import { PayloadPanel } from "./components/PayloadPanel";
 import { FinancePanel } from "./components/FinancePanel";
 import { SpaceView } from "./components/SpaceView";
+import { AnalysisPanel, flightReport } from "./components/AnalysisPanel";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { JointPanel } from "./components/JointPanel";
 import { LauncherPanel } from "./components/LauncherPanel";
@@ -34,8 +36,18 @@ const readIon = () => {
 
 type Boot = { status: "loading" } | { status: "error"; message: string } | { status: "ready" };
 
+function spawnWorker(): Worker {
+  return new Worker(new URL("./core.worker.ts", import.meta.url), { type: "module" });
+}
+
+/** Cliente com worker próprio, para tarefas em paralelo. */
+function spawnClient() {
+  const w = spawnWorker();
+  return { client: new CoreClient(w), stop: () => w.terminate() };
+}
+
 function useCore() {
-  const client = useMemo(() => new CoreClient(new Worker(new URL("./core.worker.ts", import.meta.url), { type: "module" })), []);
+  const client = useMemo(() => new CoreClient(spawnWorker()), []);
   return client;
 }
 
@@ -173,6 +185,26 @@ export function App() {
     a.click();
     URL.revokeObjectURL(url);
   };
+  const importOrk = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      let xml: string;
+      if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
+        // .ork compactado (zip): o XML é o primeiro arquivo .ork/.xml de dentro.
+        const files = unzipSync(bytes);
+        const name = Object.keys(files).find((k) => /\.(ork|xml)$/i.test(k)) ?? Object.keys(files)[0];
+        if (!name) throw new Error("zip vazio");
+        xml = strFromU8(files[name]!);
+      } else xml = new TextDecoder().decode(bytes);
+      const r = await core.analysis<{ design: Design; warnings: string[] }>("importOrk", { xml });
+      change(r.design);
+      setSelected(null);
+      alert(`Importado do OpenRocket.\n\n${r.warnings.map((w) => `• ${w}`).join("\n")}`);
+    } catch (e) {
+      alert(`Não consegui importar: ${(e as Error).message}`);
+    }
+  };
   const importJson = async (f: File | undefined) => {
     if (!f) return;
     try {
@@ -220,6 +252,7 @@ export function App() {
           <button onClick={() => setHist(redo(hist))} disabled={!hist.future.length} title="Ctrl+Y">Refazer</button>
           <button onClick={exportJson}>Exportar</button>
           <label className="button">Importar<input type="file" accept=".json" hidden onChange={(e) => void importJson(e.target.files?.[0])} /></label>
+          <label className="button" title="Projeto do OpenRocket">OpenRocket<input type="file" accept=".ork,.xml" hidden onChange={(e) => void importOrk(e.target.files?.[0])} /></label>
         </div>
         <button className="launch" onClick={() => void launch()} disabled={flying}>
           {flying ? "Simulando…" : nErr ? `LANÇAR (${nErr} ${nErr === 1 ? "erro" : "erros"})` : "LANÇAR"}
@@ -263,6 +296,7 @@ export function App() {
         </div>
       </div>
 
+      <AnalysisPanel design={design} core={core} onChange={change} spawn={spawnClient} />
       <FinancePanel design={design} validation={validation} library={elecLib} materials={materials} core={core} onChange={change} />
       <PayloadPanel design={design} presets={payloadPresets} rulePresets={rulePresets} onChange={change} />
       <ElectronicsPanel design={design} validation={validation} core={core} library={elecLib} example={example} result={result} onChange={change} onFlight={setResult} />
@@ -292,6 +326,8 @@ export function App() {
             <input type="file" accept=".gpx,.kml,.csv,.txt" hidden onChange={(e) => void importGps(e.target.files?.[0])} />
           </label>
           {gps.length > 0 && <span className="hint">{gps.length} pontos de GPS sobrepostos em amarelo.</span>}
+          <button onClick={() => flightReport(design, validation, result)}>Relatório de voo (PDF)</button>
+          {design.motor.type === "eng" && <button onClick={() => download(`${fileStem(design.name)}-motor.eng`, (design.motor as { text: string }).text, "text/plain")}>Motor (.eng)</button>}
         </div>
       )}
       {result && (

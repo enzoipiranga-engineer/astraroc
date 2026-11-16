@@ -90,6 +90,11 @@ export class CoreClient {
     return { payloads: r.payloads, rules: r.rules };
   }
 
+  /** Análises em lote (Monte Carlo, sensibilidade, otimização, calibração, importação .ork). */
+  async analysis<T>(tool: string, input: unknown): Promise<T> {
+    return (await this.call({ kind: "analysis", tool, input })).result as T;
+  }
+
   /** Ferramentas espaciais (manobras, transferências, Lagrange, reentrada, pouso). */
   async space<T>(tool: string, input?: unknown): Promise<T> {
     return (await this.call({ kind: "space", tool, input })).result as T;

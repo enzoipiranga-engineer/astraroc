@@ -55,6 +55,32 @@ pub struct Design {
     /// os cálculos ficam em `@astra/core-js` (`finance.ts`).
     #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
     pub finance: serde_json::Value,
+    /// Multiplicadores de dispersão e calibração: Cd, empuxo (impulso) e massa das peças.
+    #[serde(default)]
+    pub scales: Scales,
+}
+
+/// Multiplicadores aplicados ao modelo (1 = nominal). Usados pelo Monte Carlo e pela
+/// calibração com telemetria.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Scales {
+    /// Arrasto.
+    pub cd: f64,
+    /// Empuxo (com a mesma massa de propelente: impulso total).
+    pub thrust: f64,
+    /// Massa das peças.
+    pub mass: f64,
+}
+
+impl Default for Scales {
+    fn default() -> Self {
+        Self {
+            cd: 1.0,
+            thrust: 1.0,
+            mass: 1.0,
+        }
+    }
 }
 
 fn default_vent_diameter() -> f64 {

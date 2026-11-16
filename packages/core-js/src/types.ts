@@ -157,6 +157,8 @@ export interface Design {
   electronics: Electronics;
   payloads: Payload[];
   competition?: RuleSet | null;
+  /** Multiplicadores de Cd, empuxo e massa (dispersão e calibração). */
+  scales?: { cd: number; thrust: number; mass: number };
   /** Lista de materiais, orçamento e receitas (ver `finance.ts`). */
   finance?: import("./finance").Finance;
 }
@@ -641,4 +643,36 @@ export interface LauncherReport {
 export interface PluginCheck {
   ok: boolean;
   messages: string[];
+}
+
+/** Desvios-padrão do Monte Carlo (relativos, ou graus). */
+export interface Dispersion {
+  thrust: number;
+  cd: number;
+  mass: number;
+  windSpeed: number;
+  windDirDeg: number;
+  elevationDeg: number;
+  azimuthDeg: number;
+}
+
+export interface McRun {
+  index: number;
+  params: number[];
+  apogee: number;
+  maxMach: number;
+  railExit: number;
+  landing: [number, number, number] | null;
+  landings: [number, number][];
+  failure: boolean;
+}
+
+export interface McSummary {
+  n: number;
+  apogee: [number, number, number, number, number];
+  histogram: [number, number][];
+  ellipse: { center: [number, number]; axes1sigma: [number, number]; axes95: [number, number]; azimuthDeg: number };
+  failureRate: number;
+  pLandingZone: number | null;
+  pKeepOut: number | null;
 }

@@ -344,3 +344,24 @@ svg.scatter circle.dom { fill: #5eb1ff; }
 .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .space .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; }
 .card.bad b { color: var(--bad); }
+
+/* Análises */
+.analysis { margin: 0 16px 16px; }
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; align-items: start; }
+.mc h4 { margin: 8px 0 4px; font-size: 0.85rem; }
+svg.hist { width: 100%; max-width: 340px; }
+svg.hist rect { fill: var(--orange); opacity: 0.85; }
+svg.hist .lbl, svg.disp .lbl { fill: var(--muted); font-size: 10px; }
+svg.disp { width: 100%; max-width: 320px; background: rgba(255,255,255,0.02); border-radius: 8px; }
+svg.disp .axis { stroke: rgba(255,255,255,0.12); }
+svg.disp .pt { fill: #5eb1ff; opacity: 0.7; }
+svg.disp .e1 { fill: none; stroke: var(--orange); stroke-width: 1.5; }
+svg.disp .e95 { fill: none; stroke: var(--orange); stroke-dasharray: 4 3; }
+svg.disp .pad { fill: #fff; }
+svg.disp .keep { fill: rgba(255,107,107,0.15); stroke: var(--bad); }
+svg.disp .land { fill: rgba(126,231,135,0.12); stroke: var(--good); }
+table.tornado { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.tornado td { padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+table.tornado .bar { height: 10px; background: var(--orange); }
+table.tornado .bar.neg { background: #5eb1ff; }
+.opt, .calib { margin-top: 14px; }

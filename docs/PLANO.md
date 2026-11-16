@@ -15,8 +15,8 @@ Uma fase só fecha quando o critério de saída passa na CI.
 | 8 | Carga útil, ambiente de voo, regras de competição | Relatório aprovado/reprovado para o preset Zyrion | **Feita, com uma pendência:** o preset Zyrion espera os dados da equipe; o relatório aprovado/reprovado funciona para qualquer carga |
 | 9 | BOM, orçamento, receitas, Pareto, exportação | Troca de peça atualiza custo, massa e apogeu | **Feita** |
 | 10 | Órbita, reentrada, pouso propulsivo, estrutura e aquecimento; depois Lua e Marte | Hohmann e Lambert contra solução analítica | **Feita** |
-| 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | Próxima |
-| 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | |
+| 11 | Monte Carlo, otimizador, calibração com telemetria, importação/exportação | Centenas de rodadas em paralelo; .ork importado | **Feita, com uma pendência:** importação testada com arquivo escrito à mão no formato do OpenRocket; falta conferir com .ork exportado pelo programa |
+| 12 | Validação contra voos reais, polimento, desempenho, documentação, PWA e Tauri | Apogeu dentro de ±5% nos voos pequenos de referência | Próxima |
 
 ## Fase 1 em detalhe (concluída)
 
@@ -153,3 +153,17 @@ Ficam registrados aqui para não virarem promessa falsa:
 - **Pouso do 1º estágio do Falcon 9** ainda não liga à simulação da fase 5: o exemplo da
   ferramenta usa números informados.
 - **Vista 3D do Sistema Solar:** a transferência é desenhada em 2D; o globo 3D cobre Terra.
+
+## Fase 11: o que ficou para depois
+
+- **.ork:** testado com um arquivo escrito à mão no formato do OpenRocket (sem acesso a
+  arquivos exportados pelo programa nesta sessão). Aletas elípticas e livres viram trapézios
+  de mesma área; guias de trilho, motor (só o nome) e carga de ejeção não vêm do arquivo.
+  RockSim (.rkt) ainda não é lido.
+- **Monte Carlo:** incertezas gaussianas independentes em impulso, Cd, massa, vento
+  (intensidade e direção) e trilho; sem erro de liberação dos lançadores nem atraso de
+  ejeção. O Cd de todas as peças varia junto (um fator).
+- **Otimizador:** um parâmetro por vez, alvo de apogeu. Otimização multiobjetivo e de
+  estágios fica para depois.
+- **Calibração:** ajusta Cd (e impulso) pela altura; não usa acelerômetro nem GPS.
+- **Relatório PDF:** página pronta para imprimir (o navegador gera o PDF).

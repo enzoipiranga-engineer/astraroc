@@ -255,3 +255,17 @@ Cada modelo implementado ganha uma linha aqui no mesmo commit do código.
 - **Pouso propulsivo:** Euler semi-implícito a 0,01 s; empuxo contra a velocidade (curva de
   gravidade) com ignição por bisseção; a partir de órbita, guiagem com portão; fase
   terminal a 1 m/s com empuxo igual ao peso.
+
+## Análises (fase 11)
+
+- **Multiplicadores** de Cd (todo o arrasto), empuxo (curva inteira; mesma massa de
+  propelente, ou seja, impulso) e massa das peças (massa e inércias).
+- **Monte Carlo:** sorteio gaussiano por rodada com SplitMix64 e semente derivada do
+  índice, então as rodadas podem rodar em qualquer ordem e em vários workers com o mesmo
+  resultado. Elipse dos pousos pelos autovalores da covariância amostral; a de 95 % usa
+  √5,991 (qui-quadrado com 2 graus de liberdade), válida se os pousos forem
+  aproximadamente gaussianos.
+- **Sensibilidade:** um-de-cada-vez, de −1σ a +1σ (não captura interações).
+- **Otimizador:** varredura de 7 pontos + bisseção no intervalo com mudança de sinal.
+- **Calibração:** Nelder-Mead sobre o erro RMS da altura (pontos do altímetro
+  interpolados na simulação), multiplicador de Cd limitado a 0,2–5 e de impulso a 0,5–1,5.

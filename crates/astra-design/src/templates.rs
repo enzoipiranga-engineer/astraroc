@@ -181,6 +181,7 @@ pub fn pet_bottle() -> Design {
         payloads: Vec::new(),
         competition: None,
         finance: serde_json::Value::Null,
+        scales: Scales::default(),
     }
 }
 
@@ -439,6 +440,7 @@ pub fn competition_500m() -> Design {
         payloads: Vec::new(),
         competition: None,
         finance: serde_json::Value::Null,
+        scales: Scales::default(),
     }
 }
 

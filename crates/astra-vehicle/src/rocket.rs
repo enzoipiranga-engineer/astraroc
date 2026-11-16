@@ -57,6 +57,8 @@ pub struct Rocket {
     pub prop_cg_from_nozzle: f64,
     /// Paraquedas.
     pub parachutes: Vec<Parachute>,
+    /// Multiplicador do arrasto (dispersão e calibração).
+    pub cd_scale: f64,
 }
 
 impl Rocket {
@@ -82,6 +84,7 @@ impl Rocket {
             case_cg_from_nozzle: half,
             prop_cg_from_nozzle: half,
             parachutes: Vec::new(),
+            cd_scale: 1.0,
         }
     }
 
@@ -170,20 +173,21 @@ impl Rocket {
     /// Coeficiente de arrasto em α = 0.
     #[must_use]
     pub fn cd(&self, mach: f64, reynolds_per_m: f64, burning: bool) -> f64 {
-        match &self.drag {
-            DragModel::Analytic => self
-                .aero
-                .drag(&FlowState {
-                    mach,
-                    reynolds_per_m,
-                    burning,
-                })
-                .total(),
-            DragModel::Table {
-                power_off,
-                power_on,
-            } => interp(if burning { power_on } else { power_off }, mach),
-        }
+        self.cd_scale
+            * match &self.drag {
+                DragModel::Analytic => self
+                    .aero
+                    .drag(&FlowState {
+                        mach,
+                        reynolds_per_m,
+                        burning,
+                    })
+                    .total(),
+                DragModel::Table {
+                    power_off,
+                    power_on,
+                } => interp(if burning { power_on } else { power_off }, mach),
+            }
     }
 
     fn cd_ctx(&self, c: &FlightCtx<'_>) -> f64 {

@@ -57,3 +57,9 @@ export function download(name: string, text: string, type: string) {
 export function fileStem(name: string): string {
   return name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "") || "projeto";
 }
+
+export function downloadBytes(name: string, data: Uint8Array, type: string) {
+  const url = URL.createObjectURL(new Blob([data as BlobPart], { type }));
+  Object.assign(document.createElement("a"), { href: url, download: name }).click();
+  URL.revokeObjectURL(url);
+}

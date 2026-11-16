@@ -45,7 +45,7 @@ function LauncherCompare({ r }: { r: NonNullable<SimOutput["launcher"]> }) {
   );
 }
 
-export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((t: number) => void) | undefined; onExport?: ((kind: "kml" | "csv") => void) | undefined }) {
+export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((t: number) => void) | undefined; onExport?: ((kind: "kml" | "kmz" | "csv" | "tacview") => void) | undefined }) {
   const series = useMemo(() => {
     const pick = (col: number): Series[] =>
       out.bodies.map((b, i) => ({
@@ -69,7 +69,9 @@ export function Results({ out, onPick, onExport }: { out: SimOutput; onPick?: ((
         {onExport && (
           <div className="tools">
             <button onClick={() => onExport("kml")}>KML (Google Earth)</button>
+            <button onClick={() => onExport("kmz")}>KMZ</button>
             <button onClick={() => onExport("csv")}>Telemetria CSV</button>
+            <button onClick={() => onExport("tacview")} title="CSV no formato do Tacview, um por corpo">Tacview</button>
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { parseTacview } from "./tacview";
 /**
  * Serviços externos chamados pelo navegador (o núcleo não faz E/S): busca de locais,
  * altitude do terreno e perfil de vento previsto ou histórico, todos da Open-Meteo
@@ -143,6 +144,8 @@ export function parseTrack(name: string, text: string): TrackPoint[] {
       .filter((c) => c.length >= 2 && c.every(Number.isFinite))
       .map(([lon, lat, alt]) => ({ lat: lat!, lon: lon!, alt: alt ?? 0 }));
   }
+  const tac = parseTacview(text);
+  if (tac) return tac.map(({ lat, lon, alt }) => ({ lat, lon, alt }));
   const pts: TrackPoint[] = [];
   for (const line of text.split(/\r?\n/)) {
     const c = line.split(/[,;\t]/).map((x) => Number(x.trim()));

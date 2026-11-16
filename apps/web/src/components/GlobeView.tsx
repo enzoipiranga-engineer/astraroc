@@ -3,6 +3,7 @@ import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { SAMPLE, type Design, type SimOutput, type Validation } from "@astra/core-js";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { recordFlight, videoFormats, type VideoFormat } from "../video";
 import type { TrackPoint } from "../geo";
 import { fmt } from "../units";
 import { accelAt, colorValue, ramp, sampleAt, type ColorBy } from "./telemetry";
@@ -46,6 +47,8 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
   const [body, setBody] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [ground, setGround] = useState(0);
+  const [vfmt, setVfmt] = useState<VideoFormat>(() => videoFormats()[0]!);
+  const [rec, setRec] = useState<number | null>(null);
   const pickRef = useRef({ pickMode, onPickLocation });
   pickRef.current = { pickMode, onPickLocation };
   const cameraRef = useRef(camera);
@@ -407,6 +410,44 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
     if (v) v.clock.multiplier = speed;
   }, [speed]);
 
+  const record = async () => {
+    const v = viewerRef.current;
+    if (!v || rec !== null) return;
+    v.clock.shouldAnimate = false;
+    setPlaying(false);
+    setRec(0);
+    try {
+      const { blob, ext } = await recordFlight(v, {
+        format: vfmt,
+        width: vfmt === "gif" ? 480 : 1280,
+        fps: vfmt === "gif" ? 12 : 30,
+        speed,
+        tEnd,
+        maxFrames: vfmt === "gif" ? 600 : 9000,
+        hud: (tt, sp) => {
+          const bb = out.bodies[body] ?? out.bodies[0];
+          const rr = bb ? sampleAt(bb, tt) : null;
+          const ev = [...out.events].filter((e) => e.t <= tt && e.body === (bb?.id ?? 0)).at(-1);
+          return [
+            `${design.name} · ASTRA`,
+            `t = ${fmt(tt, 1)} s  (${fmt(sp, sp < 10 ? 1 : 0)}×)`,
+            rr ? `altura ${fmt(rr[SAMPLE.alt]!, 0)} m · ${fmt(rr[SAMPLE.speed]!, 1)} m/s · Mach ${fmt(rr[SAMPLE.mach]!, 2)}` : "",
+            ev ? ev.message.slice(0, 70) : "",
+          ].filter(Boolean);
+        },
+        progress: setRec,
+      });
+      const url = URL.createObjectURL(blob);
+      Object.assign(document.createElement("a"), { href: url, download: `${design.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w-]+/g, "_")}-voo.${ext}` }).click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(`Falha na gravação: ${(e as Error).message}`);
+    } finally {
+      setRec(null);
+      setClock(tEnd);
+    }
+  };
+
   const b = out.bodies[body] ?? out.bodies[0];
   const r = b ? sampleAt(b, t) : null;
   const phase = [...out.events].filter((e) => e.t <= t && e.body === (b?.id ?? 0)).at(-1);
@@ -476,6 +517,14 @@ export function GlobeView({ design, validation, out, gps, ionToken, seek, onTime
             <option value="accel">aceleração</option>
           </select>
         </label>
+        <span className="rec">
+          <select value={vfmt} onChange={(e) => setVfmt(e.target.value as VideoFormat)} aria-label="Formato do vídeo" disabled={rec !== null}>
+            {videoFormats().map((f) => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+          </select>
+          <button onClick={() => void record()} disabled={rec !== null || !out.bodies.length} title="Grava o voo do início ao fim, na velocidade escolhida">
+            {rec !== null ? `● gravando ${Math.round(rec * 100)} %` : "● Gravar vídeo"}
+          </button>
+        </span>
       </div>
       <p className="note">
         {ionToken ? "Terreno e imagem de satélite do Cesium ion." : "Globo offline em baixa resolução. Para terreno 3D e imagem de satélite, informe a chave do Cesium ion em “Local, data e zonas”."}

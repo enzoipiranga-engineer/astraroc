@@ -1,5 +1,6 @@
 import { CoreClient, buildBom, type Design, type ElecComponent, type ExampleFirmware, type Material, type PayloadPreset, type RuleSet, type SimOutput, type TemplateEntry, type Validation } from "@astra/core-js";
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { tacviewFile } from "./tacview";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ElectronicsPanel } from "./components/ElectronicsPanel";
 import { MissionReport } from "./components/MissionReport";
@@ -18,7 +19,7 @@ import { RecoveryMap } from "./components/RecoveryMap";
 import { SetupPanel } from "./components/SetupPanel";
 import { SitePanel } from "./components/SitePanel";
 import { WindPanel } from "./components/WindPanel";
-import { download, fileStem, toCsv, toKml } from "./export";
+import { download, downloadBytes, fileStem, toCsv, toKml } from "./export";
 import { parseTrack, type TrackPoint } from "./geo";
 import { commit, historyOf, loadSaved, redo, save, undo, type History } from "./state";
 import { fmt, setUnitSystem, unitSystem, type UnitSystem } from "./units";
@@ -363,11 +364,15 @@ export function App() {
         <Results
           out={result}
           onPick={pickAt}
-          onExport={(k) =>
-            k === "kml"
-              ? download(`${fileStem(design.name)}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml")
-              : download(`${fileStem(design.name)}.csv`, toCsv(result), "text/csv")
-          }
+          onExport={(k) => {
+            const stem = fileStem(design.name);
+            if (k === "kml") download(`${stem}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml");
+            else if (k === "kmz") downloadBytes(`${stem}.kmz`, zipSync({ "doc.kml": strToU8(toKml(design, result)) }), "application/vnd.google-earth.kmz");
+            else if (k === "tacview") {
+              const f = tacviewFile(result, design.name);
+              downloadBytes(f.name, f.data, f.type);
+            } else download(`${stem}.csv`, toCsv(result), "text/csv");
+          }}
         />
       )}
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CoreClient, type Design, type Dispersion, type McRun, type McSummary, type SimOutput, type Validation } from "@astra/core-js";
 import { Chart } from "./Chart";
+import { parseTacview } from "../tacview";
 
 interface Props {
   design: Design;
@@ -219,6 +220,9 @@ function Optimizer({ design, core, onChange }: { design: Design; core: CoreClien
 
 /** Lê CSV de telemetria: colunas tempo (s) e altura (m), separadas por vírgula, ponto e vírgula ou tab. */
 export function parseTelemetry(text: string): [number, number][] {
+  // CSV do Tacview: tempo e altitude acima do mar.
+  const tac = parseTacview(text);
+  if (tac && tac.length >= 3) text = tac.map((p) => `${p.t},${p.alt}`).join("\n");
   const rows: [number, number][] = [];
   for (const line of text.split(/\r?\n/)) {
     const cells = line.split(/[;,\t]/).map((c) => Number(c.trim()));
@@ -256,7 +260,7 @@ function Calibration({ design, core, onChange }: { design: Design; core: CoreCli
   return (
     <div className="calib">
       <h3>Calibração com telemetria</h3>
-      <p className="hint">Carregue o registro do altímetro (CSV com tempo em s e altura em m). O ASTRA ajusta o arrasto (e, se pedir, o impulso) para a simulação bater com o voo real.</p>
+      <p className="hint">Carregue o registro do altímetro (CSV com tempo em s e altura em m, ou CSV do Tacview). O ASTRA ajusta o arrasto (e, se pedir, o impulso) para a simulação bater com o voo real.</p>
       <div className="fin-controls">
         <label className="button">Carregar CSV<input type="file" accept=".csv,.txt" hidden onChange={(e) => void load(e.target.files?.[0])} /></label>
         <label className="field check"><input type="checkbox" checked={fitThrust} onChange={(e) => setFitThrust(e.target.checked)} /><span>Ajustar também o impulso</span></label>

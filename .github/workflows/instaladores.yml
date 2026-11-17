@@ -10,8 +10,26 @@ permissions:
   contents: write
 
 jobs:
+  release:
+    name: Criar a versão
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      # Cria a página da versão uma vez só; os três instaladores enviam para ela
+      # (criada em paralelo, cada sistema abria uma versão própria).
+      - id: v
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$(jq -r .version apps/desktop/src-tauri/tauri.conf.json)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "ASTRA $TAG" --target "$GITHUB_SHA" --notes-file .github/release-notes.md
+
   build:
     name: Instalador ${{ matrix.name }}
+    needs: release
     strategy:
       fail-fast: false
       matrix:
@@ -62,13 +80,5 @@ jobs:
           tauriScript: pnpm tauri
           args: ${{ matrix.args }}
           tagName: v__VERSION__
-          releaseName: ASTRA v__VERSION__
-          releaseBody: |
-            Baixe o instalador do seu sistema em **Assets**, logo abaixo:
-            - **Windows:** `ASTRA_..._x64-setup.exe` — dê dois cliques. Se aparecer "O Windows protegeu o computador", clique em *Mais informações* → *Executar assim mesmo* (o instalador não é assinado).
-            - **Mac:** `ASTRA_..._universal.dmg` — abra e arraste o ASTRA para Aplicativos. Na primeira vez, clique com o botão direito no app → *Abrir* (o app não é assinado pela Apple).
-            - **Linux:** `.deb` (Ubuntu/Debian: dois cliques) ou `.AppImage` (dê permissão de execução e abra).
-
-            Sem instalar nada: https://enzoipiranga-engineer.github.io/astraroc/
           releaseDraft: false
           prerelease: false

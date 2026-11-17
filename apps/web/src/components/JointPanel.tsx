@@ -42,6 +42,9 @@ export function JointPanel({ design, materials, errorJoints, selectedPart, onCha
                 {j.kind.type === "adhesive" && (
                   <SelectField label="Adesivo" value={j.kind.adhesive} options={adhesives.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => setKind(j.id, "adhesive", v)} />
                 )}
+                {j.kind.type === "baySeat" && (
+                  <SelectField label="Baia (junta que abre)" value={j.kind.bayJoint} options={[{ value: "", label: "junta…" }, ...design.joints.filter((x) => x.id !== j.id && x.kind.type !== "baySeat" && x.kind.type !== "cord").map((x) => ({ value: x.id, label: `${name(x.a)} ↔ ${name(x.b)}` }))]} onChange={(v) => setKind(j.id, "bayJoint", v)} />
+                )}
                 {(j.kind.type === "screws" || j.kind.type === "shearPins") && (
                   <SelectField label="Material" value={j.kind.material} options={metals.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => setKind(j.id, "material", v)} />
                 )}

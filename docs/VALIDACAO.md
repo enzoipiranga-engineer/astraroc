@@ -58,6 +58,8 @@
 | Pinos fortes demais para a carga: aviso, baia não abre, impacto balístico | Consequência física | — | Passa |
 | Baia fechada e coifa no atrito: paraquedas abre antes do apogeu; cordão fraco rompe | Consequência física | — | Passa |
 | Aletas finas de balsa: flutter acusado e aleta perdida em voo | Consequência física | — | Passa |
+| CanSat assentada na baia do principal, sem carga própria: sai com a ejeção do principal, voa como corpo separado e pousa com o próprio paraquedas; ordem de disparo e junta de baia inexistente acusadas | Consequência física | — | Passa |
+| Regra de descida da LASC usa a velocidade vertical: com vento de 9 m/s, a descida fica abaixo da velocidade de pouso (que soma a deriva) | Consistência | — | Passa |
 | Peça que não cabe, sobreposição, anteparo bloqueando o paraquedas, peça solta | Verificação estática | — | Passa |
 | Mudar uma peça muda massa, CG, margem e apogeu juntos | Propagação | — | Passa |
 | Limite físico interrompe o voo e retomar do estado final reproduz o voo contínuo | Continuidade | 1e-6 s; 1e-3 m | Passa |

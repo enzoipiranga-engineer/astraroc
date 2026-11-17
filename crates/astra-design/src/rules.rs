@@ -31,6 +31,9 @@ pub enum Metric {
     LandingSpeed,
     /// Maior energia cinética de pouso entre os corpos, J.
     LandingEnergy,
+    /// Maior velocidade vertical de descida no pouso entre os corpos, m/s (sem a deriva
+    /// horizontal do vento, que entra em [`Metric::LandingSpeed`]).
+    DescentRate,
     /// Maior distância de pouso ao lançador, m.
     Drift,
     /// Massa total das cargas úteis, kg.
@@ -273,7 +276,7 @@ fn lasc(name: &str, target: f64, k: f64, min_payload: f64, hybrid: bool) -> Rule
         rule("trilho-30", "Velocidade na saída do trilho de pelo menos 30 m/s (aceita sem análise)", Metric::RailExitSpeed, Op::AtLeast, Some(30.0), None, 0.0, "FLT 4.3.4"),
         blocking(rule("margem", "Margem estática entre 1,5 e 4 calibres (o ASTRA mede na decolagem; a regra vale para toda a subida)", Metric::StaticMargin, Op::Between, Some(1.5), Some(4.0), 0.0, "FLT 4.3.5 e 4.3.6")),
         blocking(rule("tw", "Empuxo/peso de pelo menos 5:1", Metric::ThrustToWeight, Op::AtLeast, Some(5.0), None, 0.0, "PRS 5.1.4")),
-        rule("descida", "Descida final abaixo de 10 m/s", Metric::LandingSpeed, Op::AtMost, None, Some(10.0), 0.0, "REC 8.1.4 e 8.1.6"),
+        rule("descida", "Velocidade de descida (vertical) abaixo de 10 m/s, sem contar a deriva do vento", Metric::DescentRate, Op::AtMost, None, Some(10.0), 0.0, "REC 8.1.4 e 8.1.6"),
         rule("altimetro", "Altímetro COTS oficial da lista aprovada a bordo", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "ECS 7.1.1"),
         rule("pinos", "Força da ejeção ≥ 3 × a resistência somada dos pinos de cisalhamento", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "STR 6.5.8"),
         rule("flutter", "Velocidade de flutter das aletas ≥ 1,5 × a velocidade máxima", Metric::Declared, Op::AtLeast, Some(1.0), None, 0.0, "STR 6.3.2"),
@@ -438,6 +441,7 @@ pub fn evaluate(
             Metric::LandingEnergy => {
                 landing(&|b, l| 0.5 * b.samples.last().map_or(0.0, |s| s[9]) * l[1] * l[1])
             }
+            Metric::DescentRate => landing(&|b, _| b.samples.last().map_or(0.0, |s| s[3].abs())),
             Metric::Drift => landing(&|_, l| l[2].hypot(l[3])),
             Metric::PayloadMass => payload_mass.iter().map(|x| x.0).sum(),
             Metric::PayloadCubeForm => f64::from(u8::from(!design.payloads.is_empty() && cube_ok)),
@@ -485,7 +489,12 @@ pub fn evaluate(
     let landing_rules_ok = results
         .iter()
         .zip(&set.rules)
-        .filter(|(_, r)| matches!(r.metric, Metric::LandingSpeed | Metric::LandingEnergy))
+        .filter(|(_, r)| {
+            matches!(
+                r.metric,
+                Metric::LandingSpeed | Metric::LandingEnergy | Metric::DescentRate
+            )
+        })
         .all(|(x, _)| x.pass);
     let recovery_points = set.recovery_points.map(|p| {
         if intact && landing_rules_ok && out.bodies.iter().all(|b| b.landing.is_some()) {

@@ -1218,6 +1218,9 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                                 st.broken.extend(cu.joints.iter().copied());
                                 st.deployed[c] = Some(end_state.t);
                                 ev(&mut out, "ejection", format!("Carga de ejeção de {:.2} g gerou {:.0} N e venceu os {:.0} N da junta: baia aberta, {cname} saiu.", ejection_charge * 1000.0, force, cu.tension));
+                                for m in release_seats(asm, &mut st.broken) {
+                                    ev(&mut out, "seatReleased", m);
+                                }
                             }
                             Some(cu) => ev(&mut out, "ejectionFailed", format!("Carga de ejeção de {:.2} g gerou só {:.0} N, menos que os {:.0} N da junta: a baia não abriu e {cname} ficou preso.", ejection_charge * 1000.0, force, cu.tension)),
                             None => ev(&mut out, "ejectionFailed", format!("{cname}: a junta de separação não divide o foguete em duas partes (há outra ligação rígida). A baia não abre.")),
@@ -1230,6 +1233,9 @@ pub(crate) fn run(asm_in: &Assembly, nominal: bool) -> (SimOutput, Option<Nomina
                 match &l.kind {
                     LimitKind::Cut(cu) => {
                         st.broken.extend(cu.joints.iter().copied());
+                        for m in release_seats(asm, &mut st.broken) {
+                            ev(&mut out, "seatReleased", m);
+                        }
                         let names: Vec<String> = cu
                             .joints
                             .iter()
@@ -1540,4 +1546,28 @@ fn launcher_bodies(
             speed: 0.0,
         });
     }
+}
+
+/// Solta as peças assentadas na baia ([`crate::model::JointKind::BaySeat`]) cuja junta
+/// de baia já abriu e devolve uma mensagem por peça solta.
+fn release_seats(asm: &Assembly, broken: &mut BTreeSet<usize>) -> Vec<String> {
+    let seats = asm.released_seats(broken);
+    let mut msgs = Vec::new();
+    for j in seats {
+        broken.insert(j);
+        let jd = &asm.design.joints[j];
+        let name = |id: &str| {
+            asm.design
+                .parts
+                .iter()
+                .find(|p| p.id == id)
+                .map_or_else(|| id.to_owned(), |p| p.name.clone())
+        };
+        msgs.push(format!(
+            "A baia abriu e liberou {} (estava assentada em {}): agora sai puxada pelo próprio paraquedas.",
+            name(&jd.a),
+            name(&jd.b)
+        ));
+    }
+    msgs
 }

@@ -525,6 +525,14 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
             }
         }
     }
+    // Assentos na baia: a junta da baia precisa existir.
+    for j in &design.joints {
+        if let crate::model::JointKind::BaySeat { bay_joint } = &j.kind {
+            if !design.joints.iter().any(|k| &k.id == bay_joint) {
+                v.push(issue(Severity::Error, "seatNoBay", format!("A junta {} assenta a peça na baia \"{bay_joint}\", mas essa junta não existe: a peça nunca sai.", j.id), "Escolha a junta de separação da baia (a mesma do paraquedas que tem a carga).", vec![], vec![j.id.clone()]));
+            }
+        }
+    }
     // Recuperação.
     for (c, p) in parts.iter().enumerate() {
         let PartKind::Parachute {
@@ -586,6 +594,13 @@ pub fn validate(design: &Design, db: &MaterialDb, with_flight: bool) -> Validati
                 .min_by_key(|cu| cu.joints.len());
             let force = asm.ejection_force(ji, c, *ejection_charge);
             match cut {
+                Some(_) if *ejection_charge <= 0.0 && shared_charge(design, c, id).is_some() => {
+                    // Mesma baia de outro paraquedas com carga: sai quando ela abrir.
+                    let (other, first) = shared_charge(design, c, id).unwrap_or_default();
+                    if !first {
+                        v.push(issue(Severity::Warning, "sharedBayOrder", format!("{} não tem carga própria e depende da carga de {other} para a baia abrir, mas pode disparar antes dela.", p.name), "Programe este paraquedas para depois do que tem a carga (por exemplo, 0,2 s a mais de atraso no apogeu).", vec![pid(c)], vec![id.clone()]));
+                    }
+                }
                 Some(cu) if *ejection_charge <= 0.0 => v.push(issue(Severity::Error, "noCharge", format!("{}: sem carga de ejeção, a junta de {:.0} N nunca abre.", p.name, cu.tension), "Informe a massa de pólvora da carga de ejeção.", vec![pid(c)], vec![id.clone()])),
                 Some(cu) if force <= cu.tension => v.push(issue(Severity::Error, "weakCharge", format!("A carga de ejeção de {:.2} g gera {:.0} N numa baia de {:.0} cm³, menos que os {:.0} N da junta {id}: a baia não abre.", ejection_charge * 1000.0, force, vol * 1e6, cu.tension), "Aumente a carga, reduza o volume da baia ou use menos pinos.", vec![pid(c)], vec![id.clone()])),
                 Some(cu) if force < 2.0 * cu.tension => v.push(issue(Severity::Warning, "weakCharge", format!("A carga de ejeção gera {:.0} N, só {:.1} vezes os {:.0} N da junta {id}. O usual é o dobro ou mais.", force, force / cu.tension, cu.tension), "Aumente a carga de ejeção.", vec![pid(c)], vec![id.clone()])),
@@ -954,4 +969,35 @@ fn zone_issues(design: &Design, out: &crate::sim::SimOutput, v: &mut Vec<Issue>)
             });
         }
     }
+}
+
+/// Outro paraquedas com carga de ejeção que abre a mesma baia (`joint`) que `chute`.
+/// Devolve o nome dele e se ele dispara antes de `chute` (só comparável quando os dois
+/// abrem no apogeu; nos outros casos assume que sim).
+fn shared_charge(design: &Design, chute: usize, joint: &str) -> Option<(String, bool)> {
+    let delay_of = |k: &PartKind| match k {
+        PartKind::Parachute {
+            deploy: crate::model::DeploySpec::Apogee { delay },
+            ..
+        } => Some(*delay),
+        _ => None,
+    };
+    design
+        .parts
+        .iter()
+        .enumerate()
+        .find_map(|(i, q)| match &q.kind {
+            PartKind::Parachute {
+                separation_joint: Some(j),
+                ejection_charge,
+                ..
+            } if i != chute && j == joint && *ejection_charge > 0.0 => {
+                let first = match (delay_of(&q.kind), delay_of(&design.parts[chute].kind)) {
+                    (Some(a), Some(b)) => a < b,
+                    _ => true,
+                };
+                Some((q.name.clone(), first))
+            }
+            _ => None,
+        })
 }

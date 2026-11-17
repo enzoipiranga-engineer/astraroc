@@ -463,6 +463,16 @@ impl Assembly {
                 info.tension = *holding_force;
                 info.basis = format!("trava de {holding_force:.0} N");
             }
+            JointKind::BaySeat { bay_joint } => {
+                // Presa por contato e confinamento até a baia abrir; quem decide a
+                // soltura é a abertura da junta da baia (ver `released_seats`).
+                info.mode = LoadMode::TensionOnly;
+                info.tension = f64::INFINITY;
+                info.compression = f64::INFINITY;
+                info.basis = format!(
+                    "assentada na baia: presa até a junta {bay_joint} abrir, depois sai com o próprio paraquedas"
+                );
+            }
             JointKind::Cord { strength } => {
                 info.mode = LoadMode::TensionOnly;
                 info.is_cord = true;
@@ -967,6 +977,27 @@ impl Assembly {
 }
 
 impl Assembly {
+    #[must_use]
+    /// Juntas de assento na baia ([`JointKind::BaySeat`]) que devem se soltar porque a
+    /// junta da baia já abriu. Devolve só as que ainda não estão em `broken`.
+    pub fn released_seats(&self, broken: &std::collections::BTreeSet<usize>) -> Vec<usize> {
+        self.design
+            .joints
+            .iter()
+            .enumerate()
+            .filter_map(|(i, j)| match &j.kind {
+                JointKind::BaySeat { bay_joint } if !broken.contains(&i) => self
+                    .design
+                    .joints
+                    .iter()
+                    .position(|k| &k.id == bay_joint)
+                    .filter(|b| broken.contains(b))
+                    .map(|_| i),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Junta que abre a baia do paraquedas `chute`: a indicada no projeto ou, se ela não
     /// existir (por exemplo, a fixação da coifa foi apagada), a interface entre peças da
     /// estrutura do tubo mais próxima do paraquedas, incluindo o simples contato.

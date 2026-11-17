@@ -32,6 +32,7 @@ export const METRICS: Record<Metric, { label: string; unit: string }> = {
   liftoffMass: { label: "Massa na decolagem", unit: "kg" },
   landingSpeed: { label: "Velocidade de pouso", unit: "m/s" },
   landingEnergy: { label: "Energia no pouso", unit: "J" },
+  descentRate: { label: "Velocidade de descida", unit: "m/s" },
   drift: { label: "Distância de pouso", unit: "m" },
   payloadMass: { label: "Massa do payload", unit: "kg" },
   payloadCubeForm: { label: "Payload em Cube Units", unit: "" },

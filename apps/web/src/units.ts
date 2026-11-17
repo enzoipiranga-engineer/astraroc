@@ -174,6 +174,7 @@ export const jointFields: Record<JointType, FieldSpec[]> = {
   ],
   frictionFit: [f("holdingForce", "Força para soltar", "N", "Meça com um dinamômetro.")],
   latch: [f("holdingForce", "Força nominal", "N", "")],
+  baySeat: [],
   cord: [f("strength", "Carga de ruptura", "N", "")],
 };
 
@@ -183,6 +184,7 @@ export const jointTypeLabel: Record<JointType, string> = {
   shearPins: "Pinos de cisalhamento",
   frictionFit: "Encaixe por atrito",
   latch: "Trava / abraçadeira",
+  baySeat: "Assentada na baia (sai com a ejeção)",
   cord: "Cordão",
 };
 

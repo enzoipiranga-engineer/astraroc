@@ -568,7 +568,15 @@ impl PointVehicle for PointSystem<'_> {
             .zip(&self.tumble_cda)
             .map(|(r, &tumble)| {
                 if trailing {
-                    r.cd(ctx.mach, re, false) * r.geometry().ref_area()
+                    // Corpo sem casca externa (CanSat, cápsula, carga ejetada): sem
+                    // geometria aerodinâmica, só o paraquedas freia. Sem esta guarda,
+                    // Cd de geometria vazia dá NaN e o voo do corpo para.
+                    let a_ref = r.geometry().ref_area();
+                    if r.geometry().parts.is_empty() || a_ref <= 0.0 {
+                        0.0
+                    } else {
+                        r.cd(ctx.mach, re, false) * a_ref
+                    }
                 } else {
                     tumble
                 }

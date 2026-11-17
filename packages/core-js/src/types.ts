@@ -61,6 +61,7 @@ export type JointKind =
   | { type: "shearPins"; count: number; diameter: number; material: string }
   | { type: "frictionFit"; holdingForce: number }
   | { type: "latch"; holdingForce: number }
+  | { type: "baySeat"; bayJoint: string }
   | { type: "cord"; strength: number };
 
 export type JointType = JointKind["type"];
@@ -240,6 +241,7 @@ export type Metric =
   | "liftoffMass"
   | "landingSpeed"
   | "landingEnergy"
+  | "descentRate"
   | "drift"
   | "payloadMass"
   | "payloadCubeForm"

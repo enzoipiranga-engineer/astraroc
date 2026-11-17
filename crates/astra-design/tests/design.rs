@@ -507,6 +507,153 @@ fn plugin_launcher_in_design() {
     );
 }
 
+/// Exemplo de competição com uma CanSat assentada na baia do paraquedas principal: ela
+/// não tem carga própria e sai com a ejeção do principal, puxada pelo próprio paraquedas.
+fn with_seated_cansat(delay: f64, bay: &str) -> Design {
+    let mut d = templates::competition_payload();
+    for p in &mut d.parts {
+        match p.id.as_str() {
+            "paraquedas" => p.position = 0.335,
+            "cordao" => p.position = 0.43,
+            _ => {}
+        }
+    }
+    let mut chute = d
+        .parts
+        .iter()
+        .find(|p| p.id == "paraquedas")
+        .unwrap()
+        .clone();
+    chute.id = "pq-cansat".into();
+    chute.name = "Paraquedas da CanSat".into();
+    chute.position = 0.262;
+    if let PartKind::Parachute {
+        diameter,
+        packed_length,
+        deploy,
+        ejection_charge,
+        ..
+    } = &mut chute.kind
+    {
+        *diameter = 0.3;
+        *packed_length = 0.025;
+        *deploy = DeploySpec::Apogee { delay };
+        *ejection_charge = 0.0;
+    }
+    let mut cansat = d.parts.iter().find(|p| p.id == "carga").unwrap().clone();
+    cansat.id = "cansat".into();
+    cansat.name = "CanSat".into();
+    cansat.position = 0.29;
+    if let PartKind::Mass { mass, .. } = &mut cansat.kind {
+        *mass = 0.06;
+    }
+    d.parts.push(chute);
+    d.parts.push(cansat);
+    d.joints.push(Joint {
+        id: "j-cansat".into(),
+        a: "cansat".into(),
+        b: "tubo-sup".into(),
+        kind: JointKind::BaySeat {
+            bay_joint: bay.into(),
+        },
+    });
+    d.joints.push(Joint {
+        id: "j-cansat-pq".into(),
+        a: "pq-cansat".into(),
+        b: "cansat".into(),
+        kind: JointKind::Cord { strength: 500.0 },
+    });
+    d
+}
+
+#[test]
+fn seated_cansat_leaves_with_the_main_charge_and_flies_alone() {
+    let db = db();
+    let d = with_seated_cansat(1.2, "j-coifa");
+    let v = validate(&d, &db, true);
+    let errs = codes(&v, Severity::Error);
+    for c in ["noCharge", "notConnected", "seatNoBay", "chuteBlocked"] {
+        assert!(!errs.iter().any(|e| e == c), "{errs:?}");
+    }
+    assert!(!codes(&v, Severity::Warning)
+        .iter()
+        .any(|c| c == "sharedBayOrder"));
+    let out = simulate(&d, &db);
+    let k = kinds(&out);
+    assert!(k.contains(&"seatReleased"), "{k:?}");
+    assert!(!k.contains(&"ejectionFailed"), "{k:?}");
+    // A CanSat vira um corpo próprio (sem a coifa) e pousa com o próprio paraquedas.
+    let cansat = out
+        .bodies
+        .iter()
+        .find(|b| b.parts.iter().any(|p| p == "cansat") && !b.parts.iter().any(|p| p == "coifa"))
+        .expect("a CanSat deveria voar separada");
+    // Altura e velocidades finitas (no 3-DOF o ângulo de ataque, coluna 8, é NaN).
+    for r in &cansat.samples {
+        assert!(
+            r[1].is_finite() && r[2].is_finite() && r[3].is_finite(),
+            "{r:?}"
+        );
+    }
+    let land = cansat.landing.expect("a CanSat deveria pousar");
+    assert!(land[1] < 10.0, "{land:?}");
+}
+
+#[test]
+fn seat_problems_are_reported() {
+    let db = db();
+    // Paraquedas sem carga que dispara antes do que abre a baia.
+    let early = with_seated_cansat(0.5, "j-coifa");
+    let v = validate(&early, &db, true);
+    assert!(codes(&v, Severity::Warning)
+        .iter()
+        .any(|c| c == "sharedBayOrder"));
+    // Junta de baia que não existe.
+    let bad = with_seated_cansat(1.2, "nao-existe");
+    let v = validate(&bad, &db, true);
+    assert!(codes(&v, Severity::Error).iter().any(|c| c == "seatNoBay"));
+}
+
+#[test]
+fn lasc_descent_rule_ignores_wind_drift() {
+    use astra_design::rules::{presets, Metric};
+    let db = db();
+    let mut d = templates::competition_payload();
+    d.competition = Some(
+        presets()
+            .into_iter()
+            .find(|(id, _)| id == "lasc-500m")
+            .unwrap()
+            .1,
+    );
+    d.launch.wind.layers = vec![WindLayerSpec {
+        agl: 0.0,
+        speed: 9.0,
+        from_deg: 90.0,
+    }];
+    let out = simulate(&d, &db);
+    let c = out.competition.as_ref().unwrap();
+    let set = d.competition.as_ref().unwrap();
+    let (i, rule) = set
+        .rules
+        .iter()
+        .enumerate()
+        .find(|(_, r)| r.id == "descida")
+        .unwrap();
+    assert_eq!(rule.metric, Metric::DescentRate);
+    let rate = c.results[i].value;
+    let ground = out
+        .bodies
+        .iter()
+        .filter_map(|b| b.landing.map(|l| l[1]))
+        .fold(0.0, f64::max);
+    // O vento soma deriva na velocidade de pouso, mas não na de descida.
+    assert!(
+        rate > 0.0 && rate + 1.0 < ground,
+        "descida {rate}, pouso {ground}"
+    );
+}
+
 mod electronics {
     use astra_design::elec::{analyze, library, PyroEvent};
     use astra_design::{simulate, templates, validate, Assembly, MaterialDb};

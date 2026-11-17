@@ -395,6 +395,14 @@ pub enum JointKind {
         /// Força nominal, N.
         holding_force: f64,
     },
+    /// Peça assentada na baia de um paraquedas (CanSat, carga ejetável): fica presa
+    /// enquanto a baia está fechada e sai livre quando a junta de separação da baia
+    /// abre, puxada pelo próprio paraquedas. Não precisa de carga de ejeção própria.
+    #[serde(rename_all = "camelCase")]
+    BaySeat {
+        /// Junta de separação da baia (a mesma do paraquedas que tem a carga).
+        bay_joint: String,
+    },
     /// Cordão ou fita (só tração).
     #[serde(rename_all = "camelCase")]
     Cord {

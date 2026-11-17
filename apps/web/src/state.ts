@@ -119,6 +119,8 @@ export function newJoint(d: Design, a: string, b: string, type: JointType): Join
             ? { type, holdingForce: 20 }
             : type === "latch"
               ? { type, holdingForce: 50 }
-              : { type, strength: 1000 };
+              : type === "baySeat"
+                ? { type, bayJoint: d.joints.find((j) => j.kind.type === "shearPins")?.id ?? "" }
+                : { type, strength: 1000 };
   return { id, a, b, kind };
 }

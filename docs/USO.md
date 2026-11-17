@@ -19,11 +19,20 @@
 - **Motor e trilho, local, vento:** carregue um .eng, escolha o local (busca, clique no mapa
   ou presets) e o vento (manual, CSV ou previsão real da Open-Meteo).
 
+## Organização da tela
+
+No topo: modo (**Foguete**, **Lançador orbital**, **Espaço**), nome do projeto, exemplos,
+desfazer/refazer, menu **Arquivo** (exportar, importar, OpenRocket, link), menu **⚙**
+(unidades, idioma, tutorial) e **LANÇAR**. No modo Foguete, as abas separam o trabalho:
+**Projeto** (peças, juntas, verificação), **Motor e local** (motor, trilho, lançadores,
+local, vento), **Voo** (globo 3D, gráficos, mapa e relatórios), **Carga útil e regras**,
+**Eletrônica**, **Análises** e **Finanças**.
+
 ## Recursos avançados
 
 | Onde | O que |
 | --- | --- |
-| Motor e lançador | Rampas, canhões, plataforma giratória, avião, balão, navio, plugins |
+| Motor e local | Rampas, canhões, plataforma giratória, avião, balão, navio, plugins |
 | Eletrônica e firmware | Monte placa, sensores, bateria, MOSFET e e-match; ligue os fios; carregue o .hex do Arduino (ou use o exemplo) e **VOAR COM FIRMWARE** |
 | Carga útil e regras | Requisitos da carga e regras da competição; depois do voo, relatório aprovado/reprovado e placar |
 | Finanças | Preços, frete, impostos, orçamento por subsistema, receitas, Pareto, planilha e relatório para patrocinadores |

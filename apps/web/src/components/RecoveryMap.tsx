@@ -119,7 +119,7 @@ export function RecoveryMap({ design, out, t }: { design: Design; out: SimOutput
         })}
         {surface && <li>Vento de superfície: {fmt(surface.speed, 1)} m/s vindo de {fmt(surface.fromDeg, 0)}°.</li>}
       </ul>
-      <p className="note">A elipse de dispersão (50/90/99%) chega com o Monte Carlo, na fase 11.</p>
+      <p className="note">A elipse de dispersão dos pousos está na aba Análises (Monte Carlo).</p>
     </section>
   );
 }

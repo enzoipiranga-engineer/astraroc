@@ -76,6 +76,22 @@ export function App() {
   const [example, setExample] = useState<ExampleFirmware | null>(null);
   const [units, setUnits] = useState<UnitSystem>(unitSystem());
   const [lang, setLangState] = useState<Lang>(currentLang());
+  const [tab, setTab] = useState<Section>(() => {
+    try {
+      const t = localStorage.getItem("astra.tab");
+      return SECTIONS.some((x) => x.id === t) ? (t as Section) : "projeto";
+    } catch {
+      return "projeto";
+    }
+  });
+  const pickTab = (t: Section) => {
+    setTab(t);
+    try {
+      localStorage.setItem("astra.tab", t);
+    } catch {
+      /* sem armazenamento */
+    }
+  };
   const [tour, setTour] = useState<number | null>(() => {
     try {
       return localStorage.getItem("astra.tour") ? null : 0;
@@ -185,6 +201,7 @@ export function App() {
     setFlying(true);
     try {
       setResult(await core.simulate(design));
+      pickTab("voo");
     } catch (e) {
       alert(`Falha na simulação: ${(e as Error).message}`);
     } finally {
@@ -262,47 +279,47 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>ASTRA</h1>
-        <div className="modes" role="tablist">
+        <nav className="modes" role="tablist" aria-label="Modo">
           <button role="tab" aria-selected={mode === "rocket"} className={mode === "rocket" ? "on" : ""} onClick={() => setMode("rocket")}>Foguete</button>
           <button role="tab" aria-selected={mode === "orbital"} className={mode === "orbital" ? "on" : ""} onClick={() => setMode("orbital")}>Lançador orbital</button>
           <button role="tab" aria-selected={mode === "space"} className={mode === "space" ? "on" : ""} onClick={() => setMode("space")}>Espaço</button>
-        </div>
+        </nav>
+        {mode === "rocket" && (
+          <div className="project">
+            <input className="name" value={design.name} onChange={(e) => change({ ...design, name: e.target.value })} aria-label="Nome do projeto" />
+            <select className="tpl" value="" aria-label="Abrir exemplo" onChange={(e) => { const t = templates.find((x) => x.id === e.target.value); if (t) { change(structuredClone(t.design)); setSelected(null); } }}>
+              <option value="">abrir exemplo…</option>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.design.name}</option>)}
+            </select>
+            <button className="icon" onClick={() => setHist(undo(hist))} disabled={!hist.past.length} title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button>
+            <button className="icon" onClick={() => setHist(redo(hist))} disabled={!hist.future.length} title="Refazer (Ctrl+Y)" aria-label="Refazer">↷</button>
+            <Menu label="Arquivo">
+              <button onClick={exportJson}>Exportar projeto (.json)</button>
+              <label className="button">Importar projeto (.json)<input type="file" accept=".json" hidden onChange={(e) => void importJson(e.target.files?.[0])} /></label>
+              <label className="button">Importar do OpenRocket (.ork)<input type="file" accept=".ork,.xml" hidden onChange={(e) => void importOrk(e.target.files?.[0])} /></label>
+              <button onClick={() => void shareLink()}>Copiar link do projeto</button>
+            </Menu>
+          </div>
+        )}
+        <div className="spacer" />
+        <Menu label="⚙" title="Preferências" align="right">
+          <button onClick={toggleUnits}>Unidades: {units === "si" ? "SI (métrico)" : "US (imperial)"}</button>
           <button
-            className="lang"
             data-no-translate
-            title={lang === "pt" ? "Switch to English" : "Mudar para português"}
             onClick={() => {
               const next: Lang = lang === "pt" ? "en" : "pt";
               setLang(next);
               setLangState(next);
             }}
           >
-            {lang === "pt" ? "EN" : "PT"}
+            {lang === "pt" ? "Idioma: português → English" : "Language: English → português"}
           </button>
+          <button onClick={() => setTour(0)}>Tutorial</button>
+        </Menu>
         {mode === "rocket" && (
-          <>
-        <label className="tpl">
-          <span>Exemplo</span>
-          <select value="" onChange={(e) => { const t = templates.find((x) => x.id === e.target.value); if (t) { change(structuredClone(t.design)); setSelected(null); } }}>
-            <option value="">abrir exemplo…</option>
-            {templates.map((t) => <option key={t.id} value={t.id}>{t.design.name}</option>)}
-          </select>
-        </label>
-        <input className="name" value={design.name} onChange={(e) => change({ ...design, name: e.target.value })} aria-label="Nome do projeto" />
-        <div className="tools">
-          <button onClick={() => setHist(undo(hist))} disabled={!hist.past.length} title="Ctrl+Z">Desfazer</button>
-          <button onClick={() => setHist(redo(hist))} disabled={!hist.future.length} title="Ctrl+Y">Refazer</button>
-          <button onClick={exportJson}>Exportar</button>
-          <label className="button">Importar<input type="file" accept=".json" hidden onChange={(e) => void importJson(e.target.files?.[0])} /></label>
-          <button onClick={() => void shareLink()} title="Copia um link com o projeto">Link</button>
-          <button onClick={toggleUnits} title="Unidades dos campos">{units === "si" ? "SI" : "US"}</button>
-
-          <label className="button" title="Projeto do OpenRocket">OpenRocket<input type="file" accept=".ork,.xml" hidden onChange={(e) => void importOrk(e.target.files?.[0])} /></label>
-        </div>
-        <button className="launch" onClick={() => void launch()} disabled={flying}>
-          {flying ? "Simulando…" : nErr ? `LANÇAR (${nErr} ${nErr === 1 ? "erro" : "erros"})` : "LANÇAR"}
-        </button>
-          </>
+          <button className="launch" onClick={() => void launch()} disabled={flying}>
+            {flying ? "Simulando…" : nErr ? `LANÇAR (${nErr} ${nErr === 1 ? "erro" : "erros"})` : "LANÇAR"}
+          </button>
         )}
       </header>
 
@@ -312,86 +329,104 @@ export function App() {
         <OrbitalView core={core} ionToken={ionToken} />
       ) : (
         <>
-      {s && (
-        <div className="stats">
-          <span>Massa <b>{fmt(s.liftoffMass * 1000, 0)} g</b>{!loadsBusy && dlt(delta?.mass, "g", 1000)}</span>
-          <span>Margem <b className={s.staticMargin < 0 ? "bad" : s.staticMargin < 1 ? "warn" : ""}>{fmt(s.staticMargin, 2)} cal</b></span>
-          <span>Empuxo/peso <b>{fmt(s.thrustToWeight, 1)}</b></span>
-          <span>Apogeu previsto <b>{loadsBusy ? "…" : `${fmt(s.apogee, 0)} m`}</b>{!loadsBusy && dlt(delta?.apogee, "m")}</span>
-          <span>Saída do trilho <b>{loadsBusy ? "…" : `${fmt(s.railExitSpeed, 1)} m/s`}</b></span>
-          <span>Custo <b>R$ {fmt(bomTotal, 2)}</b>{dlt(delta?.cost, "R$", 1, 2)}{bomMissing > 0 && <small> ({bomMissing} sem preço)</small>}</span>
-        </div>
-      )}
+          {s && (
+            <div className="stats">
+              <span>Massa <b>{fmt(s.liftoffMass * 1000, 0)} g</b>{!loadsBusy && dlt(delta?.mass, "g", 1000)}</span>
+              <span>Margem <b className={s.staticMargin < 0 ? "bad" : s.staticMargin < 1 ? "warn" : ""}>{fmt(s.staticMargin, 2)} cal</b></span>
+              <span>Empuxo/peso <b>{fmt(s.thrustToWeight, 1)}</b></span>
+              <span>Apogeu previsto <b>{loadsBusy ? "…" : `${fmt(s.apogee, 0)} m`}</b>{!loadsBusy && dlt(delta?.apogee, "m")}</span>
+              <span>Saída do trilho <b>{loadsBusy ? "…" : `${fmt(s.railExitSpeed, 1)} m/s`}</b></span>
+              <span>Custo <b>R$ {fmt(bomTotal, 2)}</b>{dlt(delta?.cost, "R$", 1, 2)}</span>
+            </div>
+          )}
 
-      <RocketView design={design} validation={validation} selected={selected} errorParts={errorParts} onSelect={setSelected} />
+          <nav className="sections" role="tablist" aria-label="Seções">
+            {SECTIONS.map((x) => (
+              <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => pickTab(x.id)}>
+                {x.label}
+                {x.id === "projeto" && nErr > 0 && <span className="badge bad">{nErr}</span>}
+                {x.id === "voo" && result && <span className="badge ok">●</span>}
+              </button>
+            ))}
+          </nav>
 
-      <div className="columns">
-        <div className="col">
-          <PartPanel design={design} materials={materials} selected={selected} errorParts={errorParts} onSelect={setSelected} onChange={change} />
-        </div>
-        <div className="col">
-          <JointPanel design={design} materials={materials} errorJoints={errorJoints} selectedPart={selected} onChange={change} />
-          <SetupPanel design={design} onChange={change} />
-          <LauncherPanel design={design} core={core} onChange={change} />
-          <SitePanel design={design} onChange={change} picking={picking} onTogglePick={() => setPicking((p) => !p)} ionToken={ionToken} onIonToken={saveIon} />
-        </div>
-        <div className="col">
-          <IssuesPanel issues={issues} busy={loadsBusy} onPick={setSelected} />
-          <WindPanel design={design} onChange={change} />
-        </div>
-      </div>
+          {tab === "projeto" && (
+            <RocketView design={design} validation={validation} selected={selected} errorParts={errorParts} onSelect={setSelected} />
+          )}
 
-      <AnalysisPanel design={design} core={core} onChange={change} spawn={spawnClient} />
-      <FinancePanel design={design} validation={validation} library={elecLib} materials={materials} core={core} onChange={change} />
-      <PayloadPanel design={design} presets={payloadPresets} rulePresets={rulePresets} onChange={change} />
-      <ElectronicsPanel design={design} validation={validation} core={core} library={elecLib} example={example} result={result} onChange={change} onFlight={setResult} />
+          {tab === "projeto" && (
+            <div className="grid three">
+              <PartPanel design={design} materials={materials} selected={selected} errorParts={errorParts} onSelect={setSelected} onChange={change} />
+              <JointPanel design={design} materials={materials} errorJoints={errorJoints} selectedPart={selected} onChange={change} />
+              <IssuesPanel issues={issues} busy={loadsBusy} onPick={setSelected} />
+            </div>
+          )}
 
-      {(result || picking) && (
-        <div className="flight-view">
-          <Suspense fallback={<section className="panel globe">Carregando o globo 3D…</section>}>
-            <GlobeView
-              design={design}
-              validation={validation}
-              out={result ?? { bodies: [], events: [], warnings: [] }}
-              gps={gps}
-              ionToken={ionToken}
-              seek={seek}
-              onTime={onTime}
-              pickMode={picking}
-              onPickLocation={pickLocation}
-            />
-          </Suspense>
-          {result && <RecoveryMap design={design} out={result} t={simTime} />}
-        </div>
-      )}
-      {result && (
-        <div className="gps-import">
-          <label className="button">
-            Sobrepor GPS real (GPX, KML, CSV)
-            <input type="file" accept=".gpx,.kml,.csv,.txt" hidden onChange={(e) => void importGps(e.target.files?.[0])} />
-          </label>
-          {gps.length > 0 && <span className="hint">{gps.length} pontos de GPS sobrepostos em amarelo.</span>}
-          <button onClick={() => flightReport(design, validation, result)}>Relatório de voo (PDF)</button>
-          {design.motor.type === "eng" && <button onClick={() => download(`${fileStem(design.name)}-motor.eng`, (design.motor as { text: string }).text, "text/plain")}>Motor (.eng)</button>}
-        </div>
-      )}
-      {result && (
-        <Results
-          out={result}
-          onPick={pickAt}
-          onExport={(k) => {
-            const stem = fileStem(design.name);
-            if (k === "kml") download(`${stem}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml");
-            else if (k === "kmz") downloadBytes(`${stem}.kmz`, zipSync({ "doc.kml": strToU8(toKml(design, result)) }), "application/vnd.google-earth.kmz");
-            else if (k === "tacview") {
-              const f = tacviewFile(result, design.name);
-              downloadBytes(f.name, f.data, f.type);
-            } else download(`${stem}.csv`, toCsv(result), "text/csv");
-          }}
-        />
-      )}
+          {tab === "lancamento" && (
+            <>
+              <div className="grid two">
+                <div className="stack">
+                  <SetupPanel design={design} onChange={change} />
+                  <LauncherPanel design={design} core={core} onChange={change} />
+                </div>
+                <div className="stack">
+                  <SitePanel design={design} onChange={change} picking={picking} onTogglePick={() => setPicking((p) => !p)} ionToken={ionToken} onIonToken={saveIon} />
+                  <WindPanel design={design} onChange={change} />
+                </div>
+              </div>
+              {picking && (
+                <Suspense fallback={<section className="panel globe">Carregando o globo 3D…</section>}>
+                  <GlobeView design={design} validation={validation} out={{ bodies: [], events: [], warnings: [] }} gps={[]} ionToken={ionToken} seek={null} onTime={onTime} pickMode onPickLocation={pickLocation} />
+                </Suspense>
+              )}
+            </>
+          )}
 
-      {result && <MissionReport payloads={result.payloads ?? []} competition={result.competition} />}
+          {tab === "voo" &&
+            (result ? (
+              <>
+                <div className="flight-view">
+                  <Suspense fallback={<section className="panel globe">Carregando o globo 3D…</section>}>
+                    <GlobeView design={design} validation={validation} out={result} gps={gps} ionToken={ionToken} seek={seek} onTime={onTime} pickMode={false} onPickLocation={pickLocation} />
+                  </Suspense>
+                  <RecoveryMap design={design} out={result} t={simTime} />
+                </div>
+                <div className="toolbar">
+                  <label className="button">
+                    Sobrepor GPS real (GPX, KML, CSV)
+                    <input type="file" accept=".gpx,.kml,.csv,.txt" hidden onChange={(e) => void importGps(e.target.files?.[0])} />
+                  </label>
+                  {gps.length > 0 && <span className="hint">{gps.length} pontos de GPS sobrepostos em amarelo.</span>}
+                  <button onClick={() => flightReport(design, validation, result)}>Relatório de voo (PDF)</button>
+                  {design.motor.type === "eng" && <button onClick={() => download(`${fileStem(design.name)}-motor.eng`, (design.motor as { text: string }).text, "text/plain")}>Motor (.eng)</button>}
+                </div>
+                <Results
+                  out={result}
+                  onPick={pickAt}
+                  onExport={(k) => {
+                    const stem = fileStem(design.name);
+                    if (k === "kml") download(`${stem}.kml`, toKml(design, result), "application/vnd.google-earth.kml+xml");
+                    else if (k === "kmz") downloadBytes(`${stem}.kmz`, zipSync({ "doc.kml": strToU8(toKml(design, result)) }), "application/vnd.google-earth.kmz");
+                    else if (k === "tacview") {
+                      const f = tacviewFile(result, design.name);
+                      downloadBytes(f.name, f.data, f.type);
+                    } else download(`${stem}.csv`, toCsv(result), "text/csv");
+                  }}
+                />
+                <MissionReport payloads={result.payloads ?? []} competition={result.competition} />
+              </>
+            ) : (
+              <section className="panel empty">
+                <h2>Nenhum voo ainda</h2>
+                <p className="hint">Aperte LANÇAR para simular o voo. O globo 3D, os gráficos e o mapa de recuperação aparecem aqui.</p>
+                <button className="launch" onClick={() => void launch()} disabled={flying}>{flying ? "Simulando…" : "LANÇAR"}</button>
+              </section>
+            ))}
+
+          {tab === "carga" && <PayloadPanel design={design} presets={payloadPresets} rulePresets={rulePresets} onChange={change} />}
+          {tab === "eletronica" && <ElectronicsPanel design={design} validation={validation} core={core} library={elecLib} example={example} result={result} onChange={change} onFlight={setResult} />}
+          {tab === "analises" && <AnalysisPanel design={design} core={core} onChange={change} spawn={spawnClient} />}
+          {tab === "financas" && <FinancePanel design={design} validation={validation} library={elecLib} materials={materials} core={core} onChange={change} />}
         </>
       )}
 
@@ -403,12 +438,44 @@ export function App() {
   );
 }
 
+type Section = "projeto" | "lancamento" | "voo" | "carga" | "eletronica" | "analises" | "financas";
+const SECTIONS: { id: Section; label: string }[] = [
+  { id: "projeto", label: "Projeto" },
+  { id: "lancamento", label: "Motor e local" },
+  { id: "voo", label: "Voo" },
+  { id: "carga", label: "Carga útil e regras" },
+  { id: "eletronica", label: "Eletrônica" },
+  { id: "analises", label: "Análises" },
+  { id: "financas", label: "Finanças" },
+];
+
+/** Menu suspenso simples (fecha ao clicar fora ou numa opção). */
+function Menu({ label, title, align, children }: { label: string; title?: string; align?: "right"; children: React.ReactNode }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      const el = ref.current;
+      if (el?.open && !el.contains(e.target as Node)) el.open = false;
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
+  return (
+    <details className={`menu${align === "right" ? " right" : ""}`} ref={ref}>
+      <summary title={title}>{label}</summary>
+      <div className="menu-list" onClick={(e) => { if ((e.target as HTMLElement).tagName === "BUTTON" && ref.current) ref.current.open = false; }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
 const TOUR = [
   { title: "Bem-vindo ao ASTRA", text: "Um simulador de foguetes com física real: cada peça tem material, massa e resistência, e as falhas são simuladas, não só avisadas." },
-  { title: "1. Escolha um exemplo", text: "No topo, \"abrir exemplo\" carrega um foguete pronto: garrafa PET, competição de 500 m, com aviônica ou com carga útil." },
-  { title: "2. Ajuste o projeto", text: "Clique numa peça no desenho ou na lista para mudar medidas e material. A verificação física à direita atualiza na hora, com sugestões de correção." },
-  { title: "3. Lance", text: "LANÇAR simula o voo e abre o globo 3D, os gráficos e o mapa de recuperação. Os modos Lançador orbital e Espaço cobrem foguetes grandes, órbitas e pousos." },
-  { title: "4. Vá além", text: "Mais abaixo: Monte Carlo, otimizador, finanças, carga útil e regras de competição, e eletrônica com Arduino emulado." },
+  { title: "1. Escolha um exemplo", text: "No topo, \"abrir exemplo\" carrega um foguete pronto: garrafa PET, kit, níveis 1 a 3, competição com aviônica ou com carga útil." },
+  { title: "2. Ajuste o projeto", text: "Na aba Projeto, clique numa peça no desenho ou na lista para mudar medidas e material. A verificação física ao lado atualiza na hora, com sugestões de correção. Motor, trilho, local e vento ficam em Motor e local." },
+  { title: "3. Lance", text: "LANÇAR simula o voo e abre a aba Voo, com o globo 3D, os gráficos e o mapa de recuperação. Os modos Lançador orbital e Espaço, no topo, cobrem foguetes grandes, órbitas e pousos." },
+  { title: "4. Vá além", text: "As outras abas trazem carga útil e regras de competição, eletrônica com Arduino emulado, Monte Carlo e otimizador, e finanças. Idioma, unidades e este tutorial ficam no menu ⚙." },
 ];
 
 function Tour({ step, onStep }: { step: number; onStep: (s: number | null) => void }) {

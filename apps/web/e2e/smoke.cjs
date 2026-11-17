@@ -27,7 +27,7 @@ const dir = process.argv[3] || '.';
   console.log('resultado:', (await p.locator('.results').innerText()).slice(0, 1200));
   await p.screenshot({ path: dir + '/2-coifa-solta.png', fullPage: true });
   // Exemplo de competição.
-  await p.selectOption('.tpl select', 'competicao-500m');
+  await p.selectOption('.project .tpl', 'competicao-500m');
   await p.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 15000 });
   await p.locator('header button.launch').click();
   await p.waitForSelector('.results', { timeout: 20000 });
